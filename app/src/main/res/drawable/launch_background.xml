@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash как во Flutter: серый фон #333333 и логотип по центру -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <bitmap android:gravity="fill" android:src="@drawable/splash_background" />
+    </item>
+    <item
+        android:width="200dp"
+        android:height="200dp"
+        android:gravity="center">
+        <bitmap android:gravity="fill" android:src="@drawable/app_logo" />
+    </item>
+</layer-list>
