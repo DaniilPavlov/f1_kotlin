@@ -20,6 +20,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "F1 Kotlin"
+rootProject.name = "f1_kotlin"
 include(":app")
  

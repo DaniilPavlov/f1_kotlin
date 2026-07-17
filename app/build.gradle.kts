@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.f1kotlin"
+    namespace = "com.example.f1_kotlin"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.f1kotlin"
+        applicationId = "com.example.f1_kotlin"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
@@ -73,7 +73,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
-    testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
