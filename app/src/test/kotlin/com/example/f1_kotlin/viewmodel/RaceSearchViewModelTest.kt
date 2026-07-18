@@ -42,10 +42,7 @@ class RaceSearchViewModelTest {
         Dispatchers.resetMain()
     }
 
-    /**
-     * Кнопка «Найти» активна только при 4 цифрах года и непустом раунде —
-     * как во Flutter-версии приложения.
-     */
+    /** Кнопка «Найти» активна только при 4 цифрах года и непустом раунде. */
     @Test
     fun checkFields_requiresFourDigitYearAndRound() {
         val viewModel = RaceSearchViewModel(repository)

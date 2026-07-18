@@ -22,7 +22,7 @@ import java.util.Locale
  * Корневой Composable приложения.
  *
  * Слои снаружи внутрь:
- * 1. Локаль — [CompositionLocalProvider] без recreate Activity (как во Flutter);
+ * 1. Локаль — [CompositionLocalProvider] без recreate Activity;
  * 2. [F1Theme] — Material + брендовые цвета;
  * 3. [F1App] — Scaffold, нижние вкладки, NavHost.
  *

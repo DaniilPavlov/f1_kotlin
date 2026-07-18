@@ -30,6 +30,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.time.ZoneId
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -38,9 +39,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * Локальные напоминания за 30 минут до сессий (как RaceReminderService во Flutter).
+ * Локальные напоминания за 30 минут до сессий.
  *
- * Пересобирает alarms при смене расписания, часового пояса или языка приложения.
+ * В AlarmManager держим только [MAX_SCHEDULED_REMINDERS] ближайших сессий (rolling window).
+ * На каждом sync (старт / resume / смена языка / boot / timezone) окно пересобирается
  */
 @Singleton
 class RaceReminderScheduler @Inject constructor(
@@ -48,30 +50,21 @@ class RaceReminderScheduler @Inject constructor(
     private val repository: F1Repository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val lastScheduledIds = AtomicReference<Set<Int>>(emptySet())
 
     fun sync() {
         scope.launch {
             runCatching {
                 val races = repository.getCurrentSchedule().getOrNull() ?: return@runCatching
-                val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
                 val language = LocaleController.language.value
                 val localizedContext = context.withAppLocale(language)
-                val reminders = sessions(races, localizedContext)
-                val timezone = ZoneId.systemDefault().rules.getOffset(java.time.Instant.now()).totalSeconds / 60
-                val plan = reminders.joinToString("|") { "${it.id}:${it.triggerAt}" }
-                if (preferences.getString(KEY_PLAN, null) != plan ||
-                    preferences.getInt(KEY_TIMEZONE, Int.MIN_VALUE) != timezone ||
-                    preferences.getString(KEY_LOCALE, null) != language
-                ) {
-                    cancelPlanned(preferences.getString(KEY_IDS, "").orEmpty())
-                    schedule(reminders)
-                    preferences.edit()
-                        .putString(KEY_PLAN, plan)
-                        .putString(KEY_IDS, reminders.joinToString(",") { it.id.toString() })
-                        .putInt(KEY_TIMEZONE, timezone)
-                        .putString(KEY_LOCALE, language)
-                        .apply()
-                }
+                val upcoming = sessions(races, localizedContext).sortedBy { it.triggerAt }
+                val window = upcoming.take(MAX_SCHEDULED_REMINDERS)
+
+                // Снимаем прошлое окно и всё, что могло остаться от старой стратегии «весь сезон».
+                cancelIds(lastScheduledIds.get() + upcoming.map { it.id })
+                schedule(window)
+                lastScheduledIds.set(window.map { it.id }.toSet())
             }
         }
     }
@@ -117,9 +110,10 @@ class RaceReminderScheduler @Inject constructor(
         }
     }
 
-    private fun cancelPlanned(ids: String) {
+    private fun cancelIds(ids: Set<Int>) {
+        if (ids.isEmpty()) return
         val manager = context.getSystemService(AlarmManager::class.java) ?: return
-        ids.split(",").mapNotNull(String::toIntOrNull).forEach { id ->
+        ids.forEach { id ->
             manager.cancel(intent(Reminder(id, 0, "", "")))
         }
     }
@@ -162,11 +156,9 @@ class RaceReminderScheduler @Inject constructor(
         const val EXTRA_ID = "id"
         const val EXTRA_TITLE = "title"
         const val EXTRA_BODY = "body"
-        private const val PREFERENCES = "race_reminders"
-        private const val KEY_PLAN = "plan"
-        private const val KEY_IDS = "planned_ids"
-        private const val KEY_TIMEZONE = "timezone_offset_minutes"
-        private const val KEY_LOCALE = "locale"
+
+        /** Сколько ближайших держим в ОС. */
+        private const val MAX_SCHEDULED_REMINDERS = 10
         private const val THIRTY_MINUTES = 30 * 60 * 1000L
     }
 }
@@ -182,7 +174,7 @@ class RaceReminderReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra(RaceReminderScheduler.EXTRA_TITLE).orEmpty()
         val body = intent.getStringExtra(RaceReminderScheduler.EXTRA_BODY).orEmpty()
         val notification = NotificationCompat.Builder(context, RaceReminderScheduler.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

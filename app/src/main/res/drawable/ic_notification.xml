@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Small icon для уведомлений: белый силуэт на прозрачном фоне.
+  Цветные PNG/векторы в status bar Android не показывает как задумано.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Древко -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3,2h2v20H3z" />
+    <!-- Шахматное поле флага (только белые клетки) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="
+            M6,3h3v3H6z
+            M12,3h3v3h-3z
+            M18,3h3v3h-3z
+            M9,6h3v3H9z
+            M15,6h3v3h-3z
+            M6,9h3v3H6z
+            M12,9h3v3h-3z
+            M18,9h3v3h-3z
+            M9,12h3v3H9z
+            M15,12h3v3h-3z
+        " />
+</vector>

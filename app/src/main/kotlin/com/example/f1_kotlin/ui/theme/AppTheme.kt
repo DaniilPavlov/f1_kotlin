@@ -22,7 +22,7 @@ val HelveticaBold = FontFamily(Font(R.font.helvetica_neue_cyr_bold, FontWeight.B
 val InterRegular = FontFamily(Font(R.font.inter_regular, FontWeight.Normal))
 
 /**
- * Типографика приложения (аналог TextTheme во Flutter).
+ * Типографика приложения.
  * Composable'ы берут готовые стили, чтобы не дублировать fontSize/color.
  */
 object AppStyles {
@@ -34,7 +34,7 @@ object AppStyles {
     val navBar = TextStyle(fontFamily = InterRegular, fontSize = 10.sp, lineHeight = 12.sp, color = Color.Black)
 }
 
-/** Отступы по умолчанию — как StaticData во Flutter-проекте. */
+/** Отступы по умолчанию. */
 object AppDimens {
     const val horizontalPadding = 12f
     const val verticalPadding = 20f

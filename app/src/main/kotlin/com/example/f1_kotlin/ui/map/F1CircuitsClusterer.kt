@@ -20,7 +20,7 @@ import kotlin.math.min
 /** Высота чёрного пина на карте в dp (фиксированный размер, не масштаб PNG). */
 private const val PIN_HEIGHT_DP = 25f
 
-/** Множитель и границы радиуса красного кластера (увеличены относительно Flutter-оригинала). */
+/** Множитель и границы радиуса красного кластера. */
 private const val CLUSTER_RADIUS_MULTIPLIER = 9
 private const val CLUSTER_MIN_RADIUS_PX = 45
 private const val CLUSTER_MAX_RADIUS_PX = 72
@@ -28,7 +28,6 @@ private const val CLUSTER_MAX_RADIUS_PX = 72
 /**
  * Кластеры трасс на карте — красный круг с прозрачностью 75% и белой цифрой.
  *
- * Размер кластера больше, чем во Flutter: `min(max(size × 9, 45), 72)` px.
  * Отдельные пины — фиксированная высота [PIN_HEIGHT_DP] dp через [MapMarkerIcons.scaledPinIcon].
  */
 class F1CircuitsClusterer(context: Context) : RadiusMarkerClusterer(context) {

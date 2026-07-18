@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var reminderScheduler: RaceReminderScheduler
 
     /**
-     * [installSplashScreen] — splash с логотипом на #333333 (как flutter_native_splash во Flutter).
+     * [installSplashScreen] — splash с логотипом на #333333.
      * [setContent] передаёт дерево Compose вместо XML-layout.
      */
     override fun onCreate(savedInstanceState: Bundle?) {

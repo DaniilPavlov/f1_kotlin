@@ -7,7 +7,7 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- Splash: фон #333333 + app_logo — как flutter_native_splash во Flutter-проекте -->
+    <!-- Splash: фон #333333 + app_logo -->
     <style name="Theme.F1_Kotlin.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
