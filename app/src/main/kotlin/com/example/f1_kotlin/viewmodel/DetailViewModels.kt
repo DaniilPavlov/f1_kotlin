@@ -7,9 +7,11 @@ import com.example.f1_kotlin.data.model.CircuitModel
 import com.example.f1_kotlin.data.model.PitStopModel
 import com.example.f1_kotlin.data.model.QualifyingResultModel
 import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.data.model.RaceResultModel
 import com.example.f1_kotlin.data.repository.F1Repository
 import com.example.f1_kotlin.domain.AppException
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.domain.ErrorStrings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -36,8 +38,8 @@ class RaceInfoScreenViewModel @Inject constructor(
     private val _pitStops = MutableStateFlow<AsyncValue<List<PitStopModel>>>(AsyncValue.Loading)
     val pitStops: StateFlow<AsyncValue<List<PitStopModel>>> = _pitStops.asStateFlow()
 
-    private val _allDataLoaded = MutableStateFlow(false)
-    val allDataLoaded: StateFlow<Boolean> = _allDataLoaded.asStateFlow()
+    private val _sprint = MutableStateFlow<AsyncValue<List<RaceResultModel>>>(AsyncValue.Loading)
+    val sprint: StateFlow<AsyncValue<List<RaceResultModel>>> = _sprint.asStateFlow()
 
     private val _error = MutableStateFlow<AppException?>(null)
     val error: StateFlow<AppException?> = _error.asStateFlow()
@@ -49,10 +51,10 @@ class RaceInfoScreenViewModel @Inject constructor(
     fun loadAllData() {
         loadJob.launch(viewModelScope) {
             _error.value = null
-            _allDataLoaded.value = false
             _race.value = AsyncValue.Loading
             _qualifying.value = AsyncValue.Loading
             _pitStops.value = AsyncValue.Loading
+            _sprint.value = AsyncValue.Loading
 
             val raceResult = repository.getRaceResults(season, round)
             raceResult.onFailure { e ->
@@ -64,14 +66,13 @@ class RaceInfoScreenViewModel @Inject constructor(
 
             val loadedRace = raceResult.getOrNull()
             if (loadedRace == null) {
-                val ex = AppException("Гонка не найдена")
+                val ex = AppException(ErrorStrings.raceNotFound)
                 _race.value = AsyncValue.Error(ex.title, ex.subtitle)
                 _error.value = ex
                 return@launch
             }
 
             _race.value = AsyncValue.Value(loadedRace)
-            _allDataLoaded.value = true
             loadExtraSections(loadedRace)
         }
     }
@@ -80,6 +81,7 @@ class RaceInfoScreenViewModel @Inject constructor(
         coroutineScope {
             val qualifyingDeferred = async { repository.getQualifyingResults(race.season, race.round) }
             val pitStopsDeferred = async { repository.getPitStopsWithDriverNames(race.season, race.round) }
+            val sprintDeferred = async { repository.getSprintResults(race.season, race.round) }
 
             qualifyingDeferred.await().applyUnlessCached(
                 current = _qualifying.value,
@@ -95,6 +97,15 @@ class RaceInfoScreenViewModel @Inject constructor(
                 onSuccess = { _pitStops.value = AsyncValue.Value(it) },
                 onFailure = { ex ->
                     _pitStops.value = AsyncValue.Error(ex.title, ex.subtitle)
+                    _error.value = ex
+                },
+            )
+
+            sprintDeferred.await().applyUnlessCached(
+                current = _sprint.value,
+                onSuccess = { _sprint.value = AsyncValue.Value(it) },
+                onFailure = { ex ->
+                    _sprint.value = AsyncValue.Error(ex.title, ex.subtitle)
                     _error.value = ex
                 },
             )
@@ -130,7 +141,7 @@ class CircuitDetailViewModel @Inject constructor(
                     if (found != null) {
                         _circuit.value = AsyncValue.Value(found)
                     } else {
-                        _circuit.value = AsyncValue.Error("Трасса не найдена")
+                        _circuit.value = AsyncValue.Error(ErrorStrings.circuitNotFound)
                     }
                 },
                 onFailure = { ex -> _circuit.value = AsyncValue.Error(ex.title, ex.subtitle) },

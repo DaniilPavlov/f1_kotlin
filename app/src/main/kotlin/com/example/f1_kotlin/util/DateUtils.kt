@@ -15,18 +15,16 @@ import java.util.Locale
  * время нужно перевести в локальный часовой пояс устройства — для этого [toLocalDateTime].
  */
 object DateUtils {
-    private val russian = Locale.forLanguageTag("ru-RU")
-
     /** Сравнивает две даты без учёта времени. */
     fun isSameDay(first: LocalDate, second: LocalDate): Boolean = first == second
 
     /**
-     * Возвращает название месяца по-русски в именительном падеже.
-     * Например: `3` → «Март».
-    */
-    fun monthName(month: Int): String =
-        java.time.Month.of(month).getDisplayName(TextStyle.FULL_STANDALONE, russian)
-            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(russian) else it.toString() }
+     * Название месяца в именительном падеже на языке текущей локали приложения.
+     * Например: `3` → «Март» / «March».
+     */
+    fun monthName(month: Int, locale: Locale = Locale.getDefault()): String =
+        java.time.Month.of(month).getDisplayName(TextStyle.FULL_STANDALONE, locale)
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
 
     /** Форматирует время как `HH:mm`. */
     fun formatHourMinute(dateTime: LocalDateTime): String =

@@ -1,7 +1,10 @@
 package com.example.f1_kotlin
 
 import android.app.Application
+import com.example.f1_kotlin.domain.LocaleController
+import com.example.f1_kotlin.notifications.RaceReminderScheduler
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 /**
  * Глобальный класс приложения, указанный в AndroidManifest.
@@ -14,4 +17,17 @@ import dagger.hilt.android.HiltAndroidApp
  * во ViewModel'и.
  */
 @HiltAndroidApp
-class F1Application : Application()
+class F1Application : Application() {
+    @Inject lateinit var reminderScheduler: RaceReminderScheduler
+
+    override fun onCreate() {
+        super.onCreate()
+        LocaleController.init(this)
+        reminderScheduler.sync()
+    }
+
+    fun toggleLocale() {
+        LocaleController.toggle(this)
+        reminderScheduler.sync()
+    }
+}

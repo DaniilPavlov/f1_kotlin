@@ -8,6 +8,7 @@ import com.example.f1_kotlin.data.model.RaceModel
 import com.example.f1_kotlin.data.repository.F1Repository
 import com.example.f1_kotlin.domain.AppException
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.domain.ErrorStrings
 import com.example.f1_kotlin.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,7 @@ import javax.inject.Inject
  */
 data class ScheduleSessionItem(
     val raceName: String,
-    val title: String,
+    val titleRes: Int?,
     val date: RaceDateModel,
 )
 
@@ -56,9 +57,6 @@ class ScheduleViewModel @Inject constructor(
     private val _scheduleItems = MutableStateFlow<List<ScheduleSessionItem>>(emptyList())
     val scheduleItems: StateFlow<List<ScheduleSessionItem>> = _scheduleItems.asStateFlow()
 
-    private val _allDataLoaded = MutableStateFlow(false)
-    val allDataLoaded: StateFlow<Boolean> = _allDataLoaded.asStateFlow()
-
     private val _error = MutableStateFlow<AppException?>(null)
     val error: StateFlow<AppException?> = _error.asStateFlow()
 
@@ -73,10 +71,8 @@ class ScheduleViewModel @Inject constructor(
             repository.peekScheduleCache()?.let {
                 _races.value = AsyncValue.Value(it)
                 onSelectDay(LocalDate.now())
-                _allDataLoaded.value = true
             } ?: run {
                 _races.value = AsyncValue.Loading
-                _allDataLoaded.value = false
             }
 
             repository.getCurrentSchedule().applyUnlessCached(
@@ -84,14 +80,12 @@ class ScheduleViewModel @Inject constructor(
                 onSuccess = { races ->
                     _races.value = AsyncValue.Value(races)
                     onSelectDay(LocalDate.now())
-                    _allDataLoaded.value = true
                 },
                 onFailure = { ex ->
                     if (_races.value !is AsyncValue.Value) {
                         _races.value = AsyncValue.Error(ex.title, ex.subtitle)
                         _error.value = ex
                     }
-                    _allDataLoaded.value = _races.value is AsyncValue.Value
                 },
             )
         }
@@ -123,8 +117,9 @@ class ScheduleViewModel @Inject constructor(
         race.firstPractice,
         race.secondPractice,
         race.thirdPractice,
-        race.qualifying,
+        race.sprintQualifying,
         race.sprint,
+        race.qualifying,
     )
 
     private fun buildScheduleForDate(date: LocalDate) {
@@ -139,14 +134,14 @@ class ScheduleViewModel @Inject constructor(
                     items.add(
                         ScheduleSessionItem(
                             raceName = race.raceName,
-                            title = "Гонка",
+                            titleRes = com.example.f1_kotlin.R.string.race,
                             date = RaceDateModel(date = race.date, time = race.time),
                         ),
                     )
                 }
                 if (items.isNotEmpty()) {
                     _scheduleItems.value = listOf(
-                        ScheduleSessionItem(raceName = race.raceName, title = "", date = RaceDateModel("", null)),
+                        ScheduleSessionItem(raceName = race.raceName, titleRes = null, date = RaceDateModel("", null)),
                     ) + items
                     return
                 }
@@ -157,15 +152,16 @@ class ScheduleViewModel @Inject constructor(
 
     private fun addSessionsForDay(race: RaceModel, day: LocalDate, items: MutableList<ScheduleSessionItem>) {
         val sessionPairs = listOf(
-            race.firstPractice to "Первая практика",
-            race.secondPractice to "Вторая практика",
-            race.thirdPractice to "Третья практика",
-            race.sprint to "Спринт",
-            race.qualifying to "Квалификация",
+            race.firstPractice to com.example.f1_kotlin.R.string.first_practice,
+            race.secondPractice to com.example.f1_kotlin.R.string.second_practice,
+            race.thirdPractice to com.example.f1_kotlin.R.string.third_practice,
+            race.sprintQualifying to com.example.f1_kotlin.R.string.sprint_qualifying,
+            race.sprint to com.example.f1_kotlin.R.string.sprint,
+            race.qualifying to com.example.f1_kotlin.R.string.qualifying,
         )
-        sessionPairs.forEach { (session, title) ->
+        sessionPairs.forEach { (session, titleRes) ->
             if (session != null && LocalDate.parse(session.date) == day) {
-                items.add(ScheduleSessionItem(race.raceName, title, session))
+                items.add(ScheduleSessionItem(race.raceName, titleRes, session))
             }
         }
     }
@@ -261,8 +257,7 @@ class RaceSearchViewModel @Inject constructor(
                         _searchedRace.value = AsyncValue.Value(race)
                     } else {
                         _searchedRace.value = AsyncValue.Value(null)
-                        _errorMessage.value =
-                            "По вашему запросу гонок не найдено. Проверьте введенные данные и попробуйте еще раз."
+                        _errorMessage.value = ErrorStrings.raceNotFound
                     }
                 }
                 .onFailure { e ->

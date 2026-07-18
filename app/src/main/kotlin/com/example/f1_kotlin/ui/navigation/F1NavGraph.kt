@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -45,12 +46,12 @@ import com.example.f1_kotlin.ui.theme.F1White
 /**
  * Описание вкладки нижней навигации: route для NavHost, подпись и иконка.
  */
-sealed class BottomTab(val route: String, val label: String, val iconRes: Int) {
-    data object Home : BottomTab("home", "Главная", com.example.f1_kotlin.R.drawable.nav_home)
-    data object Results : BottomTab("results", "Результаты", com.example.f1_kotlin.R.drawable.nav_racing_car)
-    data object Schedule : BottomTab("schedule", "Календарь", com.example.f1_kotlin.R.drawable.nav_lights)
-    data object HallOfFame : BottomTab("hall_of_fame", "Зал славы", com.example.f1_kotlin.R.drawable.nav_trophy)
-    data object Circuits : BottomTab("circuits", "Трассы", com.example.f1_kotlin.R.drawable.nav_circuit)
+sealed class BottomTab(val route: String, val labelRes: Int, val iconRes: Int) {
+    data object Home : BottomTab("home", com.example.f1_kotlin.R.string.nav_home, com.example.f1_kotlin.R.drawable.nav_home)
+    data object Results : BottomTab("results", com.example.f1_kotlin.R.string.nav_results, com.example.f1_kotlin.R.drawable.nav_racing_car)
+    data object Schedule : BottomTab("schedule", com.example.f1_kotlin.R.string.nav_calendar, com.example.f1_kotlin.R.drawable.nav_lights)
+    data object HallOfFame : BottomTab("hall_of_fame", com.example.f1_kotlin.R.string.nav_hall_of_fame, com.example.f1_kotlin.R.drawable.nav_trophy)
+    data object Circuits : BottomTab("circuits", com.example.f1_kotlin.R.string.nav_circuits, com.example.f1_kotlin.R.drawable.nav_circuit)
 }
 
 private val tabs = listOf(
@@ -82,9 +83,9 @@ fun F1App() {
         topBar = {
             when {
                 currentRoute in tabs.map { it.route } -> F1AppBar()
-                currentRoute == "race_search" -> F1AppBar(title = "Поиск гонки", onBack = popBack)
-                currentRoute?.startsWith("race_info/") == true -> F1AppBar(title = "Подробная информация", onBack = popBack)
-                currentRoute?.startsWith("circuit/") == true -> F1AppBar(title = "Информация о трассе", onBack = popBack)
+                currentRoute == "race_search" -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.race_search_title), onBack = popBack)
+                currentRoute?.startsWith("race_info/") == true -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.detailed_info), onBack = popBack)
+                currentRoute?.startsWith("circuit/") == true -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.circuit_info_title), onBack = popBack)
             }
         },
         bottomBar = {
@@ -155,6 +156,7 @@ private fun F1BottomBar(currentRoute: String?, onTabSelected: (BottomTab) -> Uni
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             tabs.forEach { tab ->
+                val label = stringResource(tab.labelRes)
                 val selected = currentRoute == tab.route
                 val contentColor = if (selected) F1Red else F1White
                 Column(
@@ -165,12 +167,12 @@ private fun F1BottomBar(currentRoute: String?, onTabSelected: (BottomTab) -> Uni
                 ) {
                     Image(
                         painter = painterResource(tab.iconRes),
-                        contentDescription = tab.label,
+                        contentDescription = label,
                         modifier = Modifier.size(28.dp),
                         colorFilter = ColorFilter.tint(contentColor),
                     )
                     Text(
-                        text = tab.label,
+                        text = label,
                         style = AppStyles.navBar.copy(color = contentColor),
                     )
                 }

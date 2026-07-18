@@ -13,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.F1Calendar
@@ -56,10 +57,10 @@ fun ScheduleScreen(viewModel: ScheduleViewModel) {
             )
             Spacer(Modifier.height(AppDimens.verticalPadding.dp))
             scheduleItems.forEach { item ->
-                if (item.title.isEmpty()) {
+                if (item.titleRes == null) {
                     Text(item.raceName, style = AppStyles.h3, modifier = Modifier.padding(bottom = 12.dp))
                 } else {
-                    ScheduleSessionCard(item.title, item.date.date, item.date.time)
+                    ScheduleSessionCard(stringResource(item.titleRes), item.date.date, item.date.time)
                 }
             }
         }

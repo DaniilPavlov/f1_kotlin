@@ -54,7 +54,7 @@ fun F1Calendar(
     onMonthChanged: (YearMonth) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val russian = Locale.forLanguageTag("ru-RU")
+    val locale = Locale.getDefault()
     val daysInMonth = focusedMonth.lengthOfMonth()
     val firstDayOfMonth = focusedMonth.atDay(1)
     // Смещение: календарь начинается с понедельника (ISO), не с воскресенья
@@ -76,8 +76,8 @@ fun F1Calendar(
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null)
             }
             Text(
-                text = focusedMonth.month.getDisplayName(TextStyle.FULL_STANDALONE, russian)
-                    .replaceFirstChar { it.titlecase(russian) } + " ${focusedMonth.year}",
+                text = focusedMonth.month.getDisplayName(TextStyle.FULL_STANDALONE, locale)
+                    .replaceFirstChar { it.titlecase(locale) } + " ${focusedMonth.year}",
                 style = AppStyles.body,
             )
             IconButton(onClick = { onMonthChanged(focusedMonth.plusMonths(1)) }) {
@@ -88,7 +88,7 @@ fun F1Calendar(
         Row(modifier = Modifier.fillMaxWidth()) {
             DayOfWeek.entries.forEach { day ->
                 Text(
-                    text = day.getDisplayName(TextStyle.SHORT, russian),
+                    text = day.getDisplayName(TextStyle.SHORT, locale),
                     style = AppStyles.body,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,

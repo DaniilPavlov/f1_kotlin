@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">F1 Kotlin</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_results">Results</string>
+    <string name="nav_calendar">Calendar</string>
+    <string name="nav_hall_of_fame">Hall of Fame</string>
+    <string name="nav_circuits">Circuits</string>
+
+    <string name="home_standings_title">Current season standings</string>
+    <string name="season_label">Season: %1$s</string>
+    <string name="round_label">Round: %1$s</string>
+    <string name="drivers">Drivers</string>
+    <string name="constructors">Constructors</string>
+    <string name="driver">Driver</string>
+    <string name="constructor">Constructor</string>
+    <string name="nationality">Nationality</string>
+    <string name="points">Points</string>
+    <string name="wins">Wins</string>
+    <string name="country">Country</string>
+    <string name="time">Time</string>
+    <string name="laps">Laps</string>
+    <string name="duration">Duration</string>
+    <string name="stop">Stop</string>
+    <string name="fastest_suffix"> fastest</string>
+
+    <string name="detailed_info">Detailed information</string>
+    <string name="race">Race</string>
+    <string name="sprint">Sprint</string>
+    <string name="qualifying">Qualifying</string>
+    <string name="pit_stops">Pit stops</string>
+    <string name="lap">Lap</string>
+    <string name="last_race">Last race:</string>
+    <string name="choose_specific_race">Choose a specific race</string>
+
+    <string name="race_search_title">Race search</string>
+    <string name="season">Season</string>
+    <string name="year_hint">Year</string>
+    <string name="round">Round</string>
+    <string name="number_hint">Number</string>
+    <string name="search">Search</string>
+    <string name="race_search_info">Enter the year and race number</string>
+
+    <string name="hall_of_fame_title">Hall of Fame</string>
+    <string name="on_map">On map</string>
+    <string name="as_list">List</string>
+    <string name="circuit_info_title">Circuit information</string>
+    <string name="read_on_wikipedia">Read on Wikipedia</string>
+    <string name="country_label">Country: %1$s</string>
+    <string name="city_label">City: %1$s</string>
+
+    <string name="first_practice">First practice</string>
+    <string name="second_practice">Second practice</string>
+    <string name="third_practice">Third practice</string>
+    <string name="sprint_qualifying">Sprint qualifying</string>
+
+    <string name="driver_code">Code</string>
+    <string name="driver_number">Number</string>
+    <string name="date_of_birth">Date of birth</string>
+    <string name="open_in_wikipedia">Open on Wikipedia</string>
+
+    <string name="no_connection">No connection</string>
+    <string name="no_connection_subtitle">Once the connection is restored, you will be able to use the app again</string>
+    <string name="refresh">Refresh</string>
+    <string name="locale_code_ru">RU</string>
+    <string name="locale_code_en">EN</string>
+    <string name="notification_channel_race_reminders">Race reminders</string>
+</resources>

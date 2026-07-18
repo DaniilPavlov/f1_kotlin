@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,18 +23,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.f1_kotlin.F1Application
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Black
@@ -55,6 +61,8 @@ fun F1AppBar(
     title: String? = null,
     onBack: (() -> Unit)? = null,
 ) {
+    val context = LocalContext.current
+    val language by LocaleController.language.collectAsState()
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -97,6 +105,20 @@ fun F1AppBar(
                     .align(Alignment.Center),
                 contentScale = ContentScale.Fit,
             )
+            Text(
+                text = stringResource(
+                    if (language == "en") R.string.locale_code_en else R.string.locale_code_ru,
+                ),
+                style = AppStyles.body.copy(color = F1White),
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .clip(CircleShape)
+                    .clickable {
+                        (context.applicationContext as? F1Application)?.toggleLocale()
+                            ?: LocaleController.toggle(context)
+                    }
+                    .padding(8.dp),
+            )
         }
     }
 }
@@ -136,7 +158,7 @@ fun ErrorBody(
             contentScale = ContentScale.FillWidth,
         )
         Text(
-            text = title ?: "Соединение отсутствует",
+            text = title ?: stringResource(R.string.no_connection),
             style = AppStyles.h2,
             textAlign = TextAlign.Center,
             maxLines = 3,
@@ -144,14 +166,18 @@ fun ErrorBody(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
         )
         Text(
-            text = subtitle ?: "Как только соединение восстановится, вы снова сможете пользоваться приложением",
+            text = subtitle ?: stringResource(R.string.no_connection_subtitle),
             style = AppStyles.h3,
             textAlign = TextAlign.Center,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
         )
-        BlackButton(text = "Обновить", onClick = onRetry, modifier = Modifier.padding(horizontal = 50.dp))
+        BlackButton(
+            text = stringResource(R.string.refresh),
+            onClick = onRetry,
+            modifier = Modifier.padding(horizontal = 50.dp),
+        )
     }
 }
 
@@ -242,11 +268,13 @@ fun TableDataRow(
     index: Int,
     modifier: Modifier = Modifier,
     highlight: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(if (index % 2 == 1) F1GrayBg else Color.Transparent)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 8.dp, horizontal = 4.dp),
     ) {
         cells.forEachIndexed { cellIndex, cell ->

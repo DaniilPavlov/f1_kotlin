@@ -13,6 +13,7 @@ import com.example.f1_kotlin.data.model.HistoricalStandingsCache
 import com.example.f1_kotlin.data.model.PitStopModel
 import com.example.f1_kotlin.data.model.QualifyingResultModel
 import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.data.model.RaceResultModel
 import com.example.f1_kotlin.data.model.StandingsListsModel
 import com.example.f1_kotlin.domain.ApiCallHandler
 import java.util.concurrent.ConcurrentHashMap
@@ -121,6 +122,15 @@ class F1Repository @Inject constructor(
     suspend fun getRaceResults(year: String, round: String): Result<RaceModel?> =
         ApiCallHandler.safeCall {
             api.getRaceResults(year, round).mrData.raceTable.races.firstOrNull()
+        }
+
+    /** В не-спринтовых уик-эндах API возвращает пустой список, это не ошибка. */
+    suspend fun getSprintResults(year: String, round: String): Result<List<RaceResultModel>> =
+        ApiCallHandler.safeCall {
+            api.getSprintResults(year, round).mrData.raceTable.races
+                .firstOrNull()
+                ?.let { it.sprintResults ?: it.results }
+                .orEmpty()
         }
 
     suspend fun getQualifyingResults(year: String, round: String): Result<List<QualifyingResultModel>> =

@@ -6,6 +6,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
 
 /** Unit-тесты [ApiCallHandler] — тексты ошибок и автоповтор при [IOException]. */
 class ApiCallHandlerTest {
@@ -47,5 +51,17 @@ class ApiCallHandlerTest {
         val result = ApiCallHandler.safeCall { throw IllegalStateException("bad json") }
         val error = result.exceptionOrNull() as AppException
         assertTrue(error.title.contains("Ошибка при обработке"))
+    }
+
+    @Test
+    fun safeCall_rateLimit_returnsLocalizedRateLimitMessageWithoutRetry() = runTest {
+        var attempts = 0
+        val result = ApiCallHandler.safeCall {
+            attempts++
+            throw HttpException(Response.error<Any>(429, "{}".toResponseBody("application/json".toMediaType())))
+        }
+        val error = result.exceptionOrNull() as AppException
+        assertEquals(ErrorStrings.tooManyRequests, error.title)
+        assertEquals(1, attempts)
     }
 }

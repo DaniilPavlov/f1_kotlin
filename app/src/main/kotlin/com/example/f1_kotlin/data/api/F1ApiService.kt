@@ -41,6 +41,14 @@ interface F1ApiService {
         @Query("limit") limit: Int = 100,
     ): MrDataResponse<ScheduleModel>
 
+    /** Результаты спринта конкретной гонки. */
+    @GET("{year}/{round}/sprint.json")
+    suspend fun getSprintResults(
+        @Path("year") year: String,
+        @Path("round") round: String,
+        @Query("limit") limit: Int = 100,
+    ): MrDataResponse<ScheduleModel>
+
     /** Квалификация гонки (Q1/Q2/Q3). */
     @GET("{year}/{round}/qualifying.json")
     suspend fun getQualifyingResults(

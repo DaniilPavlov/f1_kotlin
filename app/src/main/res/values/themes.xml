@@ -2,7 +2,7 @@
 <resources>
 
     <!-- Основная тема приложения после splash -->
-    <style name="Theme.F1_Kotlin" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.F1_Kotlin" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>

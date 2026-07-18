@@ -1,3 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">F1 Kotlin</string>
+
+    <string name="nav_home">Главная</string>
+    <string name="nav_results">Результаты</string>
+    <string name="nav_calendar">Календарь</string>
+    <string name="nav_hall_of_fame">Зал славы</string>
+    <string name="nav_circuits">Трассы</string>
+
+    <string name="home_standings_title">Турнирная таблица текущего сезона</string>
+    <string name="season_label">Сезон: %1$s</string>
+    <string name="round_label">Раунд: %1$s</string>
+    <string name="drivers">Пилоты</string>
+    <string name="constructors">Конструкторы</string>
+    <string name="driver">Пилот</string>
+    <string name="constructor">Конструктор</string>
+    <string name="nationality">Национальность</string>
+    <string name="points">Очки</string>
+    <string name="wins">Победы</string>
+    <string name="country">Страна</string>
+    <string name="time">Время</string>
+    <string name="laps">Круги</string>
+    <string name="duration">Длительность</string>
+    <string name="stop">Стоп</string>
+    <string name="fastest_suffix"> самый быстрый</string>
+
+    <string name="detailed_info">Подробная информация</string>
+    <string name="race">Гонка</string>
+    <string name="sprint">Спринт</string>
+    <string name="qualifying">Квалификация</string>
+    <string name="pit_stops">Пит-стопы</string>
+    <string name="lap">Круг</string>
+    <string name="last_race">Последняя гонка:</string>
+    <string name="choose_specific_race">Выбрать конкретную гонку</string>
+
+    <string name="race_search_title">Поиск гонки</string>
+    <string name="season">Сезон</string>
+    <string name="year_hint">Год</string>
+    <string name="round">Раунд</string>
+    <string name="number_hint">Номер</string>
+    <string name="search">Поиск</string>
+    <string name="race_search_info">Введите год и номер гонки</string>
+
+    <string name="hall_of_fame_title">Зал славы</string>
+    <string name="on_map">На карте</string>
+    <string name="as_list">Списком</string>
+    <string name="circuit_info_title">Информация о трассе</string>
+    <string name="read_on_wikipedia">Прочитать информацию в википедии</string>
+    <string name="country_label">Страна: %1$s</string>
+    <string name="city_label">Город: %1$s</string>
+
+    <string name="first_practice">Первая практика</string>
+    <string name="second_practice">Вторая практика</string>
+    <string name="third_practice">Третья практика</string>
+    <string name="sprint_qualifying">Спринт-квалификация</string>
+
+    <string name="driver_code">Код</string>
+    <string name="driver_number">Номер</string>
+    <string name="date_of_birth">Дата рождения</string>
+    <string name="open_in_wikipedia">Открыть в Wikipedia</string>
+
+    <string name="no_connection">Соединение отсутствует</string>
+    <string name="no_connection_subtitle">Как только соединение восстановится, вы снова сможете пользоваться приложением</string>
+    <string name="refresh">Обновить</string>
+    <string name="locale_code_ru">RU</string>
+    <string name="locale_code_en">EN</string>
+    <string name="notification_channel_race_reminders">Напоминания о гонках</string>
 </resources>

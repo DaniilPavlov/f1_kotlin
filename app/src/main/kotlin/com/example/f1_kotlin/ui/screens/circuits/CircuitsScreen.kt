@@ -27,8 +27,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.model.CircuitModel
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CustomSwitcher
@@ -67,7 +69,12 @@ fun CircuitsScreen(
         is AsyncValue.Error -> ErrorBody(state.message, state.subtitle, onRetry = viewModel::loadCircuits, modifier = Modifier.fillMaxSize())
         is AsyncValue.Value -> Column(modifier = Modifier.fillMaxSize()) {
             Spacer(Modifier.height(12.dp))
-            CustomSwitcher("На карте", "Списком", activePage, viewModel::changeActivePage)
+            CustomSwitcher(
+                stringResource(R.string.on_map),
+                stringResource(R.string.as_list),
+                activePage,
+                viewModel::changeActivePage,
+            )
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -196,11 +203,11 @@ fun CircuitDetailScreen(viewModel: CircuitDetailViewModel) {
         ) {
             Text(state.value.circuitName, style = AppStyles.h1)
             Spacer(Modifier.height(20.dp))
-            LinkText("Прочитать информацию в википедии") { openUrl(context, state.value.url) }
+            LinkText(stringResource(R.string.read_on_wikipedia)) { openUrl(context, state.value.url) }
             Spacer(Modifier.height(20.dp))
-            Text("Страна: ${state.value.location.country}", style = AppStyles.h3)
+            Text(stringResource(R.string.country_label, state.value.location.country), style = AppStyles.h3)
             Spacer(Modifier.height(10.dp))
-            Text("Город: ${state.value.location.locality}", style = AppStyles.h3)
+            Text(stringResource(R.string.city_label, state.value.location.locality), style = AppStyles.h3)
         }
     }
 }

@@ -13,10 +13,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.f1_kotlin.R
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CustomSwitcher
+import com.example.f1_kotlin.ui.components.DriverInfoBottomSheet
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.LoadingIndicator
 import com.example.f1_kotlin.ui.components.TournamentConstructorsTable
@@ -36,6 +41,7 @@ import com.example.f1_kotlin.viewmodel.HomeViewModel
  */
 @Composable
 fun HomeScreen(viewModel: HomeViewModel) {
+    val selectedDriver = remember { mutableStateOf<com.example.f1_kotlin.data.model.DriverModel?>(null) }
     val drivers by viewModel.drivers.collectAsState()
     val constructors by viewModel.constructors.collectAsState()
     val season by viewModel.season.collectAsState()
@@ -56,18 +62,18 @@ fun HomeScreen(viewModel: HomeViewModel) {
                     .padding(vertical = AppDimens.verticalPadding.dp),
             ) {
                 Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
-                    Text("Турнирная таблица текущего сезона", style = AppStyles.h1)
+                    Text(stringResource(R.string.home_standings_title), style = AppStyles.h1)
                     Spacer(Modifier.height(32.dp))
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Text("Сезон: $season", style = AppStyles.h2, modifier = Modifier.weight(1f))
-                        Text("Раунд: $round", style = AppStyles.h2)
+                        Text(stringResource(R.string.season_label, season), style = AppStyles.h2, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.round_label, round), style = AppStyles.h2)
                     }
                 }
                 Spacer(Modifier.height(32.dp))
-                CustomSwitcher("Пилоты", "Конструкторы", activeTable, viewModel::changeActiveTable)
+                CustomSwitcher(stringResource(R.string.drivers), stringResource(R.string.constructors), activeTable, viewModel::changeActiveTable)
                 Spacer(Modifier.height(8.dp))
                 if (activeTable == 0) {
-                    TournamentDriversTable(driversList)
+                    TournamentDriversTable(driversList) { selectedDriver.value = it }
                 } else {
                     TournamentConstructorsTable(constructorsList)
                 }
@@ -75,4 +81,5 @@ fun HomeScreen(viewModel: HomeViewModel) {
             }
         }
     }
+    selectedDriver.value?.let { DriverInfoBottomSheet(it) { selectedDriver.value = null } }
 }

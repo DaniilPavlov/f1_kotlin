@@ -109,9 +109,11 @@ data class RaceModel(
     @Json(name = "FirstPractice") val firstPractice: RaceDateModel? = null,
     @Json(name = "SecondPractice") val secondPractice: RaceDateModel? = null,
     @Json(name = "ThirdPractice") val thirdPractice: RaceDateModel? = null,
+    @Json(name = "SprintQualifying") val sprintQualifying: RaceDateModel? = null,
     @Json(name = "Qualifying") val qualifying: RaceDateModel? = null,
     @Json(name = "Sprint") val sprint: RaceDateModel? = null,
     @Json(name = "Results") val results: List<RaceResultModel>? = null,
+    @Json(name = "SprintResults") val sprintResults: List<RaceResultModel>? = null,
     @Json(name = "QualifyingResults") val qualifyingResults: List<QualifyingResultModel>? = null,
     @Json(name = "PitStops") val pitStops: List<PitStopModel>? = null,
 ) {
