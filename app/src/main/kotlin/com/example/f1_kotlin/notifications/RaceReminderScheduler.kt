@@ -17,6 +17,7 @@ import android.os.LocaleList
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.example.f1_kotlin.MainActivity
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.model.RaceDateModel
 import com.example.f1_kotlin.data.model.RaceModel
@@ -100,12 +101,14 @@ class RaceReminderScheduler @Inject constructor(
     private fun schedule(reminders: List<Reminder>) {
         createChannel()
         val manager = context.getSystemService(AlarmManager::class.java) ?: return
+        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || manager.canScheduleExactAlarms()
         reminders.forEach { reminder ->
-            val pending = intent(reminder)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !manager.canScheduleExactAlarms()) {
-                manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.triggerAt, pending)
-            } else {
+            val pending = pendingIntent(reminder)
+            if (canExact) {
                 manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.triggerAt, pending)
+            } else {
+                // Android 12+: без разрешения на exact alarms — ближайшее окно Doze.
+                manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.triggerAt, pending)
             }
         }
     }
@@ -114,19 +117,25 @@ class RaceReminderScheduler @Inject constructor(
         if (ids.isEmpty()) return
         val manager = context.getSystemService(AlarmManager::class.java) ?: return
         ids.forEach { id ->
-            manager.cancel(intent(Reminder(id, 0, "", "")))
+            manager.cancel(pendingIntent(Reminder(id, 0, "", "")))
         }
     }
 
-    private fun intent(reminder: Reminder): PendingIntent = PendingIntent.getBroadcast(
-        context,
-        reminder.id,
-        Intent(context, RaceReminderReceiver::class.java)
-            .putExtra(EXTRA_ID, reminder.id)
-            .putExtra(EXTRA_TITLE, reminder.title)
-            .putExtra(EXTRA_BODY, reminder.body),
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-    )
+    /** Explicit + IMMUTABLE PendingIntent — без implicit hijacking. */
+    private fun pendingIntent(reminder: Reminder): PendingIntent {
+        val intent = Intent(context, RaceReminderReceiver::class.java).apply {
+            setPackage(context.packageName)
+            putExtra(EXTRA_ID, reminder.id)
+            putExtra(EXTRA_TITLE, reminder.title)
+            putExtra(EXTRA_BODY, reminder.body)
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            reminder.id,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -173,10 +182,20 @@ class RaceReminderReceiver : BroadcastReceiver() {
         }
         val title = intent.getStringExtra(RaceReminderScheduler.EXTRA_TITLE).orEmpty()
         val body = intent.getStringExtra(RaceReminderScheduler.EXTRA_BODY).orEmpty()
+        val openApp = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, MainActivity::class.java).apply {
+                setPackage(context.packageName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         val notification = NotificationCompat.Builder(context, RaceReminderScheduler.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
+            .setContentIntent(openApp)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
