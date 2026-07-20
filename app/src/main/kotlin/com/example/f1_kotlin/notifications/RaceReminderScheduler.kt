@@ -206,10 +206,16 @@ class RaceReminderReceiver : BroadcastReceiver() {
 
 class BootCompletedReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            RaceReminderEntryPoint::class.java,
-        ).raceReminderScheduler().sync()
+        when (intent.action) {
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+            -> {
+                EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    RaceReminderEntryPoint::class.java,
+                ).raceReminderScheduler().sync()
+            }
+        }
     }
 }
 
