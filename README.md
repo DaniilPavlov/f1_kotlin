@@ -7,8 +7,8 @@ Data — [Jolpica F1 API](https://github.com/jolpica/jolpica-f1) (Ergast-compati
 
 Same idea, other stacks:
 
-- [f1_pet_project](https://github.com/DaniilPavlov/f1_pet_project) — Flutter (Android / iOS)
-- [f1_kmp](https://github.com/DaniilPavlov/f1_kmp) — Kotlin Multiplatform (Android / iOS), ported from this repo
+- [f1_pet_project](https://github.com/DaniilPavlov/f1_pet_project) — Flutter (Android / iOS / Web)
+- [f1_kmp](https://github.com/DaniilPavlov/f1_kmp) — Kotlin Multiplatform (Android / iOS)
 
 ## Stack
 
