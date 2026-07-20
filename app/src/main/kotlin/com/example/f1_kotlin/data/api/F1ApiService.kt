@@ -1,8 +1,10 @@
 package com.example.f1_kotlin.data.api
 
 import com.example.f1_kotlin.data.model.CircuitsModel
+import com.example.f1_kotlin.data.model.ConstructorFetchingModel
 import com.example.f1_kotlin.data.model.DriverFetchingModel
 import com.example.f1_kotlin.data.model.MrDataResponse
+import com.example.f1_kotlin.data.model.MrDataTotalModel
 import com.example.f1_kotlin.data.model.ScheduleModel
 import com.example.f1_kotlin.data.model.StandingsModel
 import retrofit2.http.GET
@@ -93,4 +95,36 @@ interface F1ApiService {
     /** Список всех F1-трасс с координатами. */
     @GET("circuits.json")
     suspend fun getCircuits(@Query("limit") limit: Int = 100): MrDataResponse<CircuitsModel>
+
+    /** Список сезонов F1 (для picker). */
+    @GET("seasons.json")
+    suspend fun getSeasons(@Query("limit") limit: Int = 100): MrDataResponse<MrDataTotalModel>
+
+    /** Календарь конкретного сезона (для picker раундов). */
+    @GET("{year}.json")
+    suspend fun getSeasonSchedule(
+        @Path("year") year: String,
+        @Query("limit") limit: Int = 100,
+    ): MrDataResponse<ScheduleModel>
+
+    /** Карточка конструктора по ID. */
+    @GET("constructors/{constructorId}.json")
+    suspend fun getConstructor(
+        @Path("constructorId") constructorId: String,
+        @Query("limit") limit: Int = 100,
+    ): MrDataResponse<ConstructorFetchingModel>
+
+    /** История побед на трассе (все ГП с position=1). */
+    @GET("circuits/{circuitId}/results/1.json")
+    suspend fun getCircuitWinners(
+        @Path("circuitId") circuitId: String,
+        @Query("limit") limit: Int = 100,
+    ): MrDataResponse<ScheduleModel>
+
+    /** Totals и таблицы для карьерной статистики (поле total в MRData). */
+    @GET("{path}.json")
+    suspend fun getMrDataTotal(
+        @Path("path") path: String,
+        @Query("limit") limit: Int = 100,
+    ): MrDataResponse<MrDataTotalModel>
 }

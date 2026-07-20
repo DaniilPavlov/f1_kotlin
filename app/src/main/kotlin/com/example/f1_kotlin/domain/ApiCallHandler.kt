@@ -82,4 +82,6 @@ object ErrorStrings {
         "По вашему запросу гонок не найдено. Проверьте введенные данные и попробуйте еще раз."
     }
     val circuitNotFound get() = if (isEnglish) "Circuit not found" else "Трасса не найдена"
+    val driverNotFound get() = if (isEnglish) "Driver not found" else "Пилот не найден"
+    val constructorNotFound get() = if (isEnglish) "Constructor not found" else "Конструктор не найден"
 }

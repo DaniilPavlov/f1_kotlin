@@ -125,26 +125,158 @@ class CircuitDetailViewModel @Inject constructor(
     private val _circuit = MutableStateFlow<AsyncValue<CircuitModel>>(AsyncValue.Loading)
     val circuit: StateFlow<AsyncValue<CircuitModel>> = _circuit.asStateFlow()
 
+    private val _winners = MutableStateFlow<AsyncValue<List<com.example.f1_kotlin.data.model.CircuitRaceWin>>>(AsyncValue.Loading)
+    val winners: StateFlow<AsyncValue<List<com.example.f1_kotlin.data.model.CircuitRaceWin>>> = _winners.asStateFlow()
+
+    private val _error = MutableStateFlow<AppException?>(null)
+    val error: StateFlow<AppException?> = _error.asStateFlow()
+
     init {
-        loadCircuit()
+        loadAllData()
     }
 
-    fun loadCircuit() {
+    fun loadAllData() {
         loadJob.launch(viewModelScope) {
-            repository.peekCircuitsCache()?.find { it.circuitId == circuitId }?.let {
-                _circuit.value = AsyncValue.Value(it)
-            } ?: run { _circuit.value = AsyncValue.Loading }
+            _error.value = null
+            loadCircuit()
+            loadWinners()
+        }
+    }
 
-            repository.getCircuitById(circuitId).applyUnlessCached(
-                current = _circuit.value,
-                onSuccess = { found ->
-                    if (found != null) {
-                        _circuit.value = AsyncValue.Value(found)
-                    } else {
-                        _circuit.value = AsyncValue.Error(ErrorStrings.circuitNotFound)
-                    }
+    private suspend fun loadCircuit() {
+        repository.peekCircuitsCache()?.find { it.circuitId == circuitId }?.let {
+            _circuit.value = AsyncValue.Value(it)
+        } ?: run { _circuit.value = AsyncValue.Loading }
+
+        repository.getCircuitById(circuitId).applyUnlessCached(
+            current = _circuit.value,
+            onSuccess = { found ->
+                if (found != null) {
+                    _circuit.value = AsyncValue.Value(found)
+                } else {
+                    _circuit.value = AsyncValue.Error(ErrorStrings.circuitNotFound)
+                }
+            },
+            onFailure = { ex -> _circuit.value = AsyncValue.Error(ex.title, ex.subtitle) },
+        )
+    }
+
+    private suspend fun loadWinners() {
+        _winners.value = AsyncValue.Loading
+        repository.getCircuitWinners(circuitId).applyUnlessCached(
+            current = _winners.value,
+            onSuccess = { _winners.value = AsyncValue.Value(it) },
+            onFailure = { ex ->
+                _winners.value = AsyncValue.Error(ex.title, ex.subtitle)
+                _error.value = ex
+            },
+        )
+    }
+}
+
+@HiltViewModel
+class DriverDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val repository: F1Repository,
+) : ViewModel() {
+    private val loadJob = LoadJobHolder()
+    private val driverId: String = savedStateHandle.get<String>("driverId").orEmpty()
+
+    private val _driver = MutableStateFlow<AsyncValue<com.example.f1_kotlin.data.model.DriverModel>>(AsyncValue.Loading)
+    val driver: StateFlow<AsyncValue<com.example.f1_kotlin.data.model.DriverModel>> = _driver.asStateFlow()
+
+    private val _careerStats = MutableStateFlow<AsyncValue<com.example.f1_kotlin.data.model.CareerStats<com.example.f1_kotlin.data.model.ConstructorModel>>>(AsyncValue.Loading)
+    val careerStats: StateFlow<AsyncValue<com.example.f1_kotlin.data.model.CareerStats<com.example.f1_kotlin.data.model.ConstructorModel>>> = _careerStats.asStateFlow()
+
+    private val _error = MutableStateFlow<AppException?>(null)
+    val error: StateFlow<AppException?> = _error.asStateFlow()
+
+    init {
+        loadAllData()
+    }
+
+    fun loadAllData() {
+        loadJob.launch(viewModelScope) {
+            _error.value = null
+            _driver.value = AsyncValue.Loading
+            _careerStats.value = AsyncValue.Loading
+
+            val currentConstructors = repository.currentConstructorsForDriver(driverId)
+            val driverResult = repository.getDriver(driverId)
+            driverResult.onFailure { ex ->
+                val appEx = ex as AppException
+                _driver.value = AsyncValue.Error(appEx.title, appEx.subtitle)
+                _error.value = appEx
+                return@launch
+            }
+            val loadedDriver = driverResult.getOrNull()
+            if (loadedDriver == null) {
+                _driver.value = AsyncValue.Error(ErrorStrings.driverNotFound)
+                return@launch
+            }
+            _driver.value = AsyncValue.Value(loadedDriver)
+
+            repository.getDriverCareerStats(driverId, currentConstructors).applyUnlessCached(
+                current = _careerStats.value,
+                onSuccess = { _careerStats.value = AsyncValue.Value(it) },
+                onFailure = { ex ->
+                    _careerStats.value = AsyncValue.Error(ex.title, ex.subtitle)
+                    _error.value = ex
                 },
-                onFailure = { ex -> _circuit.value = AsyncValue.Error(ex.title, ex.subtitle) },
+            )
+        }
+    }
+}
+
+@HiltViewModel
+class ConstructorDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val repository: F1Repository,
+) : ViewModel() {
+    private val loadJob = LoadJobHolder()
+    private val constructorId: String = savedStateHandle.get<String>("constructorId").orEmpty()
+
+    private val _constructor = MutableStateFlow<AsyncValue<com.example.f1_kotlin.data.model.ConstructorModel>>(AsyncValue.Loading)
+    val constructor: StateFlow<AsyncValue<com.example.f1_kotlin.data.model.ConstructorModel>> = _constructor.asStateFlow()
+
+    private val _careerStats = MutableStateFlow<AsyncValue<com.example.f1_kotlin.data.model.CareerStats<com.example.f1_kotlin.data.model.DriverModel>>>(AsyncValue.Loading)
+    val careerStats: StateFlow<AsyncValue<com.example.f1_kotlin.data.model.CareerStats<com.example.f1_kotlin.data.model.DriverModel>>> = _careerStats.asStateFlow()
+
+    private val _error = MutableStateFlow<AppException?>(null)
+    val error: StateFlow<AppException?> = _error.asStateFlow()
+
+    init {
+        loadAllData()
+    }
+
+    fun loadAllData() {
+        loadJob.launch(viewModelScope) {
+            _error.value = null
+            _constructor.value = AsyncValue.Loading
+            _careerStats.value = AsyncValue.Loading
+
+            val currentDrivers = repository.currentDriversForConstructor(constructorId)
+            val constructorResult = repository.getConstructor(constructorId)
+            constructorResult.onFailure { ex ->
+                val appEx = ex as AppException
+                _constructor.value = AsyncValue.Error(appEx.title, appEx.subtitle)
+                _error.value = appEx
+                return@launch
+            }
+            val loaded = constructorResult.getOrNull()
+            if (loaded == null) {
+                _constructor.value = AsyncValue.Error(ErrorStrings.constructorNotFound)
+                return@launch
+            }
+            _constructor.value = AsyncValue.Value(loaded)
+
+            repository.getConstructorCareerStats(constructorId, currentDrivers).applyUnlessCached(
+                current = _careerStats.value,
+                onSuccess = { _careerStats.value = AsyncValue.Value(it) },
+                onFailure = { ex ->
+                    _careerStats.value = AsyncValue.Error(ex.title, ex.subtitle)
+                    _error.value = ex
+                },
             )
         }
     }

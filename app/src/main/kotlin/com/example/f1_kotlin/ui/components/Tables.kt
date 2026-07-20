@@ -61,7 +61,10 @@ fun TournamentDriversTable(
 
 /** Таблица чемпионата конструкторов. */
 @Composable
-fun TournamentConstructorsTable(constructors: List<ConstructorStandingsModel>) {
+fun TournamentConstructorsTable(
+    constructors: List<ConstructorStandingsModel>,
+    onConstructorClick: ((com.example.f1_kotlin.data.model.ConstructorModel) -> Unit)? = null,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         TableHeaderRow(listOf("#", stringResource(R.string.constructor), stringResource(R.string.country), stringResource(R.string.points), stringResource(R.string.wins)))
         constructors.forEachIndexed { index, item ->
@@ -74,6 +77,7 @@ fun TournamentConstructorsTable(constructors: List<ConstructorStandingsModel>) {
                     item.wins,
                 ),
                 index = index,
+                onClick = onConstructorClick?.let { { it(item.constructor) } },
             )
         }
     }

@@ -17,21 +17,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.data.model.DriverModel
 import com.example.f1_kotlin.data.model.RaceModel
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.ui.components.BlackButton
 import com.example.f1_kotlin.ui.components.ErrorBody
-import com.example.f1_kotlin.ui.components.DriverInfoBottomSheet
 import com.example.f1_kotlin.ui.components.LoadingIndicator
 import com.example.f1_kotlin.ui.components.PitStopsTable
 import com.example.f1_kotlin.ui.components.QualifyingTable
+import com.example.f1_kotlin.ui.components.RacePickerField
 import com.example.f1_kotlin.ui.components.RaceResultsTable
+import com.example.f1_kotlin.ui.components.SeasonPickerField
 import com.example.f1_kotlin.ui.components.SectionHeader
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
@@ -45,8 +46,8 @@ fun ResultsScreen(
     viewModel: ResultsViewModel,
     onSearchRace: () -> Unit,
     onRaceDetails: (RaceModel) -> Unit,
+    onDriverClick: (DriverModel) -> Unit,
 ) {
-    val selectedDriver = remember { mutableStateOf<com.example.f1_kotlin.data.model.DriverModel?>(null) }
     val lastRace by viewModel.lastRace.collectAsState()
 
     when (val state = lastRace) {
@@ -73,23 +74,22 @@ fun ResultsScreen(
                 race = state.value,
                 maxRows = 3,
                 onDetailsClick = { onRaceDetails(state.value) },
-                onDriverClick = { selectedDriver.value = it },
+                onDriverClick = onDriverClick,
             )
             Spacer(Modifier.height(AppDimens.verticalPadding.dp))
             BoxedAction(title = stringResource(R.string.choose_specific_race), onClick = onSearchRace)
         }
     }
-    selectedDriver.value?.let { DriverInfoBottomSheet(it) { selectedDriver.value = null } }
 }
 
 @Composable
 fun RaceSearchScreen(
     viewModel: RaceSearchViewModel,
     onRaceDetails: (RaceModel) -> Unit,
+    onDriverClick: (DriverModel) -> Unit,
 ) {
-    val selectedDriver = remember { mutableStateOf<com.example.f1_kotlin.data.model.DriverModel?>(null) }
     val year by viewModel.year.collectAsState()
-    val round by viewModel.round.collectAsState()
+    val raceDisplay by viewModel.raceDisplay.collectAsState()
     val fieldsInputted by viewModel.fieldsInputted.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val searchedRace by viewModel.searchedRace.collectAsState()
@@ -102,11 +102,25 @@ fun RaceSearchScreen(
             .padding(AppDimens.horizontalPadding.dp),
     ) {
         Text(stringResource(R.string.race_search_info), style = AppStyles.body, modifier = Modifier.padding(vertical = 16.dp))
-        OutlinedField(stringResource(R.string.season), stringResource(R.string.year_hint), year, viewModel::onYearChanged)
+        SeasonPickerField(
+            value = year,
+            label = stringResource(R.string.season),
+            hint = stringResource(R.string.select_season),
+            onSeasonSelected = viewModel::onYearChanged,
+            loadSeasons = viewModel::loadSeasonYears,
+        )
         Spacer(Modifier.height(12.dp))
-        OutlinedField(stringResource(R.string.round), stringResource(R.string.number_hint), round, viewModel::onRoundChanged)
+        RacePickerField(
+            displayValue = raceDisplay,
+            seasonYear = year,
+            label = stringResource(R.string.race),
+            hint = stringResource(R.string.select_race),
+            disabledHint = stringResource(R.string.select_season_first),
+            onRacePicked = { viewModel.onRacePicked(it.round, it.title) },
+            loadRaces = viewModel::loadSeasonRaces,
+        )
         Spacer(Modifier.height(16.dp))
-        com.example.f1_kotlin.ui.components.BlackButton(
+        BlackButton(
             text = stringResource(R.string.search),
             enabled = fieldsInputted,
             onClick = viewModel::loadRaceResults,
@@ -125,18 +139,19 @@ fun RaceSearchScreen(
                     race = race,
                     maxRows = 3,
                     onDetailsClick = { onRaceDetails(race) },
-                    onDriverClick = { selectedDriver.value = it },
+                    onDriverClick = onDriverClick,
                 )
             }
             else -> Unit
         }
     }
-    selectedDriver.value?.let { DriverInfoBottomSheet(it) { selectedDriver.value = null } }
 }
 
 @Composable
-fun RaceInfoScreen(viewModel: RaceInfoScreenViewModel) {
-    val selectedDriver = remember { mutableStateOf<com.example.f1_kotlin.data.model.DriverModel?>(null) }
+fun RaceInfoScreen(
+    viewModel: RaceInfoScreenViewModel,
+    onDriverClick: (DriverModel) -> Unit,
+) {
     val race by viewModel.race.collectAsState()
     val qualifying by viewModel.qualifying.collectAsState()
     val pitStops by viewModel.pitStops.collectAsState()
@@ -163,14 +178,14 @@ fun RaceInfoScreen(viewModel: RaceInfoScreenViewModel) {
                 Text(raceData.raceName, style = AppStyles.h2)
                 RowInfo(stringResource(R.string.season_label, raceData.season), stringResource(R.string.round_label, raceData.round))
                 SectionHeader(stringResource(R.string.race))
-                RaceResultsTable(race = raceData, showHeader = false, onDriverClick = { selectedDriver.value = it })
+                RaceResultsTable(race = raceData, showHeader = false, onDriverClick = onDriverClick)
                 Spacer(Modifier.height(AppDimens.verticalPadding.dp))
                 if (sprint is AsyncValue.Value && (sprint as AsyncValue.Value).value.isNotEmpty()) {
                     SectionHeader(stringResource(R.string.sprint))
                     RaceResultsTable(
                         race = raceData.copy(results = (sprint as AsyncValue.Value).value),
                         showHeader = false,
-                        onDriverClick = { selectedDriver.value = it },
+                        onDriverClick = onDriverClick,
                     )
                     Spacer(Modifier.height(AppDimens.verticalPadding.dp))
                 }
@@ -178,7 +193,7 @@ fun RaceInfoScreen(viewModel: RaceInfoScreenViewModel) {
                 when (val q = qualifying) {
                     is AsyncValue.Loading -> LoadingIndicator(Modifier.padding(vertical = 16.dp))
                     is AsyncValue.Error -> Text(q.message, style = AppStyles.body)
-                    is AsyncValue.Value -> QualifyingTable(q.value) { selectedDriver.value = it }
+                    is AsyncValue.Value -> QualifyingTable(q.value, onDriverClick = onDriverClick)
                 }
                 Spacer(Modifier.height(AppDimens.verticalPadding.dp))
                 SectionHeader(stringResource(R.string.pit_stops))
@@ -191,7 +206,6 @@ fun RaceInfoScreen(viewModel: RaceInfoScreenViewModel) {
             }
         }
     }
-    selectedDriver.value?.let { DriverInfoBottomSheet(it) { selectedDriver.value = null } }
 }
 
 @Composable
@@ -218,19 +232,5 @@ private fun BoxedAction(title: String, onClick: () -> Unit) {
             .padding(16.dp),
     ) {
         Text(title, style = AppStyles.h3)
-    }
-}
-
-@Composable
-private fun OutlinedField(label: String, hint: String, value: String, onValueChange: (String) -> Unit) {
-    Column {
-        Text(label, style = AppStyles.caption)
-        androidx.compose.material3.OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(hint) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-        )
     }
 }

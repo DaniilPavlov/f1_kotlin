@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** ViewModel «Зал славы» — peek-кэш по году + refresh, [LoadJobHolder]. */
@@ -26,7 +27,7 @@ class HallOfFameViewModel @Inject constructor(
     private val _constructors = MutableStateFlow<AsyncValue<List<ConstructorStandingsModel>>>(AsyncValue.Loading)
     val constructors: StateFlow<AsyncValue<List<ConstructorStandingsModel>>> = _constructors.asStateFlow()
 
-    private val _year = MutableStateFlow("2026")
+    private val _year = MutableStateFlow("")
     val year: StateFlow<String> = _year.asStateFlow()
 
     private val _fieldsInputted = MutableStateFlow(false)
@@ -39,13 +40,23 @@ class HallOfFameViewModel @Inject constructor(
     val error: StateFlow<AppException?> = _error.asStateFlow()
 
     init {
-        checkFields()
-        loadAllData()
+        viewModelScope.launch {
+            repository.getSeasonYears().onSuccess { years ->
+                if (_year.value.isEmpty() && years.isNotEmpty()) {
+                    _year.value = years.first()
+                    checkFields()
+                    loadAllData()
+                }
+            }
+        }
     }
 
     fun onYearChanged(value: String) {
         _year.value = value
         checkFields()
+        if (_fieldsInputted.value) {
+            loadAllData()
+        }
     }
 
     fun checkFields() {
@@ -55,6 +66,8 @@ class HallOfFameViewModel @Inject constructor(
     fun changeActiveTable(index: Int) {
         _activeTable.value = index
     }
+
+    suspend fun loadSeasonYears(): Result<List<String>> = repository.getSeasonYears()
 
     fun loadAllData() {
         if (!_fieldsInputted.value) return

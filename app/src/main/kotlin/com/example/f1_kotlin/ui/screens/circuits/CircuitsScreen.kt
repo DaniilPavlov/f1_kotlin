@@ -33,12 +33,15 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.model.CircuitModel
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.ui.components.CareerListTile
 import com.example.f1_kotlin.ui.components.CustomSwitcher
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.LinkText
 import com.example.f1_kotlin.ui.components.LoadingIndicator
+import com.example.f1_kotlin.ui.map.CircuitsTileSource
 import com.example.f1_kotlin.ui.map.F1CircuitsClusterer
 import com.example.f1_kotlin.ui.map.MapMarkerIcons
+import com.example.f1_kotlin.ui.map.OsmdroidInitializer
 import com.example.f1_kotlin.ui.map.configureCircuitsMapView
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
@@ -46,8 +49,6 @@ import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.util.openUrl
 import com.example.f1_kotlin.viewmodel.CircuitDetailViewModel
 import com.example.f1_kotlin.viewmodel.CircuitsViewModel
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
@@ -118,8 +119,7 @@ private fun CircuitsMap(circuits: List<CircuitModel>, onCircuitClick: (String) -
     var mapView by remember { mutableStateOf<MapView?>(null) }
 
     LaunchedEffect(Unit) {
-        Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
-        Configuration.getInstance().userAgentValue = context.packageName
+        OsmdroidInitializer.ensureInitialized(context)
     }
 
     DisposableEffect(mapView) {
@@ -140,7 +140,7 @@ private fun CircuitsMap(circuits: List<CircuitModel>, onCircuitClick: (String) -
             factory = { ctx ->
                 MapView(ctx).apply {
                     mapView = this
-                    setTileSource(TileSourceFactory.MAPNIK)
+                    setTileSource(CircuitsTileSource)
                     setMultiTouchControls(true)
                     val center = circuits.firstOrNull()?.let {
                         GeoPoint(it.location.lat.toDouble(), it.location.longitude.toDouble())
@@ -188,13 +188,17 @@ private fun populateCircuitsMap(
 }
 
 @Composable
-fun CircuitDetailScreen(viewModel: CircuitDetailViewModel) {
+fun CircuitDetailScreen(
+    viewModel: CircuitDetailViewModel,
+    onDriverClick: (com.example.f1_kotlin.data.model.DriverModel) -> Unit,
+) {
     val circuitState by viewModel.circuit.collectAsState()
+    val winnersState by viewModel.winners.collectAsState()
     val context = LocalContext.current
 
     when (val state = circuitState) {
         is AsyncValue.Loading -> LoadingIndicator(Modifier.fillMaxSize())
-        is AsyncValue.Error -> ErrorBody(state.message, state.subtitle, onRetry = viewModel::loadCircuit, modifier = Modifier.fillMaxSize())
+        is AsyncValue.Error -> ErrorBody(state.message, state.subtitle, onRetry = viewModel::loadAllData, modifier = Modifier.fillMaxSize())
         is AsyncValue.Value -> Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -208,6 +212,26 @@ fun CircuitDetailScreen(viewModel: CircuitDetailViewModel) {
             Text(stringResource(R.string.country_label, state.value.location.country), style = AppStyles.h3)
             Spacer(Modifier.height(10.dp))
             Text(stringResource(R.string.city_label, state.value.location.locality), style = AppStyles.h3)
+            Spacer(Modifier.height(28.dp))
+            Text(stringResource(R.string.circuit_winners_title), style = AppStyles.h2)
+            Spacer(Modifier.height(12.dp))
+            when (val winners = winnersState) {
+                is AsyncValue.Loading -> LoadingIndicator(Modifier.padding(vertical = 16.dp))
+                is AsyncValue.Error -> Text(winners.message, style = AppStyles.body)
+                is AsyncValue.Value -> {
+                    if (winners.value.isEmpty()) {
+                        Text(stringResource(R.string.circuit_winners_empty), style = AppStyles.body)
+                    } else {
+                        winners.value.forEach { win ->
+                            CareerListTile(
+                                title = "${win.season} · ${win.raceName}",
+                                subtitle = "${win.driver.fullName} · ${win.constructor.name}",
+                                onClick = { onDriverClick(win.driver) },
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

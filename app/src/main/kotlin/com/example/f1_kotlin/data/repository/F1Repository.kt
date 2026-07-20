@@ -1,12 +1,17 @@
 package com.example.f1_kotlin.data.repository
 
 import com.example.f1_kotlin.data.api.F1ApiService
+import com.example.f1_kotlin.data.career.CareerLoader
 import com.example.f1_kotlin.data.local.CacheDao
 import com.example.f1_kotlin.data.local.CacheEntry
 import com.example.f1_kotlin.data.local.CacheJsonMapper
 import com.example.f1_kotlin.data.local.CacheKeys
+import com.example.f1_kotlin.data.model.CareerStats
 import com.example.f1_kotlin.data.model.CircuitModel
+import com.example.f1_kotlin.data.model.CircuitRaceWin
+import com.example.f1_kotlin.data.model.ConstructorModel
 import com.example.f1_kotlin.data.model.ConstructorStandingsModel
+import com.example.f1_kotlin.data.model.DriverModel
 import com.example.f1_kotlin.data.model.DriverStandingsCache
 import com.example.f1_kotlin.data.model.DriverStandingsModel
 import com.example.f1_kotlin.data.model.HistoricalStandingsCache
@@ -14,8 +19,11 @@ import com.example.f1_kotlin.data.model.PitStopModel
 import com.example.f1_kotlin.data.model.QualifyingResultModel
 import com.example.f1_kotlin.data.model.RaceModel
 import com.example.f1_kotlin.data.model.RaceResultModel
+import com.example.f1_kotlin.data.model.SeasonsCache
 import com.example.f1_kotlin.data.model.StandingsListsModel
 import com.example.f1_kotlin.domain.ApiCallHandler
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -215,6 +223,82 @@ class F1Repository @Inject constructor(
         peekCircuitsCache()?.find { it.circuitId == circuitId }?.let { return Result.success(it) }
         return getCircuits().map { circuits -> circuits.find { it.circuitId == circuitId } }
     }
+
+    /** Годы сезонов (новые сверху), кэш на сутки. */
+    suspend fun getSeasonYears(): Result<List<String>> {
+        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        loadCache(CacheKeys.SEASONS, SeasonsCache::class.java)?.takeIf { it.dayKey == today }?.years
+            ?.let { return Result.success(it) }
+
+        val network = ApiCallHandler.safeCall {
+            api.getSeasons().mrData.seasonTable?.seasons.orEmpty()
+                .map { it.season }
+                .reversed()
+        }
+        if (network.isSuccess) {
+            network.getOrNull()?.let { years ->
+                saveCache(CacheKeys.SEASONS, SeasonsCache(today, years), SeasonsCache::class.java)
+            }
+            return network
+        }
+        return loadCache(CacheKeys.SEASONS, SeasonsCache::class.java)?.years
+            ?.let { Result.success(it) } ?: network
+    }
+
+    suspend fun getSeasonRaces(year: String): Result<List<RaceModel>> =
+        ApiCallHandler.safeCall {
+            api.getSeasonSchedule(year).mrData.raceTable.races
+        }
+
+    suspend fun getDriver(driverId: String): Result<DriverModel?> =
+        ApiCallHandler.safeCall {
+            api.getDriver(driverId).mrData.driverTable.drivers.firstOrNull()
+        }
+
+    suspend fun getConstructor(constructorId: String): Result<ConstructorModel?> =
+        ApiCallHandler.safeCall {
+            api.getConstructor(constructorId).mrData.constructorTable.constructors.firstOrNull()
+        }
+
+    suspend fun getDriverCareerStats(
+        driverId: String,
+        currentConstructors: List<ConstructorModel> = emptyList(),
+    ): Result<CareerStats<ConstructorModel>> =
+        ApiCallHandler.safeCall {
+            CareerLoader.loadDriverCareer(api, driverId, currentConstructors)
+        }
+
+    suspend fun getConstructorCareerStats(
+        constructorId: String,
+        currentDrivers: List<DriverModel> = emptyList(),
+    ): Result<CareerStats<DriverModel>> =
+        ApiCallHandler.safeCall {
+            CareerLoader.loadConstructorCareer(api, constructorId, currentDrivers)
+        }
+
+    suspend fun getCircuitWinners(circuitId: String): Result<List<CircuitRaceWin>> =
+        ApiCallHandler.safeCall {
+            api.getCircuitWinners(circuitId).mrData.raceTable.races.mapNotNull { race ->
+                val winner = race.results?.firstOrNull() ?: return@mapNotNull null
+                CircuitRaceWin(
+                    season = race.season,
+                    round = race.round,
+                    raceName = race.raceName,
+                    driver = winner.driver,
+                    constructor = winner.constructor,
+                )
+            }.reversed()
+        }
+
+    /** Текущие команды пилота из кэша standings (Home). */
+    suspend fun currentConstructorsForDriver(driverId: String): List<ConstructorModel> =
+        peekCurrentDriversCache()?.first?.find { it.driver.driverId == driverId }?.constructors.orEmpty()
+
+    /** Текущие пилоты конструктора из кэша standings (Home). */
+    suspend fun currentDriversForConstructor(constructorId: String): List<DriverModel> =
+        peekCurrentDriversCache()?.first?.filter { standing ->
+            standing.constructors.any { it.constructorId == constructorId }
+        }?.map { it.driver }.orEmpty()
 
     private suspend fun resolveDriverNames(driverIds: List<String>): Map<String, String> = coroutineScope {
         val semaphore = Semaphore(MAX_DRIVER_FETCH_PARALLEL)

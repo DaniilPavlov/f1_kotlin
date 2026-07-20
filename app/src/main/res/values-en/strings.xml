@@ -40,7 +40,12 @@
     <string name="round">Round</string>
     <string name="number_hint">Number</string>
     <string name="search">Search</string>
-    <string name="race_search_info">Enter the year and race number</string>
+    <string name="race_search_info">Pick a season, then a race from the list.</string>
+    <string name="select_season">Select season</string>
+    <string name="select_race">Select race</string>
+    <string name="select_season_first">Select a season first</string>
+    <string name="seasons_load_error">Could not load seasons</string>
+    <string name="races_load_error">Could not load races</string>
 
     <string name="hall_of_fame_title">Hall of Fame</string>
     <string name="on_map">On map</string>
@@ -49,6 +54,8 @@
     <string name="read_on_wikipedia">Read on Wikipedia</string>
     <string name="country_label">Country: %1$s</string>
     <string name="city_label">City: %1$s</string>
+    <string name="circuit_winners_title">Winners</string>
+    <string name="circuit_winners_empty">No race winners for this circuit yet</string>
 
     <string name="first_practice">First practice</string>
     <string name="second_practice">Second practice</string>
@@ -59,6 +66,14 @@
     <string name="driver_number">Number</string>
     <string name="date_of_birth">Date of birth</string>
     <string name="open_in_wikipedia">Open on Wikipedia</string>
+    <string name="current_team">Current team</string>
+    <string name="current_drivers">Current drivers</string>
+    <string name="career_title">Career</string>
+    <string name="career_stat_races">Races</string>
+    <string name="career_stat_podiums">Podiums</string>
+    <string name="career_stat_poles">Poles</string>
+    <string name="driver_teams_title">Teams</string>
+    <string name="constructor_drivers_title">Drivers</string>
 
     <string name="no_connection">No connection</string>
     <string name="no_connection_subtitle">Once the connection is restored, you will be able to use the app again</string>

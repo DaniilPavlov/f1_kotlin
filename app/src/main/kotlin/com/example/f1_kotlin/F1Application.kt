@@ -3,6 +3,7 @@ package com.example.f1_kotlin
 import android.app.Application
 import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.notifications.RaceReminderScheduler
+import com.example.f1_kotlin.ui.map.OsmdroidInitializer
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -23,6 +24,7 @@ class F1Application : Application() {
     override fun onCreate() {
         super.onCreate()
         LocaleController.init(this)
+        OsmdroidInitializer.ensureInitialized(this)
         reminderScheduler.sync()
     }
 

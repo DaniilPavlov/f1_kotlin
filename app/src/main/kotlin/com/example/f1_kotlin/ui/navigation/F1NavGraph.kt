@@ -29,9 +29,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.f1_kotlin.data.model.ConstructorModel
+import com.example.f1_kotlin.data.model.DriverModel
 import com.example.f1_kotlin.ui.components.F1AppBar
 import com.example.f1_kotlin.ui.screens.circuits.CircuitDetailScreen
 import com.example.f1_kotlin.ui.screens.circuits.CircuitsScreen
+import com.example.f1_kotlin.ui.screens.constructor.ConstructorDetailScreen
+import com.example.f1_kotlin.ui.screens.driver.DriverDetailScreen
 import com.example.f1_kotlin.ui.screens.halloffame.HallOfFameScreen
 import com.example.f1_kotlin.ui.screens.home.HomeScreen
 import com.example.f1_kotlin.ui.screens.results.RaceInfoScreen
@@ -43,9 +47,6 @@ import com.example.f1_kotlin.ui.theme.F1Black
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1White
 
-/**
- * Описание вкладки нижней навигации: route для NavHost, подпись и иконка.
- */
 sealed class BottomTab(val route: String, val labelRes: Int, val iconRes: Int) {
     data object Home : BottomTab("home", com.example.f1_kotlin.R.string.nav_home, com.example.f1_kotlin.R.drawable.nav_home)
     data object Results : BottomTab("results", com.example.f1_kotlin.R.string.nav_results, com.example.f1_kotlin.R.drawable.nav_racing_car)
@@ -62,15 +63,6 @@ private val tabs = listOf(
     BottomTab.Circuits,
 )
 
-/**
- * Корневой Composable приложения: Scaffold + NavHost + нижняя панель.
- *
- * [hiltViewModel] вместо [androidx.lifecycle.viewmodel.compose.viewModel] —
- * Hilt сам создаёт ViewModel с [F1Repository] внутри. Аргументы маршрута
- * (`season`, `round`, `circuitId`) попадают в [androidx.lifecycle.SavedStateHandle].
- *
- * На вложенных экранах (поиск, детали) нижняя панель скрывается — [showBottomBar].
- */
 @Composable
 fun F1App() {
     val navController = rememberNavController()
@@ -79,6 +71,13 @@ fun F1App() {
     val showBottomBar = currentRoute in tabs.map { it.route }
     val popBack: () -> Unit = { navController.popBackStack() }
 
+    val onDriverClick: (DriverModel) -> Unit = { driver ->
+        navController.navigate("driver/${driver.driverId}")
+    }
+    val onConstructorClick: (ConstructorModel) -> Unit = { constructor ->
+        navController.navigate("constructor/${constructor.constructorId}")
+    }
+
     Scaffold(
         topBar = {
             when {
@@ -86,6 +85,8 @@ fun F1App() {
                 currentRoute == "race_search" -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.race_search_title), onBack = popBack)
                 currentRoute?.startsWith("race_info/") == true -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.detailed_info), onBack = popBack)
                 currentRoute?.startsWith("circuit/") == true -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.circuit_info_title), onBack = popBack)
+                currentRoute?.startsWith("driver/") == true -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.driver), onBack = popBack)
+                currentRoute?.startsWith("constructor/") == true -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.constructor), onBack = popBack)
             }
         },
         bottomBar = {
@@ -110,25 +111,42 @@ fun F1App() {
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            composable(BottomTab.Home.route) { HomeScreen(hiltViewModel()) }
+            composable(BottomTab.Home.route) {
+                HomeScreen(
+                    viewModel = hiltViewModel(),
+                    onDriverClick = onDriverClick,
+                    onConstructorClick = onConstructorClick,
+                )
+            }
             composable(BottomTab.Results.route) {
                 ResultsScreen(
                     viewModel = hiltViewModel(),
                     onSearchRace = { navController.navigate("race_search") },
                     onRaceDetails = { race -> navController.navigate("race_info/${race.season}/${race.round}") },
+                    onDriverClick = onDriverClick,
                 )
             }
             composable("race_search") {
                 RaceSearchScreen(
                     viewModel = hiltViewModel(),
                     onRaceDetails = { race -> navController.navigate("race_info/${race.season}/${race.round}") },
+                    onDriverClick = onDriverClick,
                 )
             }
             composable("race_info/{season}/{round}") {
-                RaceInfoScreen(viewModel = hiltViewModel())
+                RaceInfoScreen(
+                    viewModel = hiltViewModel(),
+                    onDriverClick = onDriverClick,
+                )
             }
             composable(BottomTab.Schedule.route) { ScheduleScreen(hiltViewModel()) }
-            composable(BottomTab.HallOfFame.route) { HallOfFameScreen(hiltViewModel()) }
+            composable(BottomTab.HallOfFame.route) {
+                HallOfFameScreen(
+                    viewModel = hiltViewModel(),
+                    onDriverClick = onDriverClick,
+                    onConstructorClick = onConstructorClick,
+                )
+            }
             composable(BottomTab.Circuits.route) {
                 CircuitsScreen(
                     viewModel = hiltViewModel(),
@@ -136,13 +154,27 @@ fun F1App() {
                 )
             }
             composable("circuit/{circuitId}") {
-                CircuitDetailScreen(viewModel = hiltViewModel())
+                CircuitDetailScreen(
+                    viewModel = hiltViewModel(),
+                    onDriverClick = onDriverClick,
+                )
+            }
+            composable("driver/{driverId}") {
+                DriverDetailScreen(
+                    viewModel = hiltViewModel(),
+                    onConstructorClick = onConstructorClick,
+                )
+            }
+            composable("constructor/{constructorId}") {
+                ConstructorDetailScreen(
+                    viewModel = hiltViewModel(),
+                    onDriverClick = onDriverClick,
+                )
             }
         }
     }
 }
 
-/** Нижняя панель с 5 вкладками; активная — красные иконка и текст, неактивная — белые. */
 @Composable
 private fun F1BottomBar(currentRoute: String?, onTabSelected: (BottomTab) -> Unit) {
     Column {

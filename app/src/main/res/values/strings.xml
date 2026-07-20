@@ -40,7 +40,12 @@
     <string name="round">Раунд</string>
     <string name="number_hint">Номер</string>
     <string name="search">Поиск</string>
-    <string name="race_search_info">Введите год и номер гонки</string>
+    <string name="race_search_info">Выберите сезон, затем гонку из списка.</string>
+    <string name="select_season">Выберите сезон</string>
+    <string name="select_race">Выберите гонку</string>
+    <string name="select_season_first">Сначала выберите сезон</string>
+    <string name="seasons_load_error">Не удалось загрузить сезоны</string>
+    <string name="races_load_error">Не удалось загрузить гонки</string>
 
     <string name="hall_of_fame_title">Зал славы</string>
     <string name="on_map">На карте</string>
@@ -49,6 +54,8 @@
     <string name="read_on_wikipedia">Прочитать информацию в википедии</string>
     <string name="country_label">Страна: %1$s</string>
     <string name="city_label">Город: %1$s</string>
+    <string name="circuit_winners_title">Победители</string>
+    <string name="circuit_winners_empty">Побед на этой трассе пока нет</string>
 
     <string name="first_practice">Первая практика</string>
     <string name="second_practice">Вторая практика</string>
@@ -59,6 +66,14 @@
     <string name="driver_number">Номер</string>
     <string name="date_of_birth">Дата рождения</string>
     <string name="open_in_wikipedia">Открыть в Wikipedia</string>
+    <string name="current_team">Текущая команда</string>
+    <string name="current_drivers">Текущие пилоты</string>
+    <string name="career_title">Карьера</string>
+    <string name="career_stat_races">Гонки</string>
+    <string name="career_stat_podiums">Подиумы</string>
+    <string name="career_stat_poles">Поулы</string>
+    <string name="driver_teams_title">Команды</string>
+    <string name="constructor_drivers_title">Пилоты</string>
 
     <string name="no_connection">Соединение отсутствует</string>
     <string name="no_connection_subtitle">Как только соединение восстановится, вы снова сможете пользоваться приложением</string>

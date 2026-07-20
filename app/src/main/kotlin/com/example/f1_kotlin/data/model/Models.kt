@@ -234,3 +234,59 @@ data class DriverFetchingModel(
 data class DriverTableModel(
     @Json(name = "Drivers") val drivers: List<DriverModel>,
 )
+
+@JsonClass(generateAdapter = true)
+data class ConstructorFetchingModel(
+    @Json(name = "ConstructorTable") val constructorTable: ConstructorTableModel,
+)
+
+@JsonClass(generateAdapter = true)
+data class ConstructorTableModel(
+    @Json(name = "Constructors") val constructors: List<ConstructorModel>,
+)
+
+@JsonClass(generateAdapter = true)
+data class MrDataTotalModel(
+    val total: String? = null,
+    @Json(name = "RaceTable") val raceTable: RaceTableModel? = null,
+    @Json(name = "ConstructorTable") val constructorTable: ConstructorTableModel? = null,
+    @Json(name = "DriverTable") val driverTable: DriverTableModel? = null,
+    @Json(name = "SeasonTable") val seasonTable: SeasonTableModel? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class SeasonTableModel(
+    @Json(name = "Seasons") val seasons: List<SeasonModel>,
+)
+
+@JsonClass(generateAdapter = true)
+data class SeasonModel(
+    val season: String,
+    val url: String,
+)
+
+/** Карьерная статистика пилота или конструктора. */
+data class CareerStats<T>(
+    val races: Int,
+    val wins: Int,
+    val podiums: Int,
+    val poles: Int,
+    val current: List<T>,
+    val related: List<T>,
+)
+
+/** Победа на трассе (история ГП). */
+data class CircuitRaceWin(
+    val season: String,
+    val round: String,
+    val raceName: String,
+    val driver: DriverModel,
+    val constructor: ConstructorModel,
+)
+
+/** Кэш списка сезонов (обновляется раз в сутки). */
+@JsonClass(generateAdapter = true)
+data class SeasonsCache(
+    val dayKey: String,
+    val years: List<String>,
+)
