@@ -37,8 +37,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
-import com.example.f1_kotlin.data.model.ConstructorModel
-import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1GrayBg
@@ -186,10 +186,10 @@ private fun H2hCompareRow(label: String, valueA: Int, valueB: Int) {
 @Composable
 fun DriverPickerField(
     label: String,
-    driver: DriverModel?,
+    driver: Driver?,
     enableSearch: Boolean,
-    onChanged: (DriverModel) -> Unit,
-    loadDrivers: suspend () -> Result<List<DriverModel>>,
+    onChanged: (Driver) -> Unit,
+    loadDrivers: suspend () -> Result<List<Driver>>,
 ) {
     var showSheet by remember { mutableStateOf(false) }
     Box(
@@ -237,10 +237,10 @@ fun DriverPickerField(
 @Composable
 fun ConstructorPickerField(
     label: String,
-    constructor: ConstructorModel?,
+    constructor: Constructor?,
     enableSearch: Boolean,
-    onChanged: (ConstructorModel) -> Unit,
-    loadConstructors: suspend () -> Result<List<ConstructorModel>>,
+    onChanged: (Constructor) -> Unit,
+    loadConstructors: suspend () -> Result<List<Constructor>>,
 ) {
     var showSheet by remember { mutableStateOf(false) }
     Box(

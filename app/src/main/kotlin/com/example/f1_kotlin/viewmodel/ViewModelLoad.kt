@@ -1,7 +1,8 @@
 package com.example.f1_kotlin.viewmodel
 
-import com.example.f1_kotlin.domain.AppException
+import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.domain.toAppError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -28,12 +29,12 @@ class LoadJobHolder {
 inline fun <T> Result<T>.applyUnlessCached(
     hasCachedValue: Boolean,
     crossinline onSuccess: (T) -> Unit,
-    crossinline onFailure: (AppException) -> Unit,
+    crossinline onFailure: (AppError) -> Unit,
 ) {
     onSuccess { value -> onSuccess(value) }
     onFailure { e ->
         if (!hasCachedValue) {
-            onFailure(e as AppException)
+            onFailure(e.toAppError())
         }
     }
 }
@@ -42,7 +43,7 @@ inline fun <T> Result<T>.applyUnlessCached(
 inline fun <T> Result<T>.applyUnlessCached(
     current: AsyncValue<*>,
     crossinline onSuccess: (T) -> Unit,
-    crossinline onFailure: (AppException) -> Unit,
+    crossinline onFailure: (AppError) -> Unit,
 ) = applyUnlessCached(
     hasCachedValue = current is AsyncValue.Value,
     onSuccess = onSuccess,

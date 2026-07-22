@@ -20,8 +20,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.model.CareerRaceResult
-import com.example.f1_kotlin.data.model.CircuitModel
-import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.domain.model.Circuit
+import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CareerInfoRow
@@ -45,32 +45,33 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ConstructorDetailScreen(
     viewModel: ConstructorDetailViewModel,
-    onDriverClick: (DriverModel) -> Unit,
-    onCircuitClick: (CircuitModel) -> Unit,
+    onDriverClick: (Driver) -> Unit,
+    onCircuitClick: (Circuit) -> Unit,
 ) {
-    val constructor by viewModel.constructor.collectAsState()
-    val career by viewModel.careerStats.collectAsState()
-    val news by viewModel.news.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val constructor = uiState.constructor
+    val career = uiState.careerStats
     val context = LocalContext.current
 
     when {
-        constructor.isLoading || career.isLoading -> CareerScreenShimmer(showPhoto = false, modifier = Modifier.fillMaxSize())
-        error != null && constructor !is AsyncValue.Value -> ErrorBody(
-            error?.title,
-            error?.subtitle,
+        constructor.isLoading || career.isLoading -> CareerScreenShimmer(
+            showPhoto = false,
+            modifier = Modifier.fillMaxSize(),
+        )
+        uiState.error != null && constructor !is AsyncValue.Value -> ErrorBody(
+            uiState.error?.title,
+            uiState.error?.subtitle,
             onRetry = viewModel::loadAllData,
             modifier = Modifier.fillMaxSize(),
         )
         constructor is AsyncValue.Value && career is AsyncValue.Value -> {
-            val model = (constructor as AsyncValue.Value).value
-            val stats = (career as AsyncValue.Value).value
+            val model = constructor.value
             ConstructorContent(
                 name = model.name,
                 nationality = model.nationality,
                 url = model.url,
-                stats = stats,
-                news = news,
+                stats = career.value,
+                news = uiState.news,
                 onDriverClick = onDriverClick,
                 onCircuitClick = onCircuitClick,
                 onWikipediaClick = { openUrl(context, model.url) },
@@ -84,10 +85,10 @@ private fun ConstructorContent(
     name: String,
     nationality: String,
     url: String,
-    stats: com.example.f1_kotlin.data.model.CareerStats<DriverModel>,
+    stats: com.example.f1_kotlin.data.model.CareerStats<Driver>,
     news: List<NewsArticle>,
-    onDriverClick: (DriverModel) -> Unit,
-    onCircuitClick: (CircuitModel) -> Unit,
+    onDriverClick: (Driver) -> Unit,
+    onCircuitClick: (Circuit) -> Unit,
     onWikipediaClick: () -> Unit,
 ) {
     var sheetTitle by remember { mutableStateOf<String?>(null) }

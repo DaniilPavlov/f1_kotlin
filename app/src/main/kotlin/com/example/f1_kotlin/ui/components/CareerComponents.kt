@@ -28,7 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.model.CareerRaceResult
-import com.example.f1_kotlin.data.model.CircuitModel
+import com.example.f1_kotlin.domain.model.Circuit
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1StrokeGray
@@ -125,7 +125,7 @@ fun CareerRaceResultsSheet(
     races: List<CareerRaceResult>,
     showPosition: Boolean,
     onDismiss: () -> Unit,
-    onCircuitClick: (CircuitModel) -> Unit,
+    onCircuitClick: (Circuit) -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(

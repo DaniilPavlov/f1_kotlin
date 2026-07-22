@@ -1,6 +1,7 @@
 package com.example.f1_kotlin.ui.screens.results
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.f1_kotlin.R
@@ -51,9 +54,6 @@ import com.example.f1_kotlin.ui.theme.F1White
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
-import androidx.compose.foundation.border
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.unit.sp
 
 /** ESPN weekend scoreboard card on Results. Hides silently on failure / null. */
 @Composable
@@ -89,10 +89,6 @@ private fun ScoreboardCard(event: EspnScoreboardEvent) {
     }
     val highlighted = event.highlightedSession
     var sheetSession by remember { mutableStateOf<EspnScoreboardSession?>(null) }
-    val locationParts = listOfNotNull(
-        event.circuitCity?.takeIf { it.isNotEmpty() },
-        event.circuitCountry?.takeIf { it.isNotEmpty() },
-    )
 
     Column(
         modifier = Modifier
@@ -100,109 +96,23 @@ private fun ScoreboardCard(event: EspnScoreboardEvent) {
             .border(1.dp, F1Red, RoundedCornerShape(20.dp))
             .padding(16.dp),
     ) {
-        Row(verticalAlignment = Alignment.Top) {
-            Text(
-                text = event.shortName.ifEmpty { event.name },
-                style = AppStyles.h3.copy(fontSize = 20.sp, lineHeight = 24.sp),
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(8.dp))
-            StatusChip(event, highlighted)
-        }
-        if (!event.circuitName.isNullOrEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Text(event.circuitName, style = AppStyles.body)
-        }
-        if (locationParts.isNotEmpty()) {
-            Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                event.circuitCountry?.takeIf { it.isNotEmpty() }?.let { country ->
-                    CountryFlag(countryOrNationality = country, fontSize = 20.sp)
-                    Spacer(Modifier.width(8.dp))
-                }
-                Text(
-                    locationParts.joinToString(", "),
-                    style = AppStyles.caption.copy(color = F1TextGray),
-                )
-            }
-        }
+        ScoreboardHeader(event = event, highlighted = highlighted)
         if (highlighted != null) {
             Spacer(Modifier.height(14.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(F1GrayBg)
-                    .clickable { sheetSession = highlighted }
-                    .padding(12.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        highlighted.abbreviation,
-                        style = AppStyles.body.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = F1TextGray,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                highlighted.date?.let { date ->
-                    Spacer(Modifier.height(4.dp))
-                    Text(dateFormat.format(date), style = AppStyles.caption.copy(color = F1TextGray))
-                }
-                highlighted.leaderName?.takeIf { it.isNotEmpty() }?.let { name ->
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        if (highlighted.isWinner) {
-                            stringResource(R.string.home_weekend_winner, name)
-                        } else {
-                            stringResource(R.string.home_weekend_leader, name)
-                        },
-                        style = AppStyles.body,
-                    )
-                }
-            }
+            HighlightedSessionBlock(
+                session = highlighted,
+                dateFormat = dateFormat,
+                onClick = { sheetSession = highlighted },
+            )
         }
         if (event.sessions.isNotEmpty()) {
             Spacer(Modifier.height(14.dp))
-            event.sessions.forEach { session ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { sheetSession = session }
-                        .padding(bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        session.abbreviation,
-                        style = AppStyles.caption.copy(
-                            color = if (session === highlighted) F1Red else F1Black,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                        ),
-                        modifier = Modifier.width(48.dp),
-                    )
-                    Text(
-                        session.date?.let { dateFormat.format(it) } ?: session.statusDetail,
-                        style = AppStyles.caption.copy(color = F1TextGray),
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        session.statusDetail,
-                        style = AppStyles.caption.copy(
-                            color = if (session.isLive) F1Red else F1TextGray,
-                        ),
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = F1TextGray.copy(alpha = 0.8f),
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
+            ScoreboardSessionRows(
+                sessions = event.sessions,
+                highlighted = highlighted,
+                dateFormat = dateFormat,
+                onSessionClick = { sheetSession = it },
+            )
         }
     }
 
@@ -211,6 +121,132 @@ private fun ScoreboardCard(event: EspnScoreboardEvent) {
             session = session,
             onDismiss = { sheetSession = null },
         )
+    }
+}
+
+@Composable
+private fun ScoreboardHeader(
+    event: EspnScoreboardEvent,
+    highlighted: EspnScoreboardSession?,
+) {
+    val locationParts = listOfNotNull(
+        event.circuitCity?.takeIf { it.isNotEmpty() },
+        event.circuitCountry?.takeIf { it.isNotEmpty() },
+    )
+    Row(verticalAlignment = Alignment.Top) {
+        Text(
+            text = event.shortName.ifEmpty { event.name },
+            style = AppStyles.h3.copy(fontSize = 20.sp, lineHeight = 24.sp),
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        StatusChip(event, highlighted)
+    }
+    if (!event.circuitName.isNullOrEmpty()) {
+        Spacer(Modifier.height(8.dp))
+        Text(event.circuitName, style = AppStyles.body)
+    }
+    if (locationParts.isNotEmpty()) {
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            event.circuitCountry?.takeIf { it.isNotEmpty() }?.let { country ->
+                CountryFlag(countryOrNationality = country, fontSize = 20.sp)
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                locationParts.joinToString(", "),
+                style = AppStyles.caption.copy(color = F1TextGray),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HighlightedSessionBlock(
+    session: EspnScoreboardSession,
+    dateFormat: DateTimeFormatter,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(F1GrayBg)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                session.abbreviation,
+                style = AppStyles.body.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = F1TextGray,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        session.date?.let { date ->
+            Spacer(Modifier.height(4.dp))
+            Text(dateFormat.format(date), style = AppStyles.caption.copy(color = F1TextGray))
+        }
+        session.leaderName?.takeIf { it.isNotEmpty() }?.let { name ->
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (session.isWinner) {
+                    stringResource(R.string.home_weekend_winner, name)
+                } else {
+                    stringResource(R.string.home_weekend_leader, name)
+                },
+                style = AppStyles.body,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScoreboardSessionRows(
+    sessions: List<EspnScoreboardSession>,
+    highlighted: EspnScoreboardSession?,
+    dateFormat: DateTimeFormatter,
+    onSessionClick: (EspnScoreboardSession) -> Unit,
+) {
+    sessions.forEach { session ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onSessionClick(session) }
+                .padding(bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                session.abbreviation,
+                style = AppStyles.caption.copy(
+                    color = if (session === highlighted) F1Red else F1Black,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                modifier = Modifier.width(48.dp),
+            )
+            Text(
+                session.date?.let { dateFormat.format(it) } ?: session.statusDetail,
+                style = AppStyles.caption.copy(color = F1TextGray),
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                session.statusDetail,
+                style = AppStyles.caption.copy(
+                    color = if (session.isLive) F1Red else F1TextGray,
+                ),
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = F1TextGray.copy(alpha = 0.8f),
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }
 
@@ -274,7 +310,7 @@ fun WeekendSessionResultsSheet(
                                 "${entry.position}",
                                 style = AppStyles.body.copy(
                                     color = if (entry.isWinner) F1Red else F1Black,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                    fontWeight = FontWeight.SemiBold,
                                 ),
                                 modifier = Modifier.width(32.dp),
                             )

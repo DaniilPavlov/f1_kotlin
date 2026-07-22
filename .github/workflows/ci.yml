@@ -41,6 +41,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Detekt
+        run: ./gradlew :app:detekt --stacktrace
+
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
 
@@ -53,4 +56,12 @@ jobs:
         with:
           name: test-report
           path: app/build/reports/tests/
+          if-no-files-found: ignore
+
+      - name: Upload detekt report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: detekt-report
+          path: app/build/reports/detekt/
           if-no-files-found: ignore

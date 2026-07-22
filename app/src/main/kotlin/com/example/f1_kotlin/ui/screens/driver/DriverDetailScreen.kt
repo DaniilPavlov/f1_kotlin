@@ -25,10 +25,11 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.model.CareerRaceResult
-import com.example.f1_kotlin.data.model.CircuitModel
-import com.example.f1_kotlin.data.model.ConstructorModel
-import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.domain.model.Circuit
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.data.model.EspnDriverCardData
+import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CareerInfoRow
 import com.example.f1_kotlin.ui.components.CareerListTile
@@ -54,31 +55,30 @@ import java.util.Locale
 @Composable
 fun DriverDetailScreen(
     viewModel: DriverDetailViewModel,
-    onConstructorClick: (ConstructorModel) -> Unit,
-    onCircuitClick: (CircuitModel) -> Unit,
+    onConstructorClick: (Constructor) -> Unit,
+    onCircuitClick: (Circuit) -> Unit,
 ) {
-    val driver by viewModel.driver.collectAsState()
-    val career by viewModel.careerStats.collectAsState()
-    val espnCard by viewModel.espnCard.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val driver = uiState.driver
+    val career = uiState.careerStats
     val context = LocalContext.current
 
     when {
         driver.isLoading || career.isLoading -> CareerScreenShimmer(modifier = Modifier.fillMaxSize())
-        error != null && driver !is AsyncValue.Value -> ErrorBody(
-            error?.title,
-            error?.subtitle,
+        uiState.error != null && driver !is AsyncValue.Value -> ErrorBody(
+            uiState.error?.title,
+            uiState.error?.subtitle,
             onRetry = viewModel::loadAllData,
             modifier = Modifier.fillMaxSize(),
         )
         driver is AsyncValue.Value && career is AsyncValue.Value -> {
             DriverContent(
-                driver = (driver as AsyncValue.Value).value,
-                stats = (career as AsyncValue.Value).value,
-                espnCard = espnCard,
+                driver = driver.value,
+                stats = career.value,
+                espnCard = uiState.espnCard,
                 onConstructorClick = onConstructorClick,
                 onCircuitClick = onCircuitClick,
-                onWikipediaClick = { openUrl(context, (driver as AsyncValue.Value).value.url) },
+                onWikipediaClick = { openUrl(context, driver.value.url) },
             )
         }
     }
@@ -86,11 +86,11 @@ fun DriverDetailScreen(
 
 @Composable
 private fun DriverContent(
-    driver: DriverModel,
-    stats: com.example.f1_kotlin.data.model.CareerStats<ConstructorModel>,
+    driver: Driver,
+    stats: com.example.f1_kotlin.data.model.CareerStats<Constructor>,
     espnCard: EspnDriverCardData,
-    onConstructorClick: (ConstructorModel) -> Unit,
-    onCircuitClick: (CircuitModel) -> Unit,
+    onConstructorClick: (Constructor) -> Unit,
+    onCircuitClick: (Circuit) -> Unit,
     onWikipediaClick: () -> Unit,
 ) {
     var sheetTitle by remember { mutableStateOf<String?>(null) }
@@ -116,43 +116,15 @@ private fun DriverContent(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
     ) {
-        espnCard.photoUrl?.let { url ->
-            Image(
-                painter = rememberAsyncImagePainter(url),
-                contentDescription = driver.fullName,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(3f / 2f),
-                contentScale = ContentScale.Crop,
-            )
-            Spacer(Modifier.height(16.dp))
-        }
-        Text(driver.fullName, style = AppStyles.h1)
-        Spacer(Modifier.height(16.dp))
-        CareerInfoRow(stringResource(R.string.driver_code), displayValue(driver.code))
-        CareerInfoRow(stringResource(R.string.driver_number), displayValue(driver.permanentNumber))
-        CareerInfoRow(stringResource(R.string.nationality)) {
-            CountryFlag(countryOrNationality = driver.nationality, fontSize = 28.sp)
-        }
-        CareerInfoRow(stringResource(R.string.date_of_birth), formatBirthDate(driver.dateOfBirth))
-        if (stats.current.isNotEmpty()) {
-            CareerInfoRow(
-                stringResource(R.string.current_team),
-                stats.current.joinToString(", ") { it.name },
-            )
-        }
-        if (driver.url.isNotBlank()) {
-            Spacer(Modifier.height(12.dp))
-            WikipediaLink(onWikipediaClick)
-        }
+        DriverHeaderBlock(
+            driver = driver,
+            currentTeams = stats.current,
+            photoUrl = espnCard.photoUrl,
+            onWikipediaClick = onWikipediaClick,
+        )
         Spacer(Modifier.height(28.dp))
-        Text(stringResource(R.string.career_title), style = AppStyles.h2)
-        Spacer(Modifier.height(16.dp))
-        CareerStatsGrid(
-            races = stats.races,
-            wins = stats.wins,
-            podiums = stats.podiums,
-            poles = stats.poles,
+        DriverCareerStatsSection(
+            stats = stats,
             onWinsTap = {
                 sheetTitle = winsTitle
                 sheetRaces = stats.winRaces
@@ -170,24 +142,13 @@ private fun DriverContent(
             },
         )
         Spacer(Modifier.height(28.dp))
-        Text(stringResource(R.string.driver_teams_title), style = AppStyles.h2)
-        Spacer(Modifier.height(12.dp))
-        stats.related.forEach { constructor ->
-            CareerListTile(
-                title = constructor.name,
-                subtitle = "",
-                onClick = { onConstructorClick(constructor) },
-                trailing = { CountryFlag(countryOrNationality = constructor.nationality) },
-            )
-        }
+        DriverTeamsSection(
+            teams = stats.related,
+            onConstructorClick = onConstructorClick,
+        )
         if (espnCard.news.isNotEmpty()) {
             Spacer(Modifier.height(28.dp))
-            Text(stringResource(R.string.driver_news_title), style = AppStyles.h2)
-            Spacer(Modifier.height(12.dp))
-            espnCard.news.forEach { article ->
-                NewsArticleTile(article)
-                Spacer(Modifier.height(12.dp))
-            }
+            DriverNewsSection(articles = espnCard.news)
         }
     }
 
@@ -199,6 +160,91 @@ private fun DriverContent(
             onDismiss = { sheetTitle = null },
             onCircuitClick = onCircuitClick,
         )
+    }
+}
+
+@Composable
+private fun DriverHeaderBlock(
+    driver: Driver,
+    currentTeams: List<Constructor>,
+    photoUrl: String?,
+    onWikipediaClick: () -> Unit,
+) {
+    photoUrl?.let { url ->
+        Image(
+            painter = rememberAsyncImagePainter(url),
+            contentDescription = driver.fullName,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(3f / 2f),
+            contentScale = ContentScale.Crop,
+        )
+        Spacer(Modifier.height(16.dp))
+    }
+    Text(driver.fullName, style = AppStyles.h1)
+    Spacer(Modifier.height(16.dp))
+    CareerInfoRow(stringResource(R.string.driver_code), displayValue(driver.code))
+    CareerInfoRow(stringResource(R.string.driver_number), displayValue(driver.permanentNumber))
+    CareerInfoRow(stringResource(R.string.nationality)) {
+        CountryFlag(countryOrNationality = driver.nationality, fontSize = 28.sp)
+    }
+    CareerInfoRow(stringResource(R.string.date_of_birth), formatBirthDate(driver.dateOfBirth))
+    if (currentTeams.isNotEmpty()) {
+        CareerInfoRow(
+            stringResource(R.string.current_team),
+            currentTeams.joinToString(", ") { it.name },
+        )
+    }
+    if (driver.url.isNotBlank()) {
+        Spacer(Modifier.height(12.dp))
+        WikipediaLink(onWikipediaClick)
+    }
+}
+
+@Composable
+private fun DriverCareerStatsSection(
+    stats: com.example.f1_kotlin.data.model.CareerStats<Constructor>,
+    onWinsTap: () -> Unit,
+    onPodiumsTap: () -> Unit,
+    onPolesTap: () -> Unit,
+) {
+    Text(stringResource(R.string.career_title), style = AppStyles.h2)
+    Spacer(Modifier.height(16.dp))
+    CareerStatsGrid(
+        races = stats.races,
+        wins = stats.wins,
+        podiums = stats.podiums,
+        poles = stats.poles,
+        onWinsTap = onWinsTap,
+        onPodiumsTap = onPodiumsTap,
+        onPolesTap = onPolesTap,
+    )
+}
+
+@Composable
+private fun DriverTeamsSection(
+    teams: List<Constructor>,
+    onConstructorClick: (Constructor) -> Unit,
+) {
+    Text(stringResource(R.string.driver_teams_title), style = AppStyles.h2)
+    Spacer(Modifier.height(12.dp))
+    teams.forEach { constructor ->
+        CareerListTile(
+            title = constructor.name,
+            subtitle = "",
+            onClick = { onConstructorClick(constructor) },
+            trailing = { CountryFlag(countryOrNationality = constructor.nationality) },
+        )
+    }
+}
+
+@Composable
+private fun DriverNewsSection(articles: List<NewsArticle>) {
+    Text(stringResource(R.string.driver_news_title), style = AppStyles.h2)
+    Spacer(Modifier.height(12.dp))
+    articles.forEach { article ->
+        NewsArticleTile(article)
+        Spacer(Modifier.height(12.dp))
     }
 }
 

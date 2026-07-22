@@ -2,87 +2,104 @@ package com.example.f1_kotlin.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.f1_kotlin.data.model.ConstructorStandingsModel
-import com.example.f1_kotlin.data.model.DriverStandingsModel
-import com.example.f1_kotlin.data.repository.F1Repository
-import com.example.f1_kotlin.domain.AppException
+import com.example.f1_kotlin.domain.model.ConstructorStanding
+import com.example.f1_kotlin.domain.model.DriverStanding
+import com.example.f1_kotlin.data.repository.IF1Repository
+import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+
+data class HomeUiState(
+    val drivers: AsyncValue<List<DriverStanding>> = AsyncValue.Loading,
+    val constructors: AsyncValue<List<ConstructorStanding>> = AsyncValue.Loading,
+    val season: String = "",
+    val round: String = "",
+    val activeTable: Int = 0,
+    val error: AppError? = null,
+)
 
 /** ViewModel вкладки «Главная» — [LoadJobHolder] + peek-кэш, затем refresh с сети. */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: F1Repository,
+    private val repository: IF1Repository,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
-    private val _drivers = MutableStateFlow<AsyncValue<List<DriverStandingsModel>>>(AsyncValue.Loading)
-    val drivers: StateFlow<AsyncValue<List<DriverStandingsModel>>> = _drivers.asStateFlow()
-
-    private val _constructors = MutableStateFlow<AsyncValue<List<ConstructorStandingsModel>>>(AsyncValue.Loading)
-    val constructors: StateFlow<AsyncValue<List<ConstructorStandingsModel>>> = _constructors.asStateFlow()
-
-    private val _season = MutableStateFlow("")
-    val season: StateFlow<String> = _season.asStateFlow()
-
-    private val _round = MutableStateFlow("")
-    val round: StateFlow<String> = _round.asStateFlow()
-
-    private val _activeTable = MutableStateFlow(0)
-    val activeTable: StateFlow<Int> = _activeTable.asStateFlow()
-
-    private val _error = MutableStateFlow<AppException?>(null)
-    val error: StateFlow<AppException?> = _error.asStateFlow()
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         loadAllData()
     }
 
     fun changeActiveTable(index: Int) {
-        _activeTable.value = index
+        _uiState.update { it.copy(activeTable = index) }
     }
 
     fun loadAllData() {
         loadJob.launch(viewModelScope) {
-            _error.value = null
+            _uiState.update { it.copy(error = null) }
 
             repository.peekCurrentDriversCache()?.let { (list, meta) ->
-                _drivers.value = AsyncValue.Value(list)
-                _season.value = meta.season
-                _round.value = meta.round
-            } ?: run { _drivers.value = AsyncValue.Loading }
+                _uiState.update {
+                    it.copy(
+                        drivers = AsyncValue.Value(list),
+                        season = meta.season,
+                        round = meta.round,
+                    )
+                }
+            } ?: run {
+                _uiState.update { it.copy(drivers = AsyncValue.Loading) }
+            }
 
-            repository.peekCurrentConstructorsCache()?.let {
-                _constructors.value = AsyncValue.Value(it)
-            } ?: run { _constructors.value = AsyncValue.Loading }
+            repository.peekCurrentConstructorsCache()?.let { list ->
+                _uiState.update { it.copy(constructors = AsyncValue.Value(list)) }
+            } ?: run {
+                _uiState.update { it.copy(constructors = AsyncValue.Loading) }
+            }
 
             val driversDeferred = async { repository.getCurrentDriverStandings() }
             val constructorsDeferred = async { repository.getCurrentConstructorStandings() }
 
             driversDeferred.await().applyUnlessCached(
-                current = _drivers.value,
+                current = _uiState.value.drivers,
                 onSuccess = { (list, meta) ->
-                    _drivers.value = AsyncValue.Value(list)
-                    _season.value = meta.season
-                    _round.value = meta.round
+                    _uiState.update {
+                        it.copy(
+                            drivers = AsyncValue.Value(list),
+                            season = meta.season,
+                            round = meta.round,
+                        )
+                    }
                 },
-                onFailure = { ex ->
-                    _drivers.value = AsyncValue.Error(ex.title, ex.subtitle)
-                    _error.value = ex
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(
+                            drivers = err.toAsyncError(),
+                            error = err,
+                        )
+                    }
                 },
             )
 
             constructorsDeferred.await().applyUnlessCached(
-                current = _constructors.value,
-                onSuccess = { _constructors.value = AsyncValue.Value(it) },
-                onFailure = { ex ->
-                    _constructors.value = AsyncValue.Error(ex.title, ex.subtitle)
-                    _error.value = ex
+                current = _uiState.value.constructors,
+                onSuccess = { list ->
+                    _uiState.update { it.copy(constructors = AsyncValue.Value(list)) }
+                },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(
+                            constructors = err.toAsyncError(),
+                            error = err,
+                        )
+                    }
                 },
             )
         }

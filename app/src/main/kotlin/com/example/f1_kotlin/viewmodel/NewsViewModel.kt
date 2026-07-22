@@ -3,26 +3,29 @@ package com.example.f1_kotlin.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.f1_kotlin.data.model.NewsArticle
-import com.example.f1_kotlin.data.repository.EspnRepository
+import com.example.f1_kotlin.data.repository.IEspnRepository
 import com.example.f1_kotlin.domain.AsyncValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+
+data class NewsUiState(
+    val articles: AsyncValue<List<NewsArticle>> = AsyncValue.Loading,
+    val isRefreshing: Boolean = false,
+)
 
 /** ViewModel вкладки «Новости» (ESPN). */
 @HiltViewModel
 class NewsViewModel @Inject constructor(
-    private val espnRepository: EspnRepository,
+    private val espnRepository: IEspnRepository,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
-    private val _articles = MutableStateFlow<AsyncValue<List<NewsArticle>>>(AsyncValue.Loading)
-    val articles: StateFlow<AsyncValue<List<NewsArticle>>> = _articles.asStateFlow()
-
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _uiState = MutableStateFlow(NewsUiState())
+    val uiState: StateFlow<NewsUiState> = _uiState.asStateFlow()
 
     init {
         loadArticles()
@@ -31,25 +34,31 @@ class NewsViewModel @Inject constructor(
     fun loadArticles(forceRefresh: Boolean = false) {
         loadJob.launch(viewModelScope) {
             if (forceRefresh) {
-                _isRefreshing.value = true
+                _uiState.update { it.copy(isRefreshing = true) }
             }
             try {
                 if (!forceRefresh) {
                     espnRepository.peekNews?.let { cached ->
-                        _articles.value = AsyncValue.Value(cached)
+                        _uiState.update { it.copy(articles = AsyncValue.Value(cached)) }
                         if (espnRepository.isNewsFresh) return@launch
-                    } ?: run { _articles.value = AsyncValue.Loading }
-                } else if (_articles.value !is AsyncValue.Value) {
-                    _articles.value = AsyncValue.Loading
+                    } ?: run {
+                        _uiState.update { it.copy(articles = AsyncValue.Loading) }
+                    }
+                } else if (_uiState.value.articles !is AsyncValue.Value) {
+                    _uiState.update { it.copy(articles = AsyncValue.Loading) }
                 }
 
                 espnRepository.getNews(forceRefresh = forceRefresh).applyUnlessCached(
-                    current = _articles.value,
-                    onSuccess = { _articles.value = AsyncValue.Value(it) },
-                    onFailure = { ex -> _articles.value = AsyncValue.Error(ex.title, ex.subtitle) },
+                    current = _uiState.value.articles,
+                    onSuccess = { list ->
+                        _uiState.update { it.copy(articles = AsyncValue.Value(list)) }
+                    },
+                    onFailure = { err ->
+                        _uiState.update { it.copy(articles = err.toAsyncError()) }
+                    },
                 )
             } finally {
-                _isRefreshing.value = false
+                _uiState.update { it.copy(isRefreshing = false) }
             }
         }
     }

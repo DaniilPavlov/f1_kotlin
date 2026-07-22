@@ -28,13 +28,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.f1_kotlin.data.model.ConstructorModel
-import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.ui.components.F1AppBar
 import com.example.f1_kotlin.ui.screens.circuits.CircuitDetailScreen
 import com.example.f1_kotlin.ui.screens.circuits.CircuitsScreen
@@ -55,13 +58,44 @@ import com.example.f1_kotlin.ui.theme.F1Black
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1White
 import com.example.f1_kotlin.util.LocalShareActionSetter
+import kotlin.reflect.KClass
 
-sealed class BottomTab(val route: String, val labelRes: Int, val iconRes: Int) {
-    data object Home : BottomTab("home", com.example.f1_kotlin.R.string.nav_home, com.example.f1_kotlin.R.drawable.nav_home)
-    data object Results : BottomTab("results", com.example.f1_kotlin.R.string.nav_results, com.example.f1_kotlin.R.drawable.nav_racing_car)
-    data object Schedule : BottomTab("schedule", com.example.f1_kotlin.R.string.nav_calendar, com.example.f1_kotlin.R.drawable.nav_lights)
-    data object News : BottomTab("news", com.example.f1_kotlin.R.string.nav_news, com.example.f1_kotlin.R.drawable.nav_trophy)
-    data object Circuits : BottomTab("circuits", com.example.f1_kotlin.R.string.nav_circuits, com.example.f1_kotlin.R.drawable.nav_circuit)
+sealed class BottomTab(
+    val route: Any,
+    val routeClass: KClass<out Any>,
+    val labelRes: Int,
+    val iconRes: Int,
+) {
+    data object Home : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.Home,
+        routeClass = com.example.f1_kotlin.ui.navigation.Home::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_home,
+        iconRes = com.example.f1_kotlin.R.drawable.nav_home,
+    )
+    data object Results : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.Results,
+        routeClass = com.example.f1_kotlin.ui.navigation.Results::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_results,
+        iconRes = com.example.f1_kotlin.R.drawable.nav_racing_car,
+    )
+    data object Schedule : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.Schedule,
+        routeClass = com.example.f1_kotlin.ui.navigation.Schedule::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_calendar,
+        iconRes = com.example.f1_kotlin.R.drawable.nav_lights,
+    )
+    data object News : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.News,
+        routeClass = com.example.f1_kotlin.ui.navigation.News::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_news,
+        iconRes = com.example.f1_kotlin.R.drawable.nav_trophy,
+    )
+    data object Circuits : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.Circuits,
+        routeClass = com.example.f1_kotlin.ui.navigation.Circuits::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_circuits,
+        iconRes = com.example.f1_kotlin.R.drawable.nav_circuit,
+    )
 }
 
 private val tabs = listOf(
@@ -76,53 +110,35 @@ private val tabs = listOf(
 fun F1App() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute in tabs.map { it.route }
+    val destination = backStackEntry?.destination
+    val showBottomBar = tabs.any { destination?.hasRoute(it.routeClass) == true }
     val popBack: () -> Unit = { navController.popBackStack() }
     var shareAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
-    val onDriverClick: (DriverModel) -> Unit = { driver ->
-        navController.navigate("driver/${driver.driverId}")
+    val onDriverClick: (Driver) -> Unit = { driver ->
+        navController.navigate(DriverDetail(driver.driverId))
     }
-    val onConstructorClick: (ConstructorModel) -> Unit = { constructor ->
-        navController.navigate("constructor/${constructor.constructorId}")
+    val onConstructorClick: (Constructor) -> Unit = { constructor ->
+        navController.navigate(ConstructorDetail(constructor.constructorId))
     }
-    val onCircuitClick: (com.example.f1_kotlin.data.model.CircuitModel) -> Unit = { circuit ->
-        navController.navigate("circuit/${circuit.circuitId}")
+    val onCircuitClick: (com.example.f1_kotlin.domain.model.Circuit) -> Unit = { circuit ->
+        navController.navigate(CircuitDetail(circuit.circuitId))
     }
 
     CompositionLocalProvider(LocalShareActionSetter provides { shareAction = it }) {
         Scaffold(
             topBar = {
-                when {
-                    currentRoute in tabs.map { it.route } -> F1AppBar()
-                    currentRoute == "race_search" -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.race_search_title), onBack = popBack)
-                    currentRoute == "hall_of_fame" -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.hall_of_fame_title), onBack = popBack)
-                    currentRoute == "h2h" -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.h2h_title), onBack = popBack)
-                    currentRoute == "h2h_constructors" -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.h2h_constructors_title), onBack = popBack)
-                    currentRoute == "finish_status" -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.finish_status_title), onBack = popBack)
-                    currentRoute?.startsWith("race_info/") == true -> F1AppBar(
-                        title = stringResource(com.example.f1_kotlin.R.string.detailed_info),
-                        onBack = popBack,
-                        onShare = shareAction,
-                    )
-                    currentRoute?.startsWith("circuit/") == true -> F1AppBar(title = stringResource(com.example.f1_kotlin.R.string.circuit_info_title), onBack = popBack)
-                    currentRoute?.startsWith("driver/") == true -> F1AppBar(
-                        title = stringResource(com.example.f1_kotlin.R.string.driver),
-                        onBack = popBack,
-                        onShare = shareAction,
-                    )
-                    currentRoute?.startsWith("constructor/") == true -> F1AppBar(
-                        title = stringResource(com.example.f1_kotlin.R.string.constructor),
-                        onBack = popBack,
-                        onShare = shareAction,
-                    )
-                }
+                F1TopBar(
+                    destination = destination,
+                    showBottomBar = showBottomBar,
+                    popBack = popBack,
+                    shareAction = shareAction,
+                )
             },
             bottomBar = {
                 if (showBottomBar) {
                     F1BottomBar(
-                        currentRoute = currentRoute,
+                        currentDestination = destination,
                         onTabSelected = { tab ->
                             navController.navigate(tab.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -134,98 +150,175 @@ fun F1App() {
                 }
             },
         ) { padding ->
-            NavHost(
+            F1NavHost(
                 navController = navController,
-                startDestination = BottomTab.Home.route,
+                onDriverClick = onDriverClick,
+                onConstructorClick = onConstructorClick,
+                onCircuitClick = onCircuitClick,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-            ) {
-                composable(BottomTab.Home.route) {
-                    HomeScreen(
-                        viewModel = hiltViewModel(),
-                        onDriverClick = onDriverClick,
-                        onConstructorClick = onConstructorClick,
-                    )
-                }
-                composable(BottomTab.Results.route) {
-                    ResultsScreen(
-                        viewModel = hiltViewModel(),
-                        onSearchRace = { navController.navigate("race_search") },
-                        onHallOfFame = { navController.navigate("hall_of_fame") },
-                        onH2hDrivers = { navController.navigate("h2h") },
-                        onH2hConstructors = { navController.navigate("h2h_constructors") },
-                        onFinishStatus = { navController.navigate("finish_status") },
-                        onRaceDetails = { race -> navController.navigate("race_info/${race.season}/${race.round}") },
-                        onDriverClick = onDriverClick,
-                    )
-                }
-                composable("race_search") {
-                    RaceSearchScreen(
-                        viewModel = hiltViewModel(),
-                        onRaceDetails = { race -> navController.navigate("race_info/${race.season}/${race.round}") },
-                        onDriverClick = onDriverClick,
-                    )
-                }
-            composable("hall_of_fame") {
-                HallOfFameScreen(
-                    viewModel = hiltViewModel(),
-                    onDriverClick = onDriverClick,
-                    onConstructorClick = onConstructorClick,
-                )
-            }
-            composable("h2h") {
-                H2hDriversScreen(viewModel = hiltViewModel())
-            }
-            composable("h2h_constructors") {
-                H2hConstructorsScreen(viewModel = hiltViewModel())
-            }
-            composable("finish_status") {
-                FinishStatusScreen(viewModel = hiltViewModel())
-            }
-            composable("race_info/{season}/{round}") {
-                RaceInfoScreen(
-                    viewModel = hiltViewModel(),
-                    onDriverClick = onDriverClick,
-                )
-            }
-            composable(BottomTab.Schedule.route) { ScheduleScreen(hiltViewModel()) }
-            composable(BottomTab.News.route) {
-                NewsScreen(viewModel = hiltViewModel())
-            }
-            composable(BottomTab.Circuits.route) {
-                CircuitsScreen(
-                    viewModel = hiltViewModel(),
-                    onCircuitClick = { circuitId -> navController.navigate("circuit/$circuitId") },
-                )
-            }
-            composable("circuit/{circuitId}") {
-                CircuitDetailScreen(
-                    viewModel = hiltViewModel(),
-                    onDriverClick = onDriverClick,
-                )
-            }
-            composable("driver/{driverId}") {
-                DriverDetailScreen(
-                    viewModel = hiltViewModel(),
-                    onConstructorClick = onConstructorClick,
-                    onCircuitClick = onCircuitClick,
-                )
-            }
-            composable("constructor/{constructorId}") {
-                ConstructorDetailScreen(
-                    viewModel = hiltViewModel(),
-                    onDriverClick = onDriverClick,
-                    onCircuitClick = onCircuitClick,
-                )
-            }
-            }
+            )
         }
     }
 }
 
 @Composable
-private fun F1BottomBar(currentRoute: String?, onTabSelected: (BottomTab) -> Unit) {
+private fun F1TopBar(
+    destination: NavDestination?,
+    showBottomBar: Boolean,
+    popBack: () -> Unit,
+    shareAction: (() -> Unit)?,
+) {
+    when {
+        showBottomBar -> F1AppBar()
+        destination?.hasRoute<RaceSearch>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.race_search_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<HallOfFame>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.hall_of_fame_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<H2hDrivers>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.h2h_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<H2hConstructors>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.h2h_constructors_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<FinishStatus>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.finish_status_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<RaceInfo>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.detailed_info),
+            onBack = popBack,
+            onShare = shareAction,
+        )
+        destination?.hasRoute<CircuitDetail>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.circuit_info_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<DriverDetail>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.driver),
+            onBack = popBack,
+            onShare = shareAction,
+        )
+        destination?.hasRoute<ConstructorDetail>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.constructor),
+            onBack = popBack,
+            onShare = shareAction,
+        )
+    }
+}
+
+@Composable
+private fun F1NavHost(
+    navController: NavHostController,
+    onDriverClick: (Driver) -> Unit,
+    onConstructorClick: (Constructor) -> Unit,
+    onCircuitClick: (com.example.f1_kotlin.domain.model.Circuit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    NavHost(
+        navController = navController,
+        startDestination = Home,
+        modifier = modifier,
+    ) {
+        composable<Home> {
+            HomeScreen(
+                viewModel = hiltViewModel(),
+                onDriverClick = onDriverClick,
+                onConstructorClick = onConstructorClick,
+            )
+        }
+        composable<Results> {
+            ResultsScreen(
+                viewModel = hiltViewModel(),
+                onSearchRace = { navController.navigate(RaceSearch) },
+                onHallOfFame = { navController.navigate(HallOfFame) },
+                onH2hDrivers = { navController.navigate(H2hDrivers) },
+                onH2hConstructors = { navController.navigate(H2hConstructors) },
+                onFinishStatus = { navController.navigate(FinishStatus) },
+                onRaceDetails = { race ->
+                    navController.navigate(RaceInfo(race.season, race.round))
+                },
+                onDriverClick = onDriverClick,
+            )
+        }
+        composable<RaceSearch> {
+            RaceSearchScreen(
+                viewModel = hiltViewModel(),
+                onRaceDetails = { race ->
+                    navController.navigate(RaceInfo(race.season, race.round))
+                },
+                onDriverClick = onDriverClick,
+            )
+        }
+        composable<HallOfFame> {
+            HallOfFameScreen(
+                viewModel = hiltViewModel(),
+                onDriverClick = onDriverClick,
+                onConstructorClick = onConstructorClick,
+            )
+        }
+        composable<H2hDrivers> {
+            H2hDriversScreen(viewModel = hiltViewModel())
+        }
+        composable<H2hConstructors> {
+            H2hConstructorsScreen(viewModel = hiltViewModel())
+        }
+        composable<FinishStatus> {
+            FinishStatusScreen(viewModel = hiltViewModel())
+        }
+        composable<RaceInfo> {
+            RaceInfoScreen(
+                viewModel = hiltViewModel(),
+                onDriverClick = onDriverClick,
+            )
+        }
+        composable<Schedule> { ScheduleScreen(hiltViewModel()) }
+        composable<News> {
+            NewsScreen(viewModel = hiltViewModel())
+        }
+        composable<Circuits> {
+            CircuitsScreen(
+                viewModel = hiltViewModel(),
+                onCircuitClick = { circuitId ->
+                    navController.navigate(CircuitDetail(circuitId))
+                },
+            )
+        }
+        composable<CircuitDetail> {
+            CircuitDetailScreen(
+                viewModel = hiltViewModel(),
+                onDriverClick = onDriverClick,
+            )
+        }
+        composable<DriverDetail> {
+            DriverDetailScreen(
+                viewModel = hiltViewModel(),
+                onConstructorClick = onConstructorClick,
+                onCircuitClick = onCircuitClick,
+            )
+        }
+        composable<ConstructorDetail> {
+            ConstructorDetailScreen(
+                viewModel = hiltViewModel(),
+                onDriverClick = onDriverClick,
+                onCircuitClick = onCircuitClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun F1BottomBar(
+    currentDestination: NavDestination?,
+    onTabSelected: (BottomTab) -> Unit,
+) {
     Column {
         Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(F1Red))
         Row(
@@ -238,7 +331,7 @@ private fun F1BottomBar(currentRoute: String?, onTabSelected: (BottomTab) -> Uni
         ) {
             tabs.forEach { tab ->
                 val label = stringResource(tab.labelRes)
-                val selected = currentRoute == tab.route
+                val selected = currentDestination?.hasRoute(tab.routeClass) == true
                 val contentColor = if (selected) F1Red else F1White
                 Column(
                     modifier = Modifier

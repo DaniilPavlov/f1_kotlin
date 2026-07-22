@@ -22,8 +22,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
-import com.example.f1_kotlin.data.model.DriverModel
-import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.domain.model.Driver
+import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.BlackButton
 import com.example.f1_kotlin.ui.components.ErrorBody
@@ -43,6 +43,7 @@ import com.example.f1_kotlin.util.RegisterShareAction
 import com.example.f1_kotlin.util.rememberShareRaceAction
 import com.example.f1_kotlin.viewmodel.RaceInfoScreenViewModel
 import com.example.f1_kotlin.viewmodel.RaceSearchViewModel
+import com.example.f1_kotlin.viewmodel.ResultsUiState
 import com.example.f1_kotlin.viewmodel.ResultsViewModel
 
 @Composable
@@ -53,26 +54,50 @@ fun ResultsScreen(
     onH2hDrivers: () -> Unit,
     onH2hConstructors: () -> Unit,
     onFinishStatus: () -> Unit,
-    onRaceDetails: (RaceModel) -> Unit,
-    onDriverClick: (DriverModel) -> Unit,
+    onRaceDetails: (Race) -> Unit,
+    onDriverClick: (Driver) -> Unit,
 ) {
-    val lastRace by viewModel.lastRace.collectAsState()
-    val scoreboard by viewModel.scoreboard.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    ResultsScreenContent(
+        uiState = uiState,
+        onRetry = viewModel::loadAllData,
+        onSearchRace = onSearchRace,
+        onHallOfFame = onHallOfFame,
+        onH2hDrivers = onH2hDrivers,
+        onH2hConstructors = onH2hConstructors,
+        onFinishStatus = onFinishStatus,
+        onRaceDetails = onRaceDetails,
+        onDriverClick = onDriverClick,
+    )
+}
 
+/** Testable content — no Hilt / ViewModel required. */
+@Composable
+fun ResultsScreenContent(
+    uiState: ResultsUiState,
+    onRetry: () -> Unit = {},
+    onSearchRace: () -> Unit = {},
+    onHallOfFame: () -> Unit = {},
+    onH2hDrivers: () -> Unit = {},
+    onH2hConstructors: () -> Unit = {},
+    onFinishStatus: () -> Unit = {},
+    onRaceDetails: (Race) -> Unit = {},
+    onDriverClick: (Driver) -> Unit = {},
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(bottom = AppDimens.verticalPadding.dp),
     ) {
-        WeekendScoreboardSection(scoreboard)
+        WeekendScoreboardSection(uiState.scoreboard)
 
-        when (val state = lastRace) {
+        when (val state = uiState.lastRace) {
             is AsyncValue.Loading -> LastRaceSectionShimmer()
             is AsyncValue.Error -> ErrorBody(
                 state.message,
                 state.subtitle,
-                onRetry = viewModel::loadAllData,
+                onRetry = onRetry,
                 modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp),
             )
             is AsyncValue.Value -> Column(
@@ -118,15 +143,10 @@ fun ResultsScreen(
 @Composable
 fun RaceSearchScreen(
     viewModel: RaceSearchViewModel,
-    onRaceDetails: (RaceModel) -> Unit,
-    onDriverClick: (DriverModel) -> Unit,
+    onRaceDetails: (Race) -> Unit,
+    onDriverClick: (Driver) -> Unit,
 ) {
-    val year by viewModel.year.collectAsState()
-    val raceDisplay by viewModel.raceDisplay.collectAsState()
-    val fieldsInputted by viewModel.fieldsInputted.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val searchedRace by viewModel.searchedRace.collectAsState()
-    val dataLoaded by viewModel.dataLoaded.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -134,9 +154,13 @@ fun RaceSearchScreen(
             .verticalScroll(rememberScrollState())
             .padding(AppDimens.horizontalPadding.dp),
     ) {
-        Text(stringResource(R.string.race_search_info), style = AppStyles.body, modifier = Modifier.padding(vertical = 16.dp))
+        Text(
+            stringResource(R.string.race_search_info),
+            style = AppStyles.body,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
         SeasonPickerField(
-            value = year,
+            value = uiState.year,
             label = stringResource(R.string.season),
             hint = stringResource(R.string.select_season),
             onSeasonSelected = viewModel::onYearChanged,
@@ -144,8 +168,8 @@ fun RaceSearchScreen(
         )
         Spacer(Modifier.height(12.dp))
         RacePickerField(
-            displayValue = raceDisplay,
-            seasonYear = year,
+            displayValue = uiState.raceDisplay,
+            seasonYear = uiState.year,
             label = stringResource(R.string.race),
             hint = stringResource(R.string.select_race),
             disabledHint = stringResource(R.string.select_season_first),
@@ -155,16 +179,16 @@ fun RaceSearchScreen(
         Spacer(Modifier.height(16.dp))
         BlackButton(
             text = stringResource(R.string.search),
-            enabled = fieldsInputted,
+            enabled = uiState.fieldsInputted,
             onClick = viewModel::loadRaceResults,
         )
-        if (errorMessage.isNotEmpty()) {
-            Text(errorMessage, style = AppStyles.body, modifier = Modifier.padding(top = 16.dp))
+        if (uiState.errorMessage.isNotEmpty()) {
+            Text(uiState.errorMessage, style = AppStyles.body, modifier = Modifier.padding(top = 16.dp))
         }
-        if (!dataLoaded) {
+        if (!uiState.dataLoaded) {
             LoadingIndicator(Modifier.padding(top = 24.dp))
         }
-        when (val state = searchedRace) {
+        when (val state = uiState.searchedRace) {
             is AsyncValue.Value -> state.value?.let { race ->
                 Spacer(Modifier.height(24.dp))
                 Text(race.raceName, style = AppStyles.h2)
@@ -183,24 +207,25 @@ fun RaceSearchScreen(
 @Composable
 fun RaceInfoScreen(
     viewModel: RaceInfoScreenViewModel,
-    onDriverClick: (DriverModel) -> Unit,
+    onDriverClick: (Driver) -> Unit,
 ) {
-    val race by viewModel.race.collectAsState()
-    val qualifying by viewModel.qualifying.collectAsState()
-    val pitStops by viewModel.pitStops.collectAsState()
-    val sprint by viewModel.sprint.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val race = uiState.race
+    val qualifying = uiState.qualifying
+    val pitStops = uiState.pitStops
+    val sprint = uiState.sprint
+    val error = uiState.error
 
     when {
         error != null && race.isError -> ErrorBody(
-            error?.title,
-            error?.subtitle,
+            error.title,
+            error.subtitle,
             onRetry = viewModel::loadAllData,
             modifier = Modifier.fillMaxSize(),
         )
         race.isLoading -> RaceInfoShimmer(modifier = Modifier.fillMaxSize())
         race is AsyncValue.Value -> {
-            val raceData = (race as AsyncValue.Value).value
+            val raceData = race.value
             RegisterShareAction(rememberShareRaceAction(raceData))
             Column(
                 modifier = Modifier
@@ -210,14 +235,17 @@ fun RaceInfoScreen(
             ) {
                 Spacer(Modifier.height(AppDimens.verticalPadding.dp))
                 Text(raceData.raceName, style = AppStyles.h2)
-                RowInfo(stringResource(R.string.season_label, raceData.season), stringResource(R.string.round_label, raceData.round))
+                RowInfo(
+                    stringResource(R.string.season_label, raceData.season),
+                    stringResource(R.string.round_label, raceData.round),
+                )
                 SectionHeader(stringResource(R.string.race))
                 RaceResultsTable(race = raceData, showHeader = false, onDriverClick = onDriverClick)
                 Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                if (sprint is AsyncValue.Value && (sprint as AsyncValue.Value).value.isNotEmpty()) {
+                if (sprint is AsyncValue.Value && sprint.value.isNotEmpty()) {
                     SectionHeader(stringResource(R.string.sprint))
                     RaceResultsTable(
-                        race = raceData.copy(results = (sprint as AsyncValue.Value).value),
+                        race = raceData.copy(results = sprint.value),
                         showHeader = false,
                         onDriverClick = onDriverClick,
                     )

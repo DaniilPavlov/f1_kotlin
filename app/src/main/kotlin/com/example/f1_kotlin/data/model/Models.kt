@@ -1,16 +1,19 @@
 package com.example.f1_kotlin.data.model
 
+import com.example.f1_kotlin.domain.model.Circuit
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.Driver
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * Data-модели ответов Ergast API.
+ * Data-модели (DTO) ответов Ergast / Jolpica API.
+ *
+ * Парсятся Moshi. В UI / ViewModel не пробрасывать напрямую —
+ * маппить через [com.example.f1_kotlin.data.mapper] → [com.example.f1_kotlin.domain.model].
  *
  * Имена полей в JSON часто в PascalCase (`MRData`, `DriverStandings`),
  * а в Kotlin — camelCase. Аннотация [@Json] связывает их при парсинге Moshi.
- *
- * [@JsonClass(generateAdapter = true)] — Moshi может сгенерировать адаптер;
- * сейчас используется [KotlinJsonAdapterFactory] (рефлексия).
  */
 
 /** Обёртка всех ответов API: `{ "MRData": { ... } }`. */
@@ -185,9 +188,9 @@ data class QualifyingResultModel(
     val positionText: String? = null,
     @Json(name = "Driver") val driver: DriverModel,
     @Json(name = "Constructor") val constructor: ConstructorModel,
-    val Q1: String? = null,
-    val Q2: String? = null,
-    val Q3: String? = null,
+    @Json(name = "Q1") val q1: String? = null,
+    @Json(name = "Q2") val q2: String? = null,
+    @Json(name = "Q3") val q3: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -317,9 +320,9 @@ data class CareerRaceResult(
     val round: String,
     val raceName: String,
     val position: Int,
-    val constructor: ConstructorModel,
-    val circuit: CircuitModel,
-    val driver: DriverModel? = null,
+    val constructor: Constructor,
+    val circuit: Circuit,
+    val driver: Driver? = null,
 ) {
     /** Подзаголовок строки: пилот (если есть) или конструктор. */
     val entityName: String
@@ -344,8 +347,8 @@ data class CircuitRaceWin(
     val season: String,
     val round: String,
     val raceName: String,
-    val driver: DriverModel,
-    val constructor: ConstructorModel,
+    val driver: Driver,
+    val constructor: Constructor,
 )
 
 /** Кэш списка сезонов (обновляется раз в сутки). */

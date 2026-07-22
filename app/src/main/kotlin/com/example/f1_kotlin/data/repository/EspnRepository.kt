@@ -4,6 +4,7 @@ import android.net.Uri
 import com.example.f1_kotlin.data.api.EspnApiService
 import com.example.f1_kotlin.data.model.EspnDriverCardData
 import com.example.f1_kotlin.data.model.EspnScoreboardEvent
+import com.example.f1_kotlin.data.model.EspnSearchItemDto
 import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.data.model.toDomain
 import com.example.f1_kotlin.domain.ApiCallHandler
@@ -19,7 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class EspnRepository @Inject constructor(
     private val api: EspnApiService,
-) {
+) : IEspnRepository {
     private val newsMutex = Mutex()
     private val scoreboardMutex = Mutex()
 
@@ -41,20 +42,20 @@ class EspnRepository @Inject constructor(
     private val driverCardCache = ConcurrentHashMap<String, EspnDriverCardData>()
     private val constructorNewsCache = ConcurrentHashMap<String, List<NewsArticle>>()
 
-    val peekNews: List<NewsArticle>? get() = newsCache
+    override val peekNews: List<NewsArticle>? get() = newsCache
 
-    val isNewsFresh: Boolean
+    override val isNewsFresh: Boolean
         get() = newsCache != null &&
             System.currentTimeMillis() - newsCachedAtMs < EspnApiService.NEWS_CACHE_TTL_MS
 
-    val peekScoreboard: EspnScoreboardEvent? get() = scoreboardCache
+    override val peekScoreboard: EspnScoreboardEvent? get() = scoreboardCache
 
     /** Fresh includes an empty events response (null event). */
-    val isScoreboardFresh: Boolean
+    override val isScoreboardFresh: Boolean
         get() = scoreboardHasCache &&
             System.currentTimeMillis() - scoreboardCachedAtMs < EspnApiService.SCOREBOARD_CACHE_TTL_MS
 
-    suspend fun getNews(forceRefresh: Boolean = false): Result<List<NewsArticle>> {
+    override suspend fun getNews(forceRefresh: Boolean): Result<List<NewsArticle>> {
         if (!forceRefresh && isNewsFresh) {
             return Result.success(newsCache!!)
         }
@@ -76,7 +77,7 @@ class EspnRepository @Inject constructor(
      * First event from scoreboard, or null if events list is empty.
      * Failures are [Result.failure]; callers on Results hide scoreboard silently.
      */
-    suspend fun getScoreboardEvent(forceRefresh: Boolean = false): Result<EspnScoreboardEvent?> {
+    override suspend fun getScoreboardEvent(forceRefresh: Boolean): Result<EspnScoreboardEvent?> {
         if (!forceRefresh && isScoreboardFresh) {
             return Result.success(scoreboardCache)
         }
@@ -103,7 +104,7 @@ class EspnRepository @Inject constructor(
     }
 
     /** Photo + news for a driver (search → athlete → overview). Errors → empty card. */
-    suspend fun driverCardData(givenName: String, familyName: String): EspnDriverCardData {
+    override suspend fun driverCardData(givenName: String, familyName: String): EspnDriverCardData {
         val cacheKey = normalize("$givenName|$familyName")
         driverCardCache[cacheKey]?.let { return it }
 
@@ -125,7 +126,7 @@ class EspnRepository @Inject constructor(
     }
 
     /** Team news (up to 5). Errors / empty → []. */
-    suspend fun constructorNews(constructorId: String, constructorName: String): List<NewsArticle> {
+    override suspend fun constructorNews(constructorId: String, constructorName: String): List<NewsArticle> {
         val cacheKey = normalize("$constructorId|$constructorName")
         constructorNewsCache[cacheKey]?.let { return it }
 
@@ -145,7 +146,7 @@ class EspnRepository @Inject constructor(
         }
     }
 
-    fun clearCaches() {
+    override fun clearCaches() {
         newsCache = null
         newsCachedAtMs = 0L
         scoreboardCache = null
@@ -158,27 +159,29 @@ class EspnRepository @Inject constructor(
     private suspend fun searchF1PlayerId(query: String): String? {
         if (query.isEmpty()) return null
         return try {
-            val response = api.searchPlayers(query = query)
-            val items = response.items.orEmpty()
-            val normalizedQuery = normalize(query)
-            var exact: String? = null
-            var fallback: String? = null
-            for (raw in items) {
-                val sport = raw.sport?.lowercase()
-                val league = raw.league?.lowercase()
-                if (sport != "racing" || league != "f1") continue
-                val id = raw.id ?: continue
-                if (fallback == null) fallback = id
-                val name = normalize(raw.displayName.orEmpty())
-                if (name == normalizedQuery || name.contains(normalizedQuery) || normalizedQuery.contains(name)) {
-                    exact = id
-                    break
-                }
-            }
-            exact ?: fallback
+            val items = api.searchPlayers(query = query).items.orEmpty()
+            pickF1PlayerId(items, normalize(query))
         } catch (_: Exception) {
             null
         }
+    }
+
+    private fun pickF1PlayerId(
+        items: List<EspnSearchItemDto>,
+        normalizedQuery: String,
+    ): String? {
+        val f1Players = items.mapNotNull { raw ->
+            if (raw.sport?.lowercase() != "racing" || raw.league?.lowercase() != "f1") {
+                return@mapNotNull null
+            }
+            val id = raw.id ?: return@mapNotNull null
+            id to normalize(raw.displayName.orEmpty())
+        }
+        return f1Players.firstOrNull { (_, name) ->
+            name == normalizedQuery ||
+                name.contains(normalizedQuery) ||
+                normalizedQuery.contains(name)
+        }?.first ?: f1Players.firstOrNull()?.first
     }
 
     private suspend fun loadAthletePhoto(espnId: String): String? {
@@ -207,15 +210,12 @@ class EspnRepository @Inject constructor(
     private suspend fun loadNewsByTeamNameFallback(constructorName: String): List<NewsArticle> {
         val needle = normalizeConstructorName(constructorName)
         if (needle.isEmpty()) return emptyList()
-        val response = api.getNews()
-        val matched = mutableListOf<NewsArticle>()
-        for (item in response.articles.orEmpty()) {
-            if (!articleMentionsTeam(item.categories, needle)) continue
-            val article = item.toDomain() ?: continue
-            matched.add(article)
-            if (matched.size >= 5) break
-        }
-        return matched
+        return api.getNews().articles.orEmpty()
+            .asSequence()
+            .filter { articleMentionsTeam(it.categories, needle) }
+            .mapNotNull { it.toDomain() }
+            .take(5)
+            .toList()
     }
 
     private fun articleMentionsTeam(
@@ -223,15 +223,15 @@ class EspnRepository @Inject constructor(
         needle: String,
     ): Boolean {
         if (categories == null) return false
-        for (raw in categories) {
-            if (raw.type != "team") continue
+        return categories.any { raw ->
+            if (raw.type != "team") return@any false
             val description = normalizeConstructorName(raw.description.orEmpty())
-            if (description.isEmpty()) continue
-            if (description == needle || needle.contains(description) || description.contains(needle)) {
-                return true
-            }
+            description.isNotEmpty() && (
+                description == needle ||
+                    needle.contains(description) ||
+                    description.contains(needle)
+                )
         }
-        return false
     }
 
     private fun resolveTeamId(constructorId: String, constructorName: String): String? {

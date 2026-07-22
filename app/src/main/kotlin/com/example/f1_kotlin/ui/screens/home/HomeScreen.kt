@@ -17,8 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
-import com.example.f1_kotlin.data.model.ConstructorModel
-import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CustomSwitcher
 import com.example.f1_kotlin.ui.components.ErrorBody
@@ -27,27 +27,46 @@ import com.example.f1_kotlin.ui.components.TournamentDriversTable
 import com.example.f1_kotlin.ui.components.shimmer.TournamentTablesShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
+import com.example.f1_kotlin.viewmodel.HomeUiState
 import com.example.f1_kotlin.viewmodel.HomeViewModel
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onDriverClick: (DriverModel) -> Unit,
-    onConstructorClick: (ConstructorModel) -> Unit,
+    onDriverClick: (Driver) -> Unit,
+    onConstructorClick: (Constructor) -> Unit,
 ) {
-    val drivers by viewModel.drivers.collectAsState()
-    val constructors by viewModel.constructors.collectAsState()
-    val season by viewModel.season.collectAsState()
-    val round by viewModel.round.collectAsState()
-    val activeTable by viewModel.activeTable.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    HomeScreenContent(
+        uiState = uiState,
+        onRetry = viewModel::loadAllData,
+        onChangeTable = viewModel::changeActiveTable,
+        onDriverClick = onDriverClick,
+        onConstructorClick = onConstructorClick,
+    )
+}
+
+/** Testable content — no Hilt / ViewModel required. */
+@Composable
+fun HomeScreenContent(
+    uiState: HomeUiState,
+    onRetry: () -> Unit,
+    onChangeTable: (Int) -> Unit,
+    onDriverClick: (Driver) -> Unit = {},
+    onConstructorClick: (Constructor) -> Unit = {},
+) {
+    val drivers = uiState.drivers
+    val constructors = uiState.constructors
 
     when {
         drivers.isLoading || constructors.isLoading -> TournamentTablesShimmer(modifier = Modifier.fillMaxSize())
-        error != null -> ErrorBody(error?.title, error?.subtitle, onRetry = viewModel::loadAllData, modifier = Modifier.fillMaxSize())
+        uiState.error != null -> ErrorBody(
+            uiState.error?.title,
+            uiState.error?.subtitle,
+            onRetry = onRetry,
+            modifier = Modifier.fillMaxSize(),
+        )
         drivers is AsyncValue.Value && constructors is AsyncValue.Value -> {
-            val driversList = (drivers as AsyncValue.Value).value
-            val constructorsList = (constructors as AsyncValue.Value).value
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -58,17 +77,26 @@ fun HomeScreen(
                     Text(stringResource(R.string.home_standings_title), style = AppStyles.h1)
                     Spacer(Modifier.height(32.dp))
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.season_label, season), style = AppStyles.h2, modifier = Modifier.weight(1f))
-                        Text(stringResource(R.string.round_label, round), style = AppStyles.h2)
+                        Text(
+                            stringResource(R.string.season_label, uiState.season),
+                            style = AppStyles.h2,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(stringResource(R.string.round_label, uiState.round), style = AppStyles.h2)
                     }
                 }
                 Spacer(Modifier.height(32.dp))
-                CustomSwitcher(stringResource(R.string.drivers), stringResource(R.string.constructors), activeTable, viewModel::changeActiveTable)
+                CustomSwitcher(
+                    stringResource(R.string.drivers),
+                    stringResource(R.string.constructors),
+                    uiState.activeTable,
+                    onChangeTable,
+                )
                 Spacer(Modifier.height(8.dp))
-                if (activeTable == 0) {
-                    TournamentDriversTable(driversList, onDriverClick = onDriverClick)
+                if (uiState.activeTable == 0) {
+                    TournamentDriversTable(drivers.value, onDriverClick = onDriverClick)
                 } else {
-                    TournamentConstructorsTable(constructorsList, onConstructorClick = onConstructorClick)
+                    TournamentConstructorsTable(constructors.value, onConstructorClick = onConstructorClick)
                 }
                 Spacer(Modifier.height(32.dp))
             }

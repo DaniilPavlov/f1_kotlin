@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
-import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1StrokeGray
@@ -126,7 +126,7 @@ fun RacePickerField(
     hint: String,
     disabledHint: String,
     onRacePicked: (RacePick) -> Unit,
-    loadRaces: suspend (String) -> Result<List<RaceModel>>,
+    loadRaces: suspend (String) -> Result<List<Race>>,
 ) {
     val enabled = seasonYear.length == 4
     var showSheet by remember { mutableStateOf(false) }
@@ -173,12 +173,12 @@ fun RacePickerField(
 @Composable
 private fun RacePickerSheet(
     seasonYear: String,
-    loadRaces: suspend (String) -> Result<List<RaceModel>>,
+    loadRaces: suspend (String) -> Result<List<Race>>,
     onSelected: (RacePick) -> Unit,
 ) {
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
-    var races by remember { mutableStateOf<List<RaceModel>>(emptyList()) }
+    var races by remember { mutableStateOf<List<Race>>(emptyList()) }
 
     LaunchedEffect(seasonYear) {
         loading = true

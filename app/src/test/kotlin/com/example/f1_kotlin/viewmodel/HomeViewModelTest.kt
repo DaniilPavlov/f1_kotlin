@@ -1,11 +1,11 @@
 package com.example.f1_kotlin.viewmodel
 
-import com.example.f1_kotlin.data.model.ConstructorModel
-import com.example.f1_kotlin.data.model.ConstructorStandingsModel
-import com.example.f1_kotlin.data.model.DriverModel
-import com.example.f1_kotlin.data.model.DriverStandingsModel
-import com.example.f1_kotlin.data.model.StandingsListsModel
-import com.example.f1_kotlin.data.repository.F1Repository
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.ConstructorStanding
+import com.example.f1_kotlin.domain.model.Driver
+import com.example.f1_kotlin.domain.model.DriverStanding
+import com.example.f1_kotlin.domain.model.StandingsMeta
+import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.AsyncValue
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -25,7 +25,7 @@ import org.junit.Test
 /**
  * Unit-тесты [HomeViewModel] — проверяем логику без Android-фреймворка и реальной сети.
  *
- * **MockK** подменяет [F1Repository]: задаём ответ через [coEvery], ViewModel не знает, что это не настоящий API.
+ * **MockK** подменяет [IF1Repository]: задаём ответ через [coEvery], ViewModel не знает, что это не настоящий API.
  *
  * **StandardTestDispatcher** + [Dispatchers.setMain] — корутины ViewModel выполняются синхронно
  * в тесте; [advanceUntilIdle] дожидается завершения [viewModelScope.launch].
@@ -33,7 +33,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
     private val dispatcher = StandardTestDispatcher()
-    private lateinit var repository: F1Repository
+    private lateinit var repository: IF1Repository
 
     /** Перед каждым тестом: подменяем Main-дispatcher и создаём mock Repository. */
     @Before
@@ -51,28 +51,28 @@ class HomeViewModelTest {
     /**
      * При успешном ответе Repository ViewModel должен:
      * - записать сезон и раунд из метаданных API;
-     * - положить список пилотов в [HomeViewModel.drivers] как [AsyncValue.Value].
+     * - положить список пилотов в [HomeUiState.drivers] как [AsyncValue.Value].
      */
     @Test
     fun loadAllData_success_setsSeasonAndDrivers() = runTest {
         val drivers = listOf(
-            DriverStandingsModel(
+            DriverStanding(
                 position = "1",
                 positionText = "1",
                 points = "100",
                 wins = "5",
-                driver = DriverModel("verstappen", "", "Max", "Verstappen", "", "Dutch"),
-                constructors = listOf(ConstructorModel("red_bull", "", "Red Bull", "Austrian")),
+                driver = Driver("verstappen", "", "Max", "Verstappen", "", "Dutch"),
+                constructors = listOf(Constructor("red_bull", "", "Red Bull", "Austrian")),
             ),
         )
-        val meta = StandingsListsModel("2026", "5", drivers, null)
+        val meta = StandingsMeta("2026", "5")
         val constructors = listOf(
-            ConstructorStandingsModel(
+            ConstructorStanding(
                 position = "1",
                 positionText = "1",
                 points = "200",
                 wins = "6",
-                constructor = ConstructorModel("red_bull", "", "Red Bull", "Austrian"),
+                constructor = Constructor("red_bull", "", "Red Bull", "Austrian"),
             ),
         )
 
@@ -84,9 +84,10 @@ class HomeViewModelTest {
         val viewModel = HomeViewModel(repository)
         advanceUntilIdle()
 
-        assertEquals("2026", viewModel.season.value)
-        assertEquals("5", viewModel.round.value)
-        assertTrue(viewModel.drivers.value is AsyncValue.Value)
-        assertEquals(1, (viewModel.drivers.value as AsyncValue.Value).value.size)
+        val state = viewModel.uiState.value
+        assertEquals("2026", state.season)
+        assertEquals("5", state.round)
+        assertTrue(state.drivers is AsyncValue.Value)
+        assertEquals(1, (state.drivers as AsyncValue.Value).value.size)
     }
 }

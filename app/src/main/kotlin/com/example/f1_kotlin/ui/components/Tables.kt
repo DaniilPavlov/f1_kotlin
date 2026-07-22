@@ -21,13 +21,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
-import com.example.f1_kotlin.data.model.ConstructorStandingsModel
-import com.example.f1_kotlin.data.model.DriverModel
-import com.example.f1_kotlin.data.model.DriverStandingsModel
-import com.example.f1_kotlin.data.model.PitStopModel
-import com.example.f1_kotlin.data.model.QualifyingResultModel
-import com.example.f1_kotlin.data.model.RaceModel
-import com.example.f1_kotlin.data.model.RaceResultModel
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.ConstructorStanding
+import com.example.f1_kotlin.domain.model.Driver
+import com.example.f1_kotlin.domain.model.DriverStanding
+import com.example.f1_kotlin.domain.model.PitStop
+import com.example.f1_kotlin.domain.model.QualifyingResult
+import com.example.f1_kotlin.domain.model.Race
+import com.example.f1_kotlin.domain.model.RaceResult
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1GrayBg
@@ -50,8 +51,8 @@ private val RaceResultsTableWeights = listOf(1.15f, 1.35f, 1.1f, 0.55f, 0.9f)
 /** Таблица чемпионата пилотов (Главная / Зал славы) — колонки как во Flutter. */
 @Composable
 fun TournamentDriversTable(
-    drivers: List<DriverStandingsModel>,
-    onDriverClick: ((DriverModel) -> Unit)? = null,
+    drivers: List<DriverStanding>,
+    onDriverClick: ((Driver) -> Unit)? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         TableHeaderRow(
@@ -86,8 +87,8 @@ fun TournamentDriversTable(
 /** Таблица чемпионата конструкторов — колонки как во Flutter. */
 @Composable
 fun TournamentConstructorsTable(
-    constructors: List<ConstructorStandingsModel>,
-    onConstructorClick: ((com.example.f1_kotlin.data.model.ConstructorModel) -> Unit)? = null,
+    constructors: List<ConstructorStanding>,
+    onConstructorClick: ((Constructor) -> Unit)? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         TableHeaderRow(
@@ -123,11 +124,11 @@ fun TournamentConstructorsTable(
  */
 @Composable
 fun RaceResultsTable(
-    race: RaceModel,
+    race: Race,
     maxRows: Int? = null,
     showHeader: Boolean = true,
     onDetailsClick: (() -> Unit)? = null,
-    onDriverClick: ((DriverModel) -> Unit)? = null,
+    onDriverClick: ((Driver) -> Unit)? = null,
 ) {
     val results = race.results.orEmpty()
     val rows = maxRows?.let { results.take(it) } ?: results
@@ -168,10 +169,10 @@ fun RaceResultsTable(
 
 @Composable
 private fun RaceResultRow(
-    result: RaceResultModel,
+    result: RaceResult,
     index: Int,
     fastestLap: String,
-    onDriverClick: ((DriverModel) -> Unit)?,
+    onDriverClick: ((Driver) -> Unit)?,
 ) {
     val classified = result.time != null || result.status.equals("Finished", ignoreCase = true)
     val timeOrStatus = result.time?.time ?: result.status
@@ -208,8 +209,8 @@ private fun RaceResultRow(
  */
 @Composable
 fun QualifyingTable(
-    results: List<QualifyingResultModel>,
-    onDriverClick: ((DriverModel) -> Unit)? = null,
+    results: List<QualifyingResult>,
+    onDriverClick: ((Driver) -> Unit)? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         TableHeaderRow(
@@ -223,8 +224,8 @@ fun QualifyingTable(
         )
         results.forEachIndexed { index, item ->
             val position = item.position.toIntOrNull() ?: (index + 1)
-            val q2 = item.Q2 ?: if (position < 16) "-" else ""
-            val q3 = item.Q3 ?: if (position < 11) "-" else ""
+            val q2 = item.q2 ?: if (position < 16) "-" else ""
+            val q3 = item.q3 ?: if (position < 11) "-" else ""
             TableDataRow(
                 cells = listOf(
                     TableCell.PlaceAndName(
@@ -232,7 +233,7 @@ fun QualifyingTable(
                         name = "${item.driver.givenName}\n${item.driver.familyName}",
                     ),
                     TableCell.Text(item.constructor.name),
-                    TableCell.Text(item.Q1.orEmpty()),
+                    TableCell.Text(item.q1.orEmpty()),
                     TableCell.Text(q2),
                     TableCell.Text(q3),
                 ),
@@ -247,7 +248,7 @@ fun QualifyingTable(
  * Пит-стопы — как Flutter: Driver(place+name) · Lap · Stop number · Stop time(duration) · Race time.
  */
 @Composable
-fun PitStopsTable(stops: List<PitStopModel>) {
+fun PitStopsTable(stops: List<PitStop>) {
     Column(modifier = Modifier.fillMaxWidth()) {
         TableHeaderRow(
             cells = listOf(
@@ -314,7 +315,13 @@ fun ScheduleSessionCard(
                 Text(title, style = AppStyles.h3)
                 if (localDateTime != null) {
                     Text(
-                        "${localDateTime.dayOfMonth} ${DateUtils.monthName(localDateTime.monthValue)} ${localDateTime.year}",
+                        buildString {
+                            append(localDateTime.dayOfMonth)
+                            append(' ')
+                            append(DateUtils.monthName(localDateTime.monthValue))
+                            append(' ')
+                            append(localDateTime.year)
+                        },
                         style = AppStyles.body,
                         modifier = Modifier.padding(vertical = 5.dp),
                     )

@@ -16,9 +16,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.f1_kotlin.R
-import com.example.f1_kotlin.data.model.RaceDateModel
-import com.example.f1_kotlin.data.model.RaceModel
-import com.example.f1_kotlin.data.repository.F1Repository
+import com.example.f1_kotlin.domain.model.RaceSession
+import com.example.f1_kotlin.domain.model.Race
+import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.util.DateUtils
 import dagger.hilt.EntryPoint
@@ -44,7 +44,7 @@ import kotlinx.coroutines.launch
 @Singleton
 class RaceReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val repository: F1Repository,
+    private val repository: IF1Repository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lastScheduledIds = AtomicReference<Set<Int>>(emptySet())
@@ -66,7 +66,7 @@ class RaceReminderScheduler @Inject constructor(
         }
     }
 
-    private fun sessions(races: List<RaceModel>, localizedContext: Context): List<Reminder> = buildList {
+    private fun sessions(races: List<Race>, localizedContext: Context): List<Reminder> = buildList {
         races.forEach { race ->
             listOf(
                 Triple("fp1", R.string.first_practice, race.firstPractice),
@@ -75,7 +75,7 @@ class RaceReminderScheduler @Inject constructor(
                 Triple("sprint_qualifying", R.string.sprint_qualifying, race.sprintQualifying),
                 Triple("sprint", R.string.sprint, race.sprint),
                 Triple("qualifying", R.string.qualifying, race.qualifying),
-                Triple("race", R.string.race, RaceDateModel(race.date, race.time)),
+                Triple("race", R.string.race, RaceSession(race.date, race.time)),
             ).forEach { (key, titleRes, date) ->
                 val session = date ?: return@forEach
                 val local = DateUtils.toLocalDateTime(session.date, session.time) ?: return@forEach

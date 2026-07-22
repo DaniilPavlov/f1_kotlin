@@ -2,48 +2,43 @@ package com.example.f1_kotlin.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.f1_kotlin.data.model.ConstructorStandingsModel
-import com.example.f1_kotlin.data.model.DriverStandingsModel
-import com.example.f1_kotlin.data.repository.F1Repository
-import com.example.f1_kotlin.domain.AppException
+import com.example.f1_kotlin.domain.model.ConstructorStanding
+import com.example.f1_kotlin.domain.model.DriverStanding
+import com.example.f1_kotlin.data.repository.IF1Repository
+import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class HallOfFameUiState(
+    val drivers: AsyncValue<List<DriverStanding>> = AsyncValue.Loading,
+    val constructors: AsyncValue<List<ConstructorStanding>> = AsyncValue.Loading,
+    val year: String = "",
+    val fieldsInputted: Boolean = false,
+    val activeTable: Int = 0,
+    val error: AppError? = null,
+)
 
 /** ViewModel «Зал славы» — peek-кэш по году + refresh, [LoadJobHolder]. */
 @HiltViewModel
 class HallOfFameViewModel @Inject constructor(
-    private val repository: F1Repository,
+    private val repository: IF1Repository,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
-    private val _drivers = MutableStateFlow<AsyncValue<List<DriverStandingsModel>>>(AsyncValue.Loading)
-    val drivers: StateFlow<AsyncValue<List<DriverStandingsModel>>> = _drivers.asStateFlow()
-
-    private val _constructors = MutableStateFlow<AsyncValue<List<ConstructorStandingsModel>>>(AsyncValue.Loading)
-    val constructors: StateFlow<AsyncValue<List<ConstructorStandingsModel>>> = _constructors.asStateFlow()
-
-    private val _year = MutableStateFlow("")
-    val year: StateFlow<String> = _year.asStateFlow()
-
-    private val _fieldsInputted = MutableStateFlow(false)
-    val fieldsInputted: StateFlow<Boolean> = _fieldsInputted.asStateFlow()
-
-    private val _activeTable = MutableStateFlow(0)
-    val activeTable: StateFlow<Int> = _activeTable.asStateFlow()
-
-    private val _error = MutableStateFlow<AppException?>(null)
-    val error: StateFlow<AppException?> = _error.asStateFlow()
+    private val _uiState = MutableStateFlow(HallOfFameUiState())
+    val uiState: StateFlow<HallOfFameUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
             repository.getSeasonYears().onSuccess { years ->
-                if (_year.value.isEmpty() && years.isNotEmpty()) {
-                    _year.value = years.first()
+                if (_uiState.value.year.isEmpty() && years.isNotEmpty()) {
+                    _uiState.update { it.copy(year = years.first()) }
                     checkFields()
                     loadAllData()
                 }
@@ -52,47 +47,67 @@ class HallOfFameViewModel @Inject constructor(
     }
 
     fun onYearChanged(value: String) {
-        _year.value = value
+        _uiState.update { it.copy(year = value) }
         checkFields()
-        if (_fieldsInputted.value) {
+        if (_uiState.value.fieldsInputted) {
             loadAllData()
         }
     }
 
     fun checkFields() {
-        _fieldsInputted.value = _year.value.length == 4 && _year.value.isNotEmpty()
+        val year = _uiState.value.year
+        _uiState.update {
+            it.copy(fieldsInputted = year.length == 4 && year.isNotEmpty())
+        }
     }
 
     fun changeActiveTable(index: Int) {
-        _activeTable.value = index
+        _uiState.update { it.copy(activeTable = index) }
     }
 
     suspend fun loadSeasonYears(): Result<List<String>> = repository.getSeasonYears()
 
     fun loadAllData() {
-        if (!_fieldsInputted.value) return
+        if (!_uiState.value.fieldsInputted) return
         loadJob.launch(viewModelScope) {
-            _error.value = null
+            _uiState.update { it.copy(error = null) }
+            val year = _uiState.value.year
 
-            repository.peekHistoricalStandingsCache(_year.value)?.let { (drivers, constructors) ->
-                _drivers.value = AsyncValue.Value(drivers)
-                _constructors.value = AsyncValue.Value(constructors)
+            repository.peekHistoricalStandingsCache(year)?.let { (drivers, constructors) ->
+                _uiState.update {
+                    it.copy(
+                        drivers = AsyncValue.Value(drivers),
+                        constructors = AsyncValue.Value(constructors),
+                    )
+                }
             } ?: run {
-                _drivers.value = AsyncValue.Loading
-                _constructors.value = AsyncValue.Loading
+                _uiState.update {
+                    it.copy(
+                        drivers = AsyncValue.Loading,
+                        constructors = AsyncValue.Loading,
+                    )
+                }
             }
 
-            repository.getHistoricalStandings(_year.value).applyUnlessCached(
-                current = _drivers.value,
+            repository.getHistoricalStandings(year).applyUnlessCached(
+                current = _uiState.value.drivers,
                 onSuccess = { (drivers, constructors) ->
-                    _drivers.value = AsyncValue.Value(drivers)
-                    _constructors.value = AsyncValue.Value(constructors)
+                    _uiState.update {
+                        it.copy(
+                            drivers = AsyncValue.Value(drivers),
+                            constructors = AsyncValue.Value(constructors),
+                        )
+                    }
                 },
-                onFailure = { ex ->
-                    if (_drivers.value !is AsyncValue.Value) {
-                        _drivers.value = AsyncValue.Error(ex.title, ex.subtitle)
-                        _constructors.value = AsyncValue.Error(ex.title, ex.subtitle)
-                        _error.value = ex
+                onFailure = { err ->
+                    if (_uiState.value.drivers !is AsyncValue.Value) {
+                        _uiState.update {
+                            it.copy(
+                                drivers = err.toAsyncError(),
+                                constructors = err.toAsyncError(),
+                                error = err,
+                            )
+                        }
                     }
                 },
             )

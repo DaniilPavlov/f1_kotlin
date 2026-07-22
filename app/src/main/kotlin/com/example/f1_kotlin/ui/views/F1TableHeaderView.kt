@@ -13,7 +13,8 @@ import com.example.f1_kotlin.R
  * Классический Custom View (не Compose): рисует красную шапку таблицы через [Canvas].
  *
  * Пример для вакансии «Custom Views» — в остальном UI на Jetpack Compose.
- * Встраивается через [androidx.compose.ui.viewinterop.AndroidView] в [com.example.f1_kotlin.ui.components.TableHeaderRow].
+ * Встраивается через [androidx.compose.ui.viewinterop.AndroidView]
+ * в [com.example.f1_kotlin.ui.components.TableHeaderRow].
  */
 class F1TableHeaderView @JvmOverloads constructor(
     context: Context,
@@ -51,8 +52,14 @@ class F1TableHeaderView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val lineHeight = textPaint.textSize * 1.15f
-        val height = (paddingTop + paddingBottom + lineHeight * maxLines + textPaint.textSize * 0.6f).toInt()
-        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), height.coerceAtLeast((textPaint.textSize * 2.2f).toInt()))
+        val contentHeight = (
+            paddingTop + paddingBottom + lineHeight * maxLines + textPaint.textSize * 0.6f
+            ).toInt()
+        val minHeight = (textPaint.textSize * 2.2f).toInt()
+        setMeasuredDimension(
+            MeasureSpec.getSize(widthMeasureSpec),
+            contentHeight.coerceAtLeast(minHeight),
+        )
     }
 
     override fun onDraw(canvas: Canvas) {

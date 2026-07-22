@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.FileProvider
-import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.ui.share.ShareCareerCard
 import com.example.f1_kotlin.ui.share.ShareRaceResultsCard
 import com.example.f1_kotlin.ui.theme.F1Theme
@@ -69,7 +69,7 @@ fun rememberShareCareerAction(title: String, races: Int, wins: Int, podiums: Int
 }
 
 @Composable
-fun rememberShareRaceAction(race: RaceModel): () -> Unit {
+fun rememberShareRaceAction(race: Race): () -> Unit {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     return remember(race.season, race.round, race.raceName, race.results) {

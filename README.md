@@ -16,9 +16,11 @@ Same idea, other stacks:
 
 | Layer | Tech |
 |------|------------|
-| UI | Jetpack Compose, Material 3, Navigation Compose |
-| DI | Hilt |
-| Network | Retrofit + OkHttp + Moshi (Jolpica + ESPN clients) |
+| UI | Jetpack Compose, Material 3, type-safe Navigation Compose (`kotlinx.serialization` routes) |
+| Presentation | One ViewModel file per screen; `*UiState` + `AsyncValue` |
+| Domain | Plain Kotlin models; `AppError` / `toAppError()` for UI errors |
+| DI | Hilt; `IF1Repository` / `IEspnRepository` bound with `@Binds` |
+| Network | Retrofit + OkHttp + Moshi DTOs; mappers DTO → domain |
 | Images | Coil |
 | Cache | Room (offline peek → refresh); ESPN in-memory TTL |
 | Time | java.time |
@@ -29,11 +31,19 @@ Same idea, other stacks:
 | Flutter | Kotlin |
 |---------|--------|
 | MobX | ViewModel + StateFlow |
-| Auto Route | Navigation Compose |
+| Auto Route | Type-safe Navigation Compose |
 | Dio | Retrofit + Moshi |
 | Yandex MapKit | OSMDroid |
 | Local cache | Room |
 | Flutter widgets | Jetpack Compose |
+
+## Architecture
+
+- **Navigation** — `@Serializable` route objects/classes in `F1Routes.kt`; destinations use `toRoute<T>()` / `SavedStateHandle.toRoute`.
+- **UiState** — each screen exposes a single `StateFlow<*UiState>`; loading/data/error via `AsyncValue`.
+- **Errors** — repositories return `Result`; failures map to `AppError` (`toAppError`) for UI.
+- **Repositories** — `IF1Repository` + `IEspnRepository` interfaces; concrete impls bound in Hilt (`RepositoryModule`).
+- **ViewModels** — one file per screen under `viewmodel/` (no giant shared files).
 
 ## Structure
 
@@ -51,7 +61,8 @@ f1_kotlin/
 │       │       ├── ui/
 │       │       ├── viewmodel/
 │       │       └── util/
-│       └── test/
+│       ├── test/            # JVM unit tests (MockK + coroutines-test)
+│       └── androidTest/     # Compose UI tests (not in CI)
 └── .github/workflows/
 ```
 
@@ -73,8 +84,22 @@ In Android Studio: Run → **app** configuration.
 
 ## Tests
 
+**Unit (JVM)** — MockK + `kotlinx-coroutines-test`; run on CI:
+
 ```bash
 ./gradlew :app:testDebugUnitTest
+```
+
+Covered areas include:
+
+- ViewModels: Home, Results (incl. ESPN hide-on-error), Schedule, Race search, H2H drivers, Finish status, Race info, Circuit detail
+- Domain: `ApiCallHandler`
+- Data: career loader, Jolpica mappers
+
+**Compose UI (`androidTest`)** — content composables (`HomeScreenContent`, `ResultsScreenContent`) without Hilt. Not run in CI (needs device/emulator):
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
 ```
 
 ## CI / CD
@@ -83,8 +108,12 @@ In Android Studio: Run → **app** configuration.
 
 | Workflow | When | What it does |
 |----------|-------|------------|
-| `ci.yml` | push / PR to `master` | build debug APK, unit tests |
+| `ci.yml` | push / PR to `master` | detekt (no baseline), debug APK, unit tests |
 | `release.yml` | tag `v*` or manual | Android APK (+ GitHub Release) |
+
+```bash
+./gradlew :app:detekt :app:testDebugUnitTest
+```
 
 Release:
 
@@ -100,7 +129,7 @@ For release APK signing (optional) — `ANDROID_KEYSTORE_*` secrets in GitHub Ac
 
 The app reads the local Room cache first (peek), then refreshes from the network.  
 If the network is unavailable but cache exists, the UI keeps the last known data.  
-ESPN news/scoreboard use a short in-memory TTL (no Room).
+ESPN news/scoreboard use a short in-memory TTL (no Room); scoreboard network failures hide the block instead of breaking Results.
 
 ## Features
 

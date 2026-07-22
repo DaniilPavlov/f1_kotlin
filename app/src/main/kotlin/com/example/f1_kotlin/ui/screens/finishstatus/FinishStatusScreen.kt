@@ -35,8 +35,7 @@ import com.example.f1_kotlin.viewmodel.FinishStatusViewModel
 
 @Composable
 fun FinishStatusScreen(viewModel: FinishStatusViewModel) {
-    val year by viewModel.year.collectAsState()
-    val statuses by viewModel.statuses.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -47,14 +46,14 @@ fun FinishStatusScreen(viewModel: FinishStatusViewModel) {
         Text(stringResource(R.string.finish_status_subtitle), style = AppStyles.body)
         Spacer(Modifier.height(16.dp))
         SeasonPickerField(
-            value = year,
+            value = uiState.year,
             label = stringResource(R.string.season),
             hint = stringResource(R.string.select_season),
             onSeasonSelected = viewModel::onYearChanged,
             loadSeasons = viewModel::loadSeasonYears,
         )
         Spacer(Modifier.height(20.dp))
-        when (val state = statuses) {
+        when (val state = uiState.statuses) {
             is AsyncValue.Loading -> ListRowsShimmer(rowCount = 8)
             is AsyncValue.Error -> ErrorBody(
                 state.message,

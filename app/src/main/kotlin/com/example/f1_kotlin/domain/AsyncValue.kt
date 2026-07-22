@@ -27,14 +27,3 @@ sealed class AsyncValue<out T> {
     /** Безопасно достаёт значение или возвращает null, если это не [Value]. */
     fun getOrNull(): T? = (this as? Value)?.value
 }
-
-/**
-     * Доменное исключение с пользовательским текстом на русском.
-     *
-     * Слой API ([ApiCallHandler.safeCall]) превращает сетевые/парсинг-ошибки в [AppException],
-     * чтобы UI не показывал сырой stack trace.
-    */
-data class AppException(
-    val title: String,
-    val subtitle: String? = null,
-) : Exception(title)

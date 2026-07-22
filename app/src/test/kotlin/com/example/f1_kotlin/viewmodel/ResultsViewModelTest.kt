@@ -1,11 +1,12 @@
 package com.example.f1_kotlin.viewmodel
 
-import com.example.f1_kotlin.data.model.CircuitLocationModel
-import com.example.f1_kotlin.data.model.CircuitModel
-import com.example.f1_kotlin.data.model.RaceModel
-import com.example.f1_kotlin.data.repository.EspnRepository
-import com.example.f1_kotlin.data.repository.F1Repository
-import com.example.f1_kotlin.domain.AppException
+import com.example.f1_kotlin.domain.model.CircuitLocation
+import com.example.f1_kotlin.domain.model.Circuit
+import com.example.f1_kotlin.domain.model.Race
+import com.example.f1_kotlin.data.model.EspnScoreboardEvent
+import com.example.f1_kotlin.data.repository.IEspnRepository
+import com.example.f1_kotlin.data.repository.IF1Repository
+import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
 import io.mockk.coEvery
 import io.mockk.every
@@ -19,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -32,8 +34,8 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultsViewModelTest {
     private val dispatcher = StandardTestDispatcher()
-    private lateinit var repository: F1Repository
-    private lateinit var espnRepository: EspnRepository
+    private lateinit var repository: IF1Repository
+    private lateinit var espnRepository: IEspnRepository
 
     @Before
     fun setUp() {
@@ -60,7 +62,7 @@ class ResultsViewModelTest {
         val viewModel = ResultsViewModel(repository, espnRepository)
         advanceUntilIdle()
 
-        val state = viewModel.lastRace.value
+        val state = viewModel.uiState.value.lastRace
         assertTrue(state is AsyncValue.Value)
         assertEquals("Monaco Grand Prix", (state as AsyncValue.Value).value.raceName)
     }
@@ -70,26 +72,77 @@ class ResultsViewModelTest {
     fun loadAllData_failure_setsError() = runTest {
         coEvery { repository.peekLastRaceCache() } returns null
         coEvery { repository.getLastRace() } returns Result.failure(
-            AppException("Соединение отсутствует"),
+            AppError("Соединение отсутствует").asException(),
         )
 
         val viewModel = ResultsViewModel(repository, espnRepository)
         advanceUntilIdle()
 
-        assertTrue(viewModel.lastRace.value is AsyncValue.Error)
+        assertTrue(viewModel.uiState.value.lastRace is AsyncValue.Error)
     }
 
-    /** Минимальная заготовка [RaceModel] — не тянем полный JSON из API. */
-    private fun sampleRace() = RaceModel(
+    /** ESPN scoreboard: сеть упала — скрываем блок (Value(null)), Results остаётся рабочим. */
+    @Test
+    fun scoreboard_networkFailure_setsValueNull_notError() = runTest {
+        val race = sampleRace()
+        coEvery { repository.peekLastRaceCache() } returns null
+        coEvery { repository.getLastRace() } returns Result.success(race)
+        every { espnRepository.isScoreboardFresh } returns false
+        every { espnRepository.peekScoreboard } returns null
+        coEvery { espnRepository.getScoreboardEvent(any()) } returns Result.failure(
+            AppError("Соединение отсутствует").asException(),
+        )
+
+        val viewModel = ResultsViewModel(repository, espnRepository)
+        advanceUntilIdle()
+
+        val scoreboard = viewModel.uiState.value.scoreboard
+        assertTrue(scoreboard is AsyncValue.Value)
+        assertNull((scoreboard as AsyncValue.Value).value)
+        assertTrue(viewModel.uiState.value.lastRace is AsyncValue.Value)
+    }
+
+    /** Уже показанный scoreboard не затирается ошибкой forceRefresh. */
+    @Test
+    fun scoreboard_forceRefreshFailure_keepsPreviousValue() = runTest {
+        val race = sampleRace()
+        val event = EspnScoreboardEvent(
+            name = "Monaco GP",
+            shortName = "MON",
+            statusState = "pre",
+            statusDetail = "Scheduled",
+        )
+        coEvery { repository.peekLastRaceCache() } returns null
+        coEvery { repository.getLastRace() } returns Result.success(race)
+        every { espnRepository.isScoreboardFresh } returns false
+        every { espnRepository.peekScoreboard } returns null
+        coEvery { espnRepository.getScoreboardEvent(forceRefresh = false) } returns Result.success(event)
+
+        val viewModel = ResultsViewModel(repository, espnRepository)
+        advanceUntilIdle()
+
+        coEvery { espnRepository.getScoreboardEvent(forceRefresh = true) } returns Result.failure(
+            AppError("Соединение отсутствует").asException(),
+        )
+        viewModel.loadScoreboard(forceRefresh = true)
+        advanceUntilIdle()
+
+        val scoreboard = viewModel.uiState.value.scoreboard
+        assertTrue(scoreboard is AsyncValue.Value)
+        assertEquals("Monaco GP", (scoreboard as AsyncValue.Value).value?.name)
+    }
+
+    /** Минимальная заготовка [Race] — не тянем полный JSON из API. */
+    private fun sampleRace() = Race(
         season = "2026",
         round = "5",
         url = "",
         raceName = "Monaco Grand Prix",
-        circuit = CircuitModel(
+        circuit = Circuit(
             circuitId = "monaco",
             url = "",
             circuitName = "Monaco",
-            location = CircuitLocationModel("43.7", "7.4", "Monte Carlo", "Monaco"),
+            location = CircuitLocation("43.7", "7.4", "Monte Carlo", "Monaco"),
         ),
         date = "2026-05-25",
         results = emptyList(),

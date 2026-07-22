@@ -17,8 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
-import com.example.f1_kotlin.data.model.ConstructorModel
-import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CustomSwitcher
 import com.example.f1_kotlin.ui.components.ErrorBody
@@ -33,21 +33,25 @@ import com.example.f1_kotlin.viewmodel.HallOfFameViewModel
 @Composable
 fun HallOfFameScreen(
     viewModel: HallOfFameViewModel,
-    onDriverClick: (DriverModel) -> Unit,
-    onConstructorClick: (ConstructorModel) -> Unit,
+    onDriverClick: (Driver) -> Unit,
+    onConstructorClick: (Constructor) -> Unit,
 ) {
-    val drivers by viewModel.drivers.collectAsState()
-    val constructors by viewModel.constructors.collectAsState()
-    val year by viewModel.year.collectAsState()
-    val activeTable by viewModel.activeTable.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val drivers = uiState.drivers
+    val constructors = uiState.constructors
 
     when {
-        drivers.isLoading || constructors.isLoading -> TournamentTablesShimmer(showHeader = false, modifier = Modifier.fillMaxSize())
-        error != null -> ErrorBody(error?.title, error?.subtitle, onRetry = viewModel::loadAllData, modifier = Modifier.fillMaxSize())
+        drivers.isLoading || constructors.isLoading -> TournamentTablesShimmer(
+            showHeader = false,
+            modifier = Modifier.fillMaxSize(),
+        )
+        uiState.error != null -> ErrorBody(
+            uiState.error?.title,
+            uiState.error?.subtitle,
+            onRetry = viewModel::loadAllData,
+            modifier = Modifier.fillMaxSize(),
+        )
         drivers is AsyncValue.Value && constructors is AsyncValue.Value -> {
-            val driversList = (drivers as AsyncValue.Value).value
-            val constructorsList = (constructors as AsyncValue.Value).value
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -60,7 +64,7 @@ fun HallOfFameScreen(
                     Row {
                         Column(modifier = Modifier.width(240.dp)) {
                             SeasonPickerField(
-                                value = year,
+                                value = uiState.year,
                                 label = stringResource(R.string.season),
                                 hint = stringResource(R.string.select_season),
                                 onSeasonSelected = viewModel::onYearChanged,
@@ -73,14 +77,14 @@ fun HallOfFameScreen(
                 CustomSwitcher(
                     stringResource(R.string.drivers),
                     stringResource(R.string.constructors),
-                    activeTable,
+                    uiState.activeTable,
                     viewModel::changeActiveTable,
                 )
                 Spacer(Modifier.height(8.dp))
-                if (activeTable == 0) {
-                    TournamentDriversTable(driversList, onDriverClick = onDriverClick)
+                if (uiState.activeTable == 0) {
+                    TournamentDriversTable(drivers.value, onDriverClick = onDriverClick)
                 } else {
-                    TournamentConstructorsTable(constructorsList, onConstructorClick = onConstructorClick)
+                    TournamentConstructorsTable(constructors.value, onConstructorClick = onConstructorClick)
                 }
                 Spacer(Modifier.height(32.dp))
             }

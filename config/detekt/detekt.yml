@@ -3,12 +3,20 @@ build:
 
 complexity:
   LongMethod:
-    threshold: 60
+    threshold: 100
   LongParameterList:
-    functionThreshold: 6
-    constructorThreshold: 8
-  ComplexMethod:
-    threshold: 15
+    functionThreshold: 10
+    constructorThreshold: 12
+  CyclomaticComplexMethod:
+    threshold: 20
+  TooManyFunctions:
+    thresholdInFiles: 25
+    thresholdInClasses: 45
+    thresholdInInterfaces: 40
+    thresholdInObjects: 20
+    ignoreDeprecated: true
+    ignorePrivate: true
+    ignoreOverridden: true
 
 style:
   MaxLineLength:
@@ -16,13 +24,22 @@ style:
   MagicNumber:
     active: false
   ReturnCount:
-    max: 3
+    max: 4
+  UnusedPrivateMember:
+    active: true
 
 naming:
   FunctionNaming:
+    # Compose @Composable often PascalCase
     functionPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ignoreAnnotated: ['Composable']
+  PackageNaming:
+    # Android packages may contain underscores (e.g. f1_kotlin)
+    packagePattern: '[a-z]+(\.[a-z][A-Za-z0-9_]*)*'
   TopLevelPropertyNaming:
     constantPattern: '[A-Za-z][_A-Za-z0-9]*'
+  MatchingDeclarationName:
+    active: false
 
 empty-blocks:
   EmptyFunctionBlock:

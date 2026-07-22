@@ -26,8 +26,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.circuits.CircuitLayoutAssets
-import com.example.f1_kotlin.data.model.RaceDateModel
-import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.domain.model.RaceSession
+import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.ui.components.BlackButton
 import com.example.f1_kotlin.ui.components.ScheduleSessionCard
 import com.example.f1_kotlin.ui.components.circuits.CircuitLayoutImage
@@ -46,7 +46,7 @@ import kotlinx.coroutines.delay
 /** Крупная карточка ближайшей гонки со схемой и countdown. */
 @Composable
 fun ScheduleRaceFeaturedCard(
-    race: RaceModel,
+    race: Race,
     onViewSessions: () -> Unit,
     modifier: Modifier = Modifier,
     showCountdown: Boolean = true,
@@ -150,7 +150,7 @@ private fun CountdownCell(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleRaceSessionsSheet(
-    race: RaceModel,
+    race: Race,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -178,12 +178,12 @@ fun ScheduleRaceSessionsSheet(
 }
 
 /** Все сессии уикенда для bottom sheet / «View sessions». */
-fun raceWeekendSessions(race: RaceModel): List<Pair<Int, RaceDateModel>> = buildList {
+fun raceWeekendSessions(race: Race): List<Pair<Int, RaceSession>> = buildList {
     race.firstPractice?.let { add(R.string.first_practice to it) }
     race.secondPractice?.let { add(R.string.second_practice to it) }
     race.thirdPractice?.let { add(R.string.third_practice to it) }
     race.sprintQualifying?.let { add(R.string.sprint_qualifying to it) }
     race.sprint?.let { add(R.string.sprint to it) }
     race.qualifying?.let { add(R.string.qualifying to it) }
-    add(R.string.race to RaceDateModel(date = race.date, time = race.time))
+    add(R.string.race to RaceSession(date = race.date, time = race.time))
 }

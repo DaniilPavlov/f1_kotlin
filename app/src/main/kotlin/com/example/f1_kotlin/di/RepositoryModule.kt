@@ -1,0 +1,23 @@
+package com.example.f1_kotlin.di
+
+import com.example.f1_kotlin.data.repository.EspnRepository
+import com.example.f1_kotlin.data.repository.F1Repository
+import com.example.f1_kotlin.data.repository.IEspnRepository
+import com.example.f1_kotlin.data.repository.IF1Repository
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+    @Binds
+    @Singleton
+    abstract fun bindF1Repository(impl: F1Repository): IF1Repository
+
+    @Binds
+    @Singleton
+    abstract fun bindEspnRepository(impl: EspnRepository): IEspnRepository
+}

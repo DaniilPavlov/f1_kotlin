@@ -30,21 +30,20 @@ import com.example.f1_kotlin.viewmodel.NewsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsScreen(viewModel: NewsViewModel) {
-    val articles by viewModel.articles.collectAsState()
-    val refreshing by viewModel.isRefreshing.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    when (val state = articles) {
+    when (val articles = uiState.articles) {
         is AsyncValue.Loading -> NewsListShimmer(modifier = Modifier.fillMaxSize())
         is AsyncValue.Error -> ErrorBody(
-            state.message,
-            state.subtitle,
+            articles.message,
+            articles.subtitle,
             onRetry = viewModel::refreshAll,
             modifier = Modifier.fillMaxSize(),
         )
         is AsyncValue.Value -> {
-            val list = state.value
+            val list = articles.value
             PullToRefreshBox(
-                isRefreshing = refreshing,
+                isRefreshing = uiState.isRefreshing,
                 onRefresh = viewModel::refreshAll,
                 modifier = Modifier.fillMaxSize(),
             ) {

@@ -9,7 +9,7 @@ import javax.inject.Singleton
 /**
  * Преобразует Kotlin-объекты в JSON для Room и обратно.
  *
- * Moshi не умеет напрямую `List<RaceModel>` без указания generic-типа —
+ * Moshi не умеет напрямую `List<T>` без указания generic-типа —
  * для списков используем [Types.newParameterizedType].
  */
 @Singleton

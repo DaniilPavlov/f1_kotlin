@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.circuits.CircuitLayoutAssets
-import com.example.f1_kotlin.data.model.CircuitModel
+import com.example.f1_kotlin.domain.model.Circuit
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CareerListTile
 import com.example.f1_kotlin.ui.components.CustomSwitcher
@@ -75,18 +75,22 @@ fun CircuitsScreen(
     viewModel: CircuitsViewModel,
     onCircuitClick: (String) -> Unit,
 ) {
-    val circuits by viewModel.circuits.collectAsState()
-    val activePage by viewModel.activePage.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    when (val state = circuits) {
+    when (val state = uiState.circuits) {
         is AsyncValue.Loading -> CircuitsShimmer(modifier = Modifier.fillMaxSize())
-        is AsyncValue.Error -> ErrorBody(state.message, state.subtitle, onRetry = viewModel::loadCircuits, modifier = Modifier.fillMaxSize())
+        is AsyncValue.Error -> ErrorBody(
+            state.message,
+            state.subtitle,
+            onRetry = viewModel::loadCircuits,
+            modifier = Modifier.fillMaxSize(),
+        )
         is AsyncValue.Value -> Column(modifier = Modifier.fillMaxSize()) {
             Spacer(Modifier.height(12.dp))
             CustomSwitcher(
                 stringResource(R.string.on_map),
                 stringResource(R.string.as_list),
-                activePage,
+                uiState.activePage,
                 viewModel::changeActivePage,
             )
             Box(
@@ -94,7 +98,7 @@ fun CircuitsScreen(
                     .weight(1f)
                     .fillMaxWidth(),
             ) {
-                when (activePage) {
+                when (uiState.activePage) {
                     0 -> CircuitsMap(state.value, onCircuitClick)
                     else -> CircuitsList(state.value, onCircuitClick)
                 }
@@ -104,7 +108,7 @@ fun CircuitsScreen(
 }
 
 @Composable
-private fun CircuitsList(circuits: List<CircuitModel>, onCircuitClick: (String) -> Unit) {
+private fun CircuitsList(circuits: List<Circuit>, onCircuitClick: (String) -> Unit) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = AppDimens.horizontalPadding.dp)) {
         items(circuits) { circuit ->
             Row(
@@ -147,7 +151,7 @@ private fun CircuitsList(circuits: List<CircuitModel>, onCircuitClick: (String) 
  * [configureCircuitsMapView] отключает «мини-карты» при отдалении.
  */
 @Composable
-private fun CircuitsMap(circuits: List<CircuitModel>, onCircuitClick: (String) -> Unit) {
+private fun CircuitsMap(circuits: List<Circuit>, onCircuitClick: (String) -> Unit) {
     val context = LocalContext.current
     var mapView by remember { mutableStateOf<MapView?>(null) }
 
@@ -194,7 +198,7 @@ private fun CircuitsMap(circuits: List<CircuitModel>, onCircuitClick: (String) -
  */
 private fun populateCircuitsMap(
     mapView: MapView,
-    circuits: List<CircuitModel>,
+    circuits: List<Circuit>,
     onCircuitClick: (String) -> Unit,
 ) {
     mapView.overlays.removeAll { it is F1CircuitsClusterer }
@@ -223,16 +227,19 @@ private fun populateCircuitsMap(
 @Composable
 fun CircuitDetailScreen(
     viewModel: CircuitDetailViewModel,
-    onDriverClick: (com.example.f1_kotlin.data.model.DriverModel) -> Unit,
+    onDriverClick: (com.example.f1_kotlin.domain.model.Driver) -> Unit,
 ) {
-    val circuitState by viewModel.circuit.collectAsState()
-    val winnersState by viewModel.winners.collectAsState()
-    val stats by viewModel.stats.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    when (val state = circuitState) {
+    when (val state = uiState.circuit) {
         is AsyncValue.Loading -> CareerScreenShimmer(modifier = Modifier.fillMaxSize())
-        is AsyncValue.Error -> ErrorBody(state.message, state.subtitle, onRetry = viewModel::loadAllData, modifier = Modifier.fillMaxSize())
+        is AsyncValue.Error -> ErrorBody(
+            state.message,
+            state.subtitle,
+            onRetry = viewModel::loadAllData,
+            modifier = Modifier.fillMaxSize(),
+        )
         is AsyncValue.Value -> Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -244,7 +251,7 @@ fun CircuitDetailScreen(
                 Spacer(Modifier.height(16.dp))
             }
             Text(state.value.circuitName, style = AppStyles.h1)
-            stats?.let {
+            uiState.stats?.let {
                 Spacer(Modifier.height(16.dp))
                 CircuitStatsGrid(stats = it)
             }
@@ -264,7 +271,7 @@ fun CircuitDetailScreen(
             Spacer(Modifier.height(28.dp))
             Text(stringResource(R.string.circuit_winners_title), style = AppStyles.h2)
             Spacer(Modifier.height(12.dp))
-            when (val winners = winnersState) {
+            when (val winners = uiState.winners) {
                 is AsyncValue.Loading -> LoadingIndicator(Modifier.padding(vertical = 16.dp))
                 is AsyncValue.Error -> Text(winners.message, style = AppStyles.body)
                 is AsyncValue.Value -> {

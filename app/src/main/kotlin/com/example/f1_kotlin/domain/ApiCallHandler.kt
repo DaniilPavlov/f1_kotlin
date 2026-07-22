@@ -1,16 +1,14 @@
 package com.example.f1_kotlin.domain
 
 import kotlinx.coroutines.delay
-import retrofit2.HttpException
 import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 
 /**
  * Единая обёртка для сетевых вызовов в Repository.
  *
  * При [IOException] один повтор через [RETRY_DELAY_MS] — типичный случай «первый запрос упал,
  * повтор сразу прошёл» (холодный DNS/SSL, конкуренция с другими вкладками).
+ * Ошибки мапятся через [Throwable.toAppError].
  */
 object ApiCallHandler {
 
@@ -25,40 +23,18 @@ object ApiCallHandler {
         repeat(retries + 1) { attempt ->
             try {
                 return Result.success(block())
-            } catch (e: Exception) {
-                lastError = mapException(e)
-                val canRetry = attempt < retries && e is IOException
-                if (canRetry) {
+            } catch (e: IOException) {
+                lastError = e.toAppError().asException()
+                if (attempt < retries) {
                     delay(RETRY_DELAY_MS)
                 } else {
                     return Result.failure(lastError!!)
                 }
+            } catch (e: Exception) {
+                return Result.failure(e.toAppError().asException())
             }
         }
         return Result.failure(lastError!!)
-    }
-
-    private fun mapException(e: Exception): AppException = when (e) {
-        is SocketTimeoutException -> AppException(
-            title = ErrorStrings.serverSlow,
-            subtitle = ErrorStrings.noConnectionSubtitle,
-        )
-        is UnknownHostException -> AppException(
-            title = ErrorStrings.noConnection,
-            subtitle = ErrorStrings.noConnectionSubtitle,
-        )
-        is IOException -> AppException(
-            title = ErrorStrings.noConnection,
-            subtitle = ErrorStrings.noConnectionSubtitle,
-        )
-        is HttpException -> AppException(
-            title = if (e.code() == 429) ErrorStrings.tooManyRequests else ErrorStrings.responseParseError,
-            subtitle = e.message(),
-        )
-        else -> AppException(
-            title = ErrorStrings.responseParseError,
-            subtitle = e.message,
-        )
     }
 }
 
@@ -75,7 +51,11 @@ object ErrorStrings {
     }
     val serverSlow get() = if (isEnglish) "Server is taking too long to respond" else "Сервер долго не отвечает"
     val tooManyRequests get() = if (isEnglish) "Too many requests" else "Слишком много запросов"
-    val responseParseError get() = if (isEnglish) "Error processing the server response" else "Ошибка при обработке ответа от сервера"
+    val responseParseError get() = if (isEnglish) {
+        "Error processing the server response"
+    } else {
+        "Ошибка при обработке ответа от сервера"
+    }
     val raceNotFound get() = if (isEnglish) {
         "No races found for your query. Check the entered data and try again."
     } else {

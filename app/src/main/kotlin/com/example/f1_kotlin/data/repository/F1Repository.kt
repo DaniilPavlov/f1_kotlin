@@ -6,24 +6,33 @@ import com.example.f1_kotlin.data.local.CacheDao
 import com.example.f1_kotlin.data.local.CacheEntry
 import com.example.f1_kotlin.data.local.CacheJsonMapper
 import com.example.f1_kotlin.data.local.CacheKeys
+import com.example.f1_kotlin.data.mapper.toConstructorStandingDomain
+import com.example.f1_kotlin.data.mapper.toDomain
+import com.example.f1_kotlin.data.mapper.toDriverStandingDomain
+import com.example.f1_kotlin.data.mapper.toMeta
+import com.example.f1_kotlin.data.mapper.toRaceDomain
 import com.example.f1_kotlin.data.model.CareerStats
 import com.example.f1_kotlin.data.model.CircuitModel
 import com.example.f1_kotlin.data.model.CircuitRaceWin
-import com.example.f1_kotlin.data.model.ConstructorModel
 import com.example.f1_kotlin.data.model.ConstructorStandingsModel
-import com.example.f1_kotlin.data.model.DriverModel
 import com.example.f1_kotlin.data.model.DriverStandingsCache
-import com.example.f1_kotlin.data.model.DriverStandingsModel
 import com.example.f1_kotlin.data.model.FinishStatusItem
 import com.example.f1_kotlin.data.model.HistoricalStandingsCache
 import com.example.f1_kotlin.data.model.H2hStats
-import com.example.f1_kotlin.data.model.PitStopModel
-import com.example.f1_kotlin.data.model.QualifyingResultModel
 import com.example.f1_kotlin.data.model.RaceModel
-import com.example.f1_kotlin.data.model.RaceResultModel
 import com.example.f1_kotlin.data.model.SeasonsCache
 import com.example.f1_kotlin.data.model.StandingsListsModel
 import com.example.f1_kotlin.domain.ApiCallHandler
+import com.example.f1_kotlin.domain.model.Circuit
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.ConstructorStanding
+import com.example.f1_kotlin.domain.model.Driver
+import com.example.f1_kotlin.domain.model.DriverStanding
+import com.example.f1_kotlin.domain.model.PitStop
+import com.example.f1_kotlin.domain.model.QualifyingResult
+import com.example.f1_kotlin.domain.model.Race
+import com.example.f1_kotlin.domain.model.RaceResult
+import com.example.f1_kotlin.domain.model.StandingsMeta
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
@@ -46,13 +55,15 @@ import kotlinx.coroutines.sync.withPermit
  *
  * API Jolpica лёгкий (~100–300 ms на запрос); тормозит N+1 в пит-стопах — исправлено
  * через кэш имён пилотов и лимит параллельных getDriver.
+ *
+ * Публичный API возвращает domain-модели; Moshi DTO кэшируются и маппятся через `.toDomain()`.
  */
 @Singleton
 class F1Repository @Inject constructor(
     private val api: F1ApiService,
     private val cacheDao: CacheDao,
     private val cacheJsonMapper: CacheJsonMapper,
-) {
+) : IF1Repository {
     @Volatile
     private var circuitsMemoryCache: List<CircuitModel>? = null
 
@@ -60,35 +71,39 @@ class F1Repository @Inject constructor(
 
     // region peek — мгновенный UI без ожидания сети
 
-    suspend fun peekCurrentDriversCache(): Pair<List<DriverStandingsModel>, StandingsListsModel>? =
+    override suspend fun peekCurrentDriversCache(): Pair<List<DriverStanding>, StandingsMeta>? =
         loadCache(CacheKeys.CURRENT_DRIVERS, DriverStandingsCache::class.java)?.let { cached ->
-            Pair(cached.drivers, StandingsListsModel(cached.season, cached.round, cached.drivers, null))
+            val list = StandingsListsModel(cached.season, cached.round, cached.drivers, null)
+            Pair(cached.drivers.toDriverStandingDomain(), list.toMeta())
         }
 
-    suspend fun peekCurrentConstructorsCache(): List<ConstructorStandingsModel>? =
+    override suspend fun peekCurrentConstructorsCache(): List<ConstructorStanding>? =
         loadCacheList(CacheKeys.CURRENT_CONSTRUCTORS, ConstructorStandingsModel::class.java)
+            ?.toConstructorStandingDomain()
 
-    suspend fun peekLastRaceCache(): RaceModel? =
-        loadCache(CacheKeys.LAST_RACE, RaceModel::class.java)
+    override suspend fun peekLastRaceCache(): Race? =
+        loadCache(CacheKeys.LAST_RACE, RaceModel::class.java)?.toDomain()
 
-    suspend fun peekScheduleCache(): List<RaceModel>? =
-        loadCacheList(CacheKeys.SCHEDULE, RaceModel::class.java)
+    override suspend fun peekScheduleCache(): List<Race>? =
+        loadCacheList(CacheKeys.SCHEDULE, RaceModel::class.java)?.toRaceDomain()
 
-    suspend fun peekCircuitsCache(): List<CircuitModel>? {
-        circuitsMemoryCache?.let { return it }
-        return loadCacheList(CacheKeys.CIRCUITS, CircuitModel::class.java)?.also { circuitsMemoryCache = it }
+    override suspend fun peekCircuitsCache(): List<Circuit>? {
+        circuitsMemoryCache?.let { return it.map { circuit -> circuit.toDomain() } }
+        return loadCacheList(CacheKeys.CIRCUITS, CircuitModel::class.java)
+            ?.also { circuitsMemoryCache = it }
+            ?.map { it.toDomain() }
     }
 
-    suspend fun peekHistoricalStandingsCache(
+    override suspend fun peekHistoricalStandingsCache(
         year: String,
-    ): Pair<List<DriverStandingsModel>, List<ConstructorStandingsModel>>? =
+    ): Pair<List<DriverStanding>, List<ConstructorStanding>>? =
         loadCache(CacheKeys.historicalStandings(year), HistoricalStandingsCache::class.java)?.let {
-            Pair(it.drivers, it.constructors)
+            Pair(it.drivers.toDriverStandingDomain(), it.constructors.toConstructorStandingDomain())
         }
 
     // endregion
 
-    suspend fun getCurrentDriverStandings(): Result<Pair<List<DriverStandingsModel>, StandingsListsModel>> {
+    override suspend fun getCurrentDriverStandings(): Result<Pair<List<DriverStanding>, StandingsMeta>> {
         val network = ApiCallHandler.safeCall {
             val list = api.getCurrentDriverStandings().mrData.standingsTable.standingsLists.first()
             Pair(list.driverStandings.orEmpty(), list)
@@ -101,60 +116,69 @@ class F1Repository @Inject constructor(
                     DriverStandingsCache::class.java,
                 )
             }
-            return network
+            return network.map { (drivers, list) ->
+                Pair(drivers.toDriverStandingDomain(), list.toMeta())
+            }
         }
-        return peekCurrentDriversCache()?.let { Result.success(it) } ?: network
+        return peekCurrentDriversCache()?.let { Result.success(it) }
+            ?: network.map { (drivers, list) -> Pair(drivers.toDriverStandingDomain(), list.toMeta()) }
     }
 
-    suspend fun getCurrentConstructorStandings(): Result<List<ConstructorStandingsModel>> {
+    override suspend fun getCurrentConstructorStandings(): Result<List<ConstructorStanding>> {
         val network = ApiCallHandler.safeCall {
             api.getCurrentConstructorStandings()
                 .mrData.standingsTable.standingsLists.first()
                 .constructorStandings.orEmpty()
         }
         if (network.isSuccess) {
-            network.getOrNull()?.let { saveCacheList(CacheKeys.CURRENT_CONSTRUCTORS, it, ConstructorStandingsModel::class.java) }
-            return network
+            network.getOrNull()?.let {
+                saveCacheList(CacheKeys.CURRENT_CONSTRUCTORS, it, ConstructorStandingsModel::class.java)
+            }
+            return network.map { it.toConstructorStandingDomain() }
         }
-        return peekCurrentConstructorsCache()?.let { Result.success(it) } ?: network
+        return peekCurrentConstructorsCache()?.let { Result.success(it) }
+            ?: network.map { it.toConstructorStandingDomain() }
     }
 
-    suspend fun getLastRace(): Result<RaceModel> {
+    override suspend fun getLastRace(): Result<Race> {
         val network = ApiCallHandler.safeCall {
             api.getLastRaceResults().mrData.raceTable.races.first()
         }
         if (network.isSuccess) {
             network.getOrNull()?.let { saveCache(CacheKeys.LAST_RACE, it, RaceModel::class.java) }
-            return network
+            return network.map { it.toDomain() }
         }
-        return peekLastRaceCache()?.let { Result.success(it) } ?: network
+        return peekLastRaceCache()?.let { Result.success(it) }
+            ?: network.map { it.toDomain() }
     }
 
-    suspend fun getRaceResults(year: String, round: String): Result<RaceModel?> =
+    override suspend fun getRaceResults(year: String, round: String): Result<Race?> =
         ApiCallHandler.safeCall {
-            api.getRaceResults(year, round).mrData.raceTable.races.firstOrNull()
+            api.getRaceResults(year, round).mrData.raceTable.races.firstOrNull()?.toDomain()
         }
 
     /** В не-спринтовых уик-эндах API возвращает пустой список, это не ошибка. */
-    suspend fun getSprintResults(year: String, round: String): Result<List<RaceResultModel>> =
+    override suspend fun getSprintResults(year: String, round: String): Result<List<RaceResult>> =
         ApiCallHandler.safeCall {
             api.getSprintResults(year, round).mrData.raceTable.races
                 .firstOrNull()
                 ?.let { it.sprintResults ?: it.results }
                 .orEmpty()
+                .map { it.toDomain() }
         }
 
-    suspend fun getQualifyingResults(year: String, round: String): Result<List<QualifyingResultModel>> =
+    override suspend fun getQualifyingResults(year: String, round: String): Result<List<QualifyingResult>> =
         ApiCallHandler.safeCall {
             api.getQualifyingResults(year, round).mrData.raceTable.races
                 .firstOrNull()?.qualifyingResults.orEmpty()
+                .map { it.toDomain() }
         }
 
     /**
      * Пит-стопы: один запрос pitstops + уникальные driverId (не каждая остановка).
      * Имена кэшируются в [driverNamesCache]; не более [MAX_DRIVER_FETCH_PARALLEL] параллельных getDriver.
      */
-    suspend fun getPitStopsWithDriverNames(year: String, round: String): Result<List<PitStopModel>> =
+    override suspend fun getPitStopsWithDriverNames(year: String, round: String): Result<List<PitStop>> =
         ApiCallHandler.safeCall {
             val stops = api.getPitStops(year, round).mrData.raceTable.races
                 .firstOrNull()?.pitStops.orEmpty()
@@ -163,24 +187,26 @@ class F1Repository @Inject constructor(
             val uniqueDriverIds = stops.map { it.driverId }.distinct()
             val namesById = resolveDriverNames(uniqueDriverIds)
             stops.map { stop ->
-                namesById[stop.driverId]?.let { stop.copy(driverId = it) } ?: stop
+                val withName = namesById[stop.driverId]?.let { stop.copy(driverId = it) } ?: stop
+                withName.toDomain()
             }
         }
 
-    suspend fun getCurrentSchedule(): Result<List<RaceModel>> {
+    override suspend fun getCurrentSchedule(): Result<List<Race>> {
         val network = ApiCallHandler.safeCall {
             api.getCurrentSchedule().mrData.raceTable.races
         }
         if (network.isSuccess) {
             network.getOrNull()?.let { saveCacheList(CacheKeys.SCHEDULE, it, RaceModel::class.java) }
-            return network
+            return network.map { it.toRaceDomain() }
         }
-        return peekScheduleCache()?.let { Result.success(it) } ?: network
+        return peekScheduleCache()?.let { Result.success(it) }
+            ?: network.map { it.toRaceDomain() }
     }
 
-    suspend fun getHistoricalStandings(
+    override suspend fun getHistoricalStandings(
         year: String,
-    ): Result<Pair<List<DriverStandingsModel>, List<ConstructorStandingsModel>>> {
+    ): Result<Pair<List<DriverStanding>, List<ConstructorStanding>>> {
         val network = ApiCallHandler.safeCall {
             coroutineScope {
                 val driversDeferred = async {
@@ -202,12 +228,17 @@ class F1Repository @Inject constructor(
                     HistoricalStandingsCache::class.java,
                 )
             }
-            return network
+            return network.map { (drivers, constructors) ->
+                Pair(drivers.toDriverStandingDomain(), constructors.toConstructorStandingDomain())
+            }
         }
-        return peekHistoricalStandingsCache(year)?.let { Result.success(it) } ?: network
+        return peekHistoricalStandingsCache(year)?.let { Result.success(it) }
+            ?: network.map { (drivers, constructors) ->
+                Pair(drivers.toDriverStandingDomain(), constructors.toConstructorStandingDomain())
+            }
     }
 
-    suspend fun getCircuits(): Result<List<CircuitModel>> {
+    override suspend fun getCircuits(): Result<List<Circuit>> {
         val network = ApiCallHandler.safeCall {
             api.getCircuits().mrData.circuitTable.circuits
         }
@@ -216,19 +247,22 @@ class F1Repository @Inject constructor(
                 circuitsMemoryCache = it
                 saveCacheList(CacheKeys.CIRCUITS, it, CircuitModel::class.java)
             }
-            return network
+            return network.map { circuits -> circuits.map { it.toDomain() } }
         }
-        return peekCircuitsCache()?.let { Result.success(it) } ?: network
+        return peekCircuitsCache()?.let { Result.success(it) }
+            ?: network.map { circuits -> circuits.map { it.toDomain() } }
     }
 
-    suspend fun getCircuitById(circuitId: String): Result<CircuitModel?> {
-        circuitsMemoryCache?.find { it.circuitId == circuitId }?.let { return Result.success(it) }
+    override suspend fun getCircuitById(circuitId: String): Result<Circuit?> {
+        circuitsMemoryCache?.find { it.circuitId == circuitId }?.let {
+            return Result.success(it.toDomain())
+        }
         peekCircuitsCache()?.find { it.circuitId == circuitId }?.let { return Result.success(it) }
         return getCircuits().map { circuits -> circuits.find { it.circuitId == circuitId } }
     }
 
     /** Годы сезонов (новые сверху), кэш на сутки. */
-    suspend fun getSeasonYears(): Result<List<String>> {
+    override suspend fun getSeasonYears(): Result<List<String>> {
         val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         loadCache(CacheKeys.SEASONS, SeasonsCache::class.java)?.takeIf { it.dayKey == today }?.years
             ?.let { return Result.success(it) }
@@ -248,48 +282,48 @@ class F1Repository @Inject constructor(
             ?.let { Result.success(it) } ?: network
     }
 
-    suspend fun getSeasonRaces(year: String): Result<List<RaceModel>> =
+    override suspend fun getSeasonRaces(year: String): Result<List<Race>> =
         ApiCallHandler.safeCall {
-            api.getSeasonSchedule(year).mrData.raceTable.races
+            api.getSeasonSchedule(year).mrData.raceTable.races.toRaceDomain()
         }
 
-    suspend fun getDriver(driverId: String): Result<DriverModel?> =
+    override suspend fun getDriver(driverId: String): Result<Driver?> =
         ApiCallHandler.safeCall {
-            api.getDriver(driverId).mrData.driverTable.drivers.firstOrNull()
+            api.getDriver(driverId).mrData.driverTable.drivers.firstOrNull()?.toDomain()
         }
 
-    suspend fun getConstructor(constructorId: String): Result<ConstructorModel?> =
+    override suspend fun getConstructor(constructorId: String): Result<Constructor?> =
         ApiCallHandler.safeCall {
-            api.getConstructor(constructorId).mrData.constructorTable.constructors.firstOrNull()
+            api.getConstructor(constructorId).mrData.constructorTable.constructors.firstOrNull()?.toDomain()
         }
 
-    suspend fun getDriverCareerStats(
+    override suspend fun getDriverCareerStats(
         driverId: String,
-        currentConstructors: List<ConstructorModel> = emptyList(),
-    ): Result<CareerStats<ConstructorModel>> =
+        currentConstructors: List<Constructor>,
+    ): Result<CareerStats<Constructor>> =
         ApiCallHandler.safeCall {
             CareerLoader.loadDriverCareer(api, driverId, currentConstructors)
         }
 
-    suspend fun getConstructorCareerStats(
+    override suspend fun getConstructorCareerStats(
         constructorId: String,
-        currentDrivers: List<DriverModel> = emptyList(),
-    ): Result<CareerStats<DriverModel>> =
+        currentDrivers: List<Driver>,
+    ): Result<CareerStats<Driver>> =
         ApiCallHandler.safeCall {
             CareerLoader.loadConstructorCareer(api, constructorId, currentDrivers)
         }
 
-    suspend fun getDriverH2hStats(driverId: String, season: String? = null): Result<H2hStats> =
+    override suspend fun getDriverH2hStats(driverId: String, season: String?): Result<H2hStats> =
         ApiCallHandler.safeCall {
             CareerLoader.loadH2hStats(api, "drivers/$driverId", season)
         }
 
-    suspend fun getConstructorH2hStats(constructorId: String, season: String? = null): Result<H2hStats> =
+    override suspend fun getConstructorH2hStats(constructorId: String, season: String?): Result<H2hStats> =
         ApiCallHandler.safeCall {
             CareerLoader.loadH2hStats(api, "constructors/$constructorId", season)
         }
 
-    suspend fun getSeasonFinishStatuses(year: String): Result<List<FinishStatusItem>> =
+    override suspend fun getSeasonFinishStatuses(year: String): Result<List<FinishStatusItem>> =
         ApiCallHandler.safeCall {
             api.getSeasonStatus(year).mrData.statusTable?.status.orEmpty()
                 .map { dto ->
@@ -302,14 +336,14 @@ class F1Repository @Inject constructor(
                 .sortedByDescending { it.count }
         }
 
-    suspend fun getCurrentDrivers(): Result<List<DriverModel>> =
+    override suspend fun getCurrentDrivers(): Result<List<Driver>> =
         ApiCallHandler.safeCall {
-            api.getCurrentDrivers().mrData.driverTable.drivers
+            api.getCurrentDrivers().mrData.driverTable.drivers.map { it.toDomain() }
         }
 
-    suspend fun getAllDrivers(): Result<List<DriverModel>> =
+    override suspend fun getAllDrivers(): Result<List<Driver>> =
         ApiCallHandler.safeCall {
-            val all = mutableListOf<DriverModel>()
+            val all = mutableListOf<Driver>()
             var offset = 0
             var total = 1
             while (offset < total) {
@@ -317,21 +351,21 @@ class F1Repository @Inject constructor(
                 total = response.mrData.total?.toIntOrNull() ?: all.size
                 val page = response.mrData.driverTable.drivers
                 if (page.isEmpty()) break
-                all.addAll(page)
+                all.addAll(page.map { it.toDomain() })
                 offset += 100
                 if (offset < total) delay(280)
             }
             all.sortedBy { it.familyName.lowercase() }
         }
 
-    suspend fun getCurrentConstructorsList(): Result<List<ConstructorModel>> =
+    override suspend fun getCurrentConstructorsList(): Result<List<Constructor>> =
         ApiCallHandler.safeCall {
-            api.getCurrentConstructors().mrData.constructorTable.constructors
+            api.getCurrentConstructors().mrData.constructorTable.constructors.map { it.toDomain() }
         }
 
-    suspend fun getAllConstructors(): Result<List<ConstructorModel>> =
+    override suspend fun getAllConstructors(): Result<List<Constructor>> =
         ApiCallHandler.safeCall {
-            val all = mutableListOf<ConstructorModel>()
+            val all = mutableListOf<Constructor>()
             var offset = 0
             var total = 1
             while (offset < total) {
@@ -339,14 +373,14 @@ class F1Repository @Inject constructor(
                 total = response.mrData.total?.toIntOrNull() ?: all.size
                 val page = response.mrData.constructorTable.constructors
                 if (page.isEmpty()) break
-                all.addAll(page)
+                all.addAll(page.map { it.toDomain() })
                 offset += 100
                 if (offset < total) delay(280)
             }
             all.sortedBy { it.name.lowercase() }
         }
 
-    suspend fun getCircuitWinners(circuitId: String): Result<List<CircuitRaceWin>> =
+    override suspend fun getCircuitWinners(circuitId: String): Result<List<CircuitRaceWin>> =
         ApiCallHandler.safeCall {
             api.getCircuitWinners(circuitId).mrData.raceTable.races.mapNotNull { race ->
                 val winner = race.results?.firstOrNull() ?: return@mapNotNull null
@@ -354,18 +388,18 @@ class F1Repository @Inject constructor(
                     season = race.season,
                     round = race.round,
                     raceName = race.raceName,
-                    driver = winner.driver,
-                    constructor = winner.constructor,
+                    driver = winner.driver.toDomain(),
+                    constructor = winner.constructor.toDomain(),
                 )
             }.reversed()
         }
 
     /** Текущие команды пилота из кэша standings (Home). */
-    suspend fun currentConstructorsForDriver(driverId: String): List<ConstructorModel> =
+    override suspend fun currentConstructorsForDriver(driverId: String): List<Constructor> =
         peekCurrentDriversCache()?.first?.find { it.driver.driverId == driverId }?.constructors.orEmpty()
 
     /** Текущие пилоты конструктора из кэша standings (Home). */
-    suspend fun currentDriversForConstructor(constructorId: String): List<DriverModel> =
+    override suspend fun currentDriversForConstructor(constructorId: String): List<Driver> =
         peekCurrentDriversCache()?.first?.filter { standing ->
             standing.constructors.any { it.constructorId == constructorId }
         }?.map { it.driver }.orEmpty()

@@ -1,13 +1,14 @@
 package com.example.f1_kotlin.data.career
 
 import com.example.f1_kotlin.data.api.F1ApiService
+import com.example.f1_kotlin.data.mapper.toDomain
 import com.example.f1_kotlin.data.model.CareerRaceResult
 import com.example.f1_kotlin.data.model.CareerStats
-import com.example.f1_kotlin.data.model.ConstructorModel
-import com.example.f1_kotlin.data.model.DriverModel
 import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.data.model.MrDataTotalModel
 import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.Driver
 import kotlinx.coroutines.delay
 
 /**
@@ -20,8 +21,8 @@ object CareerLoader {
     suspend fun loadDriverCareer(
         api: F1ApiService,
         driverId: String,
-        current: List<ConstructorModel> = emptyList(),
-    ): CareerStats<ConstructorModel> {
+        current: List<Constructor> = emptyList(),
+    ): CareerStats<Constructor> {
         val prefix = "drivers/$driverId"
         val totals = getThrottled(
             api,
@@ -57,7 +58,7 @@ object CareerLoader {
             podiums = wins + second + third,
             poles = totalOf(totals[4]),
             current = current,
-            related = totals[5].constructorTable?.constructors.orEmpty(),
+            related = totals[5].constructorTable?.constructors.orEmpty().map { it.toDomain() },
             winRaces = winRaces,
             podiumRaces = podiumRaces,
             poleRaces = poleRaces,
@@ -67,8 +68,8 @@ object CareerLoader {
     suspend fun loadConstructorCareer(
         api: F1ApiService,
         constructorId: String,
-        current: List<DriverModel> = emptyList(),
-    ): CareerStats<DriverModel> {
+        current: List<Driver> = emptyList(),
+    ): CareerStats<Driver> {
         val prefix = "constructors/$constructorId"
         val allResultsPages = fetchAllPages(api, "$prefix/results")
         val winPages = fetchAllPages(api, "$prefix/results/1")
@@ -99,7 +100,7 @@ object CareerLoader {
             podiums = podiumRaces.size,
             poles = if (polesTotal > 0) polesTotal else poleRaces.size,
             current = current,
-            related = driversResponse.driverTable?.drivers.orEmpty(),
+            related = driversResponse.driverTable?.drivers.orEmpty().map { it.toDomain() },
             winRaces = winRaces,
             podiumRaces = podiumRaces,
             poleRaces = poleRaces,
@@ -159,19 +160,28 @@ object CareerLoader {
         val pages = mutableListOf<MrDataTotalModel>()
         var offset = 0
         var lastStart = 0L
-        while (true) {
+        var fetchMore = true
+        while (fetchMore) {
             throttle(lastStart)
             lastStart = System.currentTimeMillis()
             val page = api.getMrDataTotal(path, limit = MAX_PAGE_SIZE, offset = offset).mrData
             pages.add(page)
-            val pageRaces = page.raceTable?.races?.size ?: 0
-            if (pageRaces == 0) break
-            offset += MAX_PAGE_SIZE
-            val total = totalOf(page)
-            if (total > 0 && offset >= total) break
-            if (pageRaces < MAX_PAGE_SIZE && total == 0) break
+            fetchMore = shouldFetchNextPage(page, offset)
+            if (fetchMore) {
+                offset += MAX_PAGE_SIZE
+            }
         }
         return pages
+    }
+
+    private fun shouldFetchNextPage(page: MrDataTotalModel, offset: Int): Boolean {
+        val pageRaces = page.raceTable?.races?.size ?: 0
+        if (pageRaces == 0) return false
+        val nextOffset = offset + MAX_PAGE_SIZE
+        val total = totalOf(page)
+        if (total > 0 && nextOffset >= total) return false
+        if (pageRaces < MAX_PAGE_SIZE && total == 0) return false
+        return true
     }
 
     private suspend fun throttle(lastStart: Long) {
@@ -219,9 +229,9 @@ object CareerLoader {
                 round = race.round,
                 raceName = race.raceName,
                 position = position,
-                constructor = entry.constructor,
-                circuit = race.circuit,
-                driver = entry.driver,
+                constructor = entry.constructor.toDomain(),
+                circuit = race.circuit.toDomain(),
+                driver = entry.driver.toDomain(),
             )
         }
 
@@ -233,9 +243,9 @@ object CareerLoader {
                 round = race.round,
                 raceName = race.raceName,
                 position = 1,
-                constructor = entry.constructor,
-                circuit = race.circuit,
-                driver = entry.driver,
+                constructor = entry.constructor.toDomain(),
+                circuit = race.circuit.toDomain(),
+                driver = entry.driver.toDomain(),
             )
         }
 

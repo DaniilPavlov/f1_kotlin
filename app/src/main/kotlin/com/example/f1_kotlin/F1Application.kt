@@ -14,7 +14,7 @@ import javax.inject.Inject
  * (SingletonComponent), куда попадают [com.example.f1_kotlin.di.NetworkModule],
  * [com.example.f1_kotlin.di.DatabaseModule] и все классы с [@Inject].
  *
- * Без этого класса Hilt не сможет внедрять [com.example.f1_kotlin.data.repository.F1Repository]
+ * Без этого класса Hilt не сможет внедрять [com.example.f1_kotlin.data.repository.IF1Repository]
  * во ViewModel'и.
  */
 @HiltAndroidApp
