@@ -124,7 +124,37 @@ interface F1ApiService {
     /** Totals и таблицы для карьерной статистики (поле total в MRData). */
     @GET("{path}.json")
     suspend fun getMrDataTotal(
-        @Path("path") path: String,
+        @Path(value = "path", encoded = true) path: String,
+        @Query("limit") limit: Int = 100,
+        @Query("offset") offset: Int = 0,
+    ): MrDataResponse<MrDataTotalModel>
+
+    /** Статусы финиша сезона (`Finished`, `Retired`, …). */
+    @GET("{year}/status.json")
+    suspend fun getSeasonStatus(
+        @Path("year") year: String,
         @Query("limit") limit: Int = 100,
     ): MrDataResponse<MrDataTotalModel>
+
+    /** Пилоты текущего сезона. */
+    @GET("current/drivers.json")
+    suspend fun getCurrentDrivers(@Query("limit") limit: Int = 100): MrDataResponse<DriverFetchingModel>
+
+    /** Все пилоты (пагинация). */
+    @GET("drivers.json")
+    suspend fun getAllDrivers(
+        @Query("limit") limit: Int = 100,
+        @Query("offset") offset: Int = 0,
+    ): MrDataResponse<DriverFetchingModel>
+
+    /** Конструкторы текущего сезона. */
+    @GET("current/constructors.json")
+    suspend fun getCurrentConstructors(@Query("limit") limit: Int = 100): MrDataResponse<ConstructorFetchingModel>
+
+    /** Все конструкторы (пагинация). */
+    @GET("constructors.json")
+    suspend fun getAllConstructors(
+        @Query("limit") limit: Int = 100,
+        @Query("offset") offset: Int = 0,
+    ): MrDataResponse<ConstructorFetchingModel>
 }

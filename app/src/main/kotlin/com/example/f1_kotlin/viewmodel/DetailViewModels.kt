@@ -3,11 +3,17 @@ package com.example.f1_kotlin.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.f1_kotlin.data.circuits.CircuitStats
+import com.example.f1_kotlin.data.circuits.CircuitStatsRepository
 import com.example.f1_kotlin.data.model.CircuitModel
+import com.example.f1_kotlin.data.model.CircuitRaceWin
+import com.example.f1_kotlin.data.model.EspnDriverCardData
+import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.data.model.PitStopModel
 import com.example.f1_kotlin.data.model.QualifyingResultModel
 import com.example.f1_kotlin.data.model.RaceModel
 import com.example.f1_kotlin.data.model.RaceResultModel
+import com.example.f1_kotlin.data.repository.EspnRepository
 import com.example.f1_kotlin.data.repository.F1Repository
 import com.example.f1_kotlin.domain.AppException
 import com.example.f1_kotlin.domain.AsyncValue
@@ -118,6 +124,7 @@ class RaceInfoScreenViewModel @Inject constructor(
 class CircuitDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: F1Repository,
+    private val circuitStatsRepository: CircuitStatsRepository,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
     private val circuitId: String = savedStateHandle.get<String>("circuitId").orEmpty()
@@ -125,8 +132,11 @@ class CircuitDetailViewModel @Inject constructor(
     private val _circuit = MutableStateFlow<AsyncValue<CircuitModel>>(AsyncValue.Loading)
     val circuit: StateFlow<AsyncValue<CircuitModel>> = _circuit.asStateFlow()
 
-    private val _winners = MutableStateFlow<AsyncValue<List<com.example.f1_kotlin.data.model.CircuitRaceWin>>>(AsyncValue.Loading)
-    val winners: StateFlow<AsyncValue<List<com.example.f1_kotlin.data.model.CircuitRaceWin>>> = _winners.asStateFlow()
+    private val _winners = MutableStateFlow<AsyncValue<List<CircuitRaceWin>>>(AsyncValue.Loading)
+    val winners: StateFlow<AsyncValue<List<CircuitRaceWin>>> = _winners.asStateFlow()
+
+    private val _stats = MutableStateFlow<CircuitStats?>(null)
+    val stats: StateFlow<CircuitStats?> = _stats.asStateFlow()
 
     private val _error = MutableStateFlow<AppException?>(null)
     val error: StateFlow<AppException?> = _error.asStateFlow()
@@ -139,6 +149,7 @@ class CircuitDetailViewModel @Inject constructor(
         loadJob.launch(viewModelScope) {
             _error.value = null
             loadCircuit()
+            loadStats()
             loadWinners()
         }
     }
@@ -161,6 +172,10 @@ class CircuitDetailViewModel @Inject constructor(
         )
     }
 
+    private suspend fun loadStats() {
+        _stats.value = runCatching { circuitStatsRepository.of(circuitId) }.getOrNull()
+    }
+
     private suspend fun loadWinners() {
         _winners.value = AsyncValue.Loading
         repository.getCircuitWinners(circuitId).applyUnlessCached(
@@ -178,6 +193,7 @@ class CircuitDetailViewModel @Inject constructor(
 class DriverDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: F1Repository,
+    private val espnRepository: EspnRepository,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
     private val driverId: String = savedStateHandle.get<String>("driverId").orEmpty()
@@ -187,6 +203,9 @@ class DriverDetailViewModel @Inject constructor(
 
     private val _careerStats = MutableStateFlow<AsyncValue<com.example.f1_kotlin.data.model.CareerStats<com.example.f1_kotlin.data.model.ConstructorModel>>>(AsyncValue.Loading)
     val careerStats: StateFlow<AsyncValue<com.example.f1_kotlin.data.model.CareerStats<com.example.f1_kotlin.data.model.ConstructorModel>>> = _careerStats.asStateFlow()
+
+    private val _espnCard = MutableStateFlow(EspnDriverCardData())
+    val espnCard: StateFlow<EspnDriverCardData> = _espnCard.asStateFlow()
 
     private val _error = MutableStateFlow<AppException?>(null)
     val error: StateFlow<AppException?> = _error.asStateFlow()
@@ -200,6 +219,7 @@ class DriverDetailViewModel @Inject constructor(
             _error.value = null
             _driver.value = AsyncValue.Loading
             _careerStats.value = AsyncValue.Loading
+            _espnCard.value = EspnDriverCardData()
 
             val currentConstructors = repository.currentConstructorsForDriver(driverId)
             val driverResult = repository.getDriver(driverId)
@@ -216,14 +236,24 @@ class DriverDetailViewModel @Inject constructor(
             }
             _driver.value = AsyncValue.Value(loadedDriver)
 
-            repository.getDriverCareerStats(driverId, currentConstructors).applyUnlessCached(
-                current = _careerStats.value,
-                onSuccess = { _careerStats.value = AsyncValue.Value(it) },
-                onFailure = { ex ->
-                    _careerStats.value = AsyncValue.Error(ex.title, ex.subtitle)
-                    _error.value = ex
-                },
-            )
+            coroutineScope {
+                val careerDeferred = async {
+                    repository.getDriverCareerStats(driverId, currentConstructors)
+                }
+                val espnDeferred = async {
+                    espnRepository.driverCardData(loadedDriver.givenName, loadedDriver.familyName)
+                }
+
+                careerDeferred.await().applyUnlessCached(
+                    current = _careerStats.value,
+                    onSuccess = { _careerStats.value = AsyncValue.Value(it) },
+                    onFailure = { ex ->
+                        _careerStats.value = AsyncValue.Error(ex.title, ex.subtitle)
+                        _error.value = ex
+                    },
+                )
+                _espnCard.value = espnDeferred.await()
+            }
         }
     }
 }
@@ -232,6 +262,7 @@ class DriverDetailViewModel @Inject constructor(
 class ConstructorDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: F1Repository,
+    private val espnRepository: EspnRepository,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
     private val constructorId: String = savedStateHandle.get<String>("constructorId").orEmpty()
@@ -241,6 +272,9 @@ class ConstructorDetailViewModel @Inject constructor(
 
     private val _careerStats = MutableStateFlow<AsyncValue<com.example.f1_kotlin.data.model.CareerStats<com.example.f1_kotlin.data.model.DriverModel>>>(AsyncValue.Loading)
     val careerStats: StateFlow<AsyncValue<com.example.f1_kotlin.data.model.CareerStats<com.example.f1_kotlin.data.model.DriverModel>>> = _careerStats.asStateFlow()
+
+    private val _news = MutableStateFlow<List<NewsArticle>>(emptyList())
+    val news: StateFlow<List<NewsArticle>> = _news.asStateFlow()
 
     private val _error = MutableStateFlow<AppException?>(null)
     val error: StateFlow<AppException?> = _error.asStateFlow()
@@ -254,6 +288,7 @@ class ConstructorDetailViewModel @Inject constructor(
             _error.value = null
             _constructor.value = AsyncValue.Loading
             _careerStats.value = AsyncValue.Loading
+            _news.value = emptyList()
 
             val currentDrivers = repository.currentDriversForConstructor(constructorId)
             val constructorResult = repository.getConstructor(constructorId)
@@ -270,14 +305,24 @@ class ConstructorDetailViewModel @Inject constructor(
             }
             _constructor.value = AsyncValue.Value(loaded)
 
-            repository.getConstructorCareerStats(constructorId, currentDrivers).applyUnlessCached(
-                current = _careerStats.value,
-                onSuccess = { _careerStats.value = AsyncValue.Value(it) },
-                onFailure = { ex ->
-                    _careerStats.value = AsyncValue.Error(ex.title, ex.subtitle)
-                    _error.value = ex
-                },
-            )
+            coroutineScope {
+                val careerDeferred = async {
+                    repository.getConstructorCareerStats(constructorId, currentDrivers)
+                }
+                val newsDeferred = async {
+                    espnRepository.constructorNews(loaded.constructorId, loaded.name)
+                }
+
+                careerDeferred.await().applyUnlessCached(
+                    current = _careerStats.value,
+                    onSuccess = { _careerStats.value = AsyncValue.Value(it) },
+                    onFailure = { ex ->
+                        _careerStats.value = AsyncValue.Error(ex.title, ex.subtitle)
+                        _error.value = ex
+                    },
+                )
+                _news.value = newsDeferred.await()
+            }
         }
     }
 }

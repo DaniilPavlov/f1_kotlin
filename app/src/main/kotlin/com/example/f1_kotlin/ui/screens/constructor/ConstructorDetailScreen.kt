@@ -11,75 +11,176 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.data.model.CareerRaceResult
+import com.example.f1_kotlin.data.model.CircuitModel
 import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CareerInfoRow
 import com.example.f1_kotlin.ui.components.CareerListTile
+import com.example.f1_kotlin.ui.components.CareerRaceResultsSheet
 import com.example.f1_kotlin.ui.components.CareerStatsGrid
 import com.example.f1_kotlin.ui.components.ErrorBody
-import com.example.f1_kotlin.ui.components.LoadingIndicator
+import com.example.f1_kotlin.ui.components.NewsArticleTile
 import com.example.f1_kotlin.ui.components.WikipediaLink
 import com.example.f1_kotlin.ui.components.displayValue
+import com.example.f1_kotlin.ui.components.CountryFlag
+import com.example.f1_kotlin.ui.components.shimmer.CareerScreenShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
+import com.example.f1_kotlin.util.RegisterShareAction
 import com.example.f1_kotlin.util.openUrl
+import com.example.f1_kotlin.util.rememberShareCareerAction
 import com.example.f1_kotlin.viewmodel.ConstructorDetailViewModel
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun ConstructorDetailScreen(
     viewModel: ConstructorDetailViewModel,
     onDriverClick: (DriverModel) -> Unit,
+    onCircuitClick: (CircuitModel) -> Unit,
 ) {
     val constructor by viewModel.constructor.collectAsState()
     val career by viewModel.careerStats.collectAsState()
+    val news by viewModel.news.collectAsState()
     val error by viewModel.error.collectAsState()
     val context = LocalContext.current
 
     when {
-        constructor.isLoading || career.isLoading -> LoadingIndicator(Modifier.fillMaxSize())
-        error != null -> ErrorBody(error?.title, error?.subtitle, onRetry = viewModel::loadAllData, modifier = Modifier.fillMaxSize())
+        constructor.isLoading || career.isLoading -> CareerScreenShimmer(showPhoto = false, modifier = Modifier.fillMaxSize())
+        error != null && constructor !is AsyncValue.Value -> ErrorBody(
+            error?.title,
+            error?.subtitle,
+            onRetry = viewModel::loadAllData,
+            modifier = Modifier.fillMaxSize(),
+        )
         constructor is AsyncValue.Value && career is AsyncValue.Value -> {
             val model = (constructor as AsyncValue.Value).value
             val stats = (career as AsyncValue.Value).value
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
-            ) {
-                Text(model.name, style = AppStyles.h1)
-                Spacer(Modifier.height(16.dp))
-                CareerInfoRow(stringResource(R.string.nationality), displayValue(model.nationality))
-                if (stats.current.isNotEmpty()) {
-                    CareerInfoRow(
-                        stringResource(R.string.current_drivers),
-                        stats.current.joinToString(", ") { it.fullName },
-                    )
-                }
-                if (model.url.isNotBlank()) {
-                    Spacer(Modifier.height(12.dp))
-                    WikipediaLink { openUrl(context, model.url) }
-                }
-                Spacer(Modifier.height(28.dp))
-                Text(stringResource(R.string.career_title), style = AppStyles.h2)
-                Spacer(Modifier.height(16.dp))
-                CareerStatsGrid(stats.races, stats.wins, stats.podiums, stats.poles)
-                Spacer(Modifier.height(28.dp))
-                Text(stringResource(R.string.constructor_drivers_title), style = AppStyles.h2)
+            ConstructorContent(
+                name = model.name,
+                nationality = model.nationality,
+                url = model.url,
+                stats = stats,
+                news = news,
+                onDriverClick = onDriverClick,
+                onCircuitClick = onCircuitClick,
+                onWikipediaClick = { openUrl(context, model.url) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConstructorContent(
+    name: String,
+    nationality: String,
+    url: String,
+    stats: com.example.f1_kotlin.data.model.CareerStats<DriverModel>,
+    news: List<NewsArticle>,
+    onDriverClick: (DriverModel) -> Unit,
+    onCircuitClick: (CircuitModel) -> Unit,
+    onWikipediaClick: () -> Unit,
+) {
+    var sheetTitle by remember { mutableStateOf<String?>(null) }
+    var sheetRaces by remember { mutableStateOf<List<CareerRaceResult>>(emptyList()) }
+    var sheetShowPosition by remember { mutableStateOf(false) }
+    val winsTitle = stringResource(R.string.wins)
+    val podiumsTitle = stringResource(R.string.career_stat_podiums)
+    val polesTitle = stringResource(R.string.career_stat_poles)
+
+    RegisterShareAction(
+        rememberShareCareerAction(
+            title = name,
+            races = stats.races,
+            wins = stats.wins,
+            podiums = stats.podiums,
+            poles = stats.poles,
+        ),
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
+    ) {
+        Text(name, style = AppStyles.h1)
+        Spacer(Modifier.height(16.dp))
+        CareerInfoRow(stringResource(R.string.nationality)) {
+            CountryFlag(countryOrNationality = nationality, fontSize = 28.sp)
+        }
+        if (stats.current.isNotEmpty()) {
+            CareerInfoRow(
+                stringResource(R.string.current_drivers),
+                stats.current.joinToString(", ") { it.fullName },
+            )
+        }
+        if (url.isNotBlank()) {
+            Spacer(Modifier.height(12.dp))
+            WikipediaLink(onWikipediaClick)
+        }
+        Spacer(Modifier.height(28.dp))
+        Text(stringResource(R.string.career_title), style = AppStyles.h2)
+        Spacer(Modifier.height(16.dp))
+        CareerStatsGrid(
+            races = stats.races,
+            wins = stats.wins,
+            podiums = stats.podiums,
+            poles = stats.poles,
+            onWinsTap = {
+                sheetTitle = winsTitle
+                sheetRaces = stats.winRaces
+                sheetShowPosition = false
+            },
+            onPodiumsTap = {
+                sheetTitle = podiumsTitle
+                sheetRaces = stats.podiumRaces
+                sheetShowPosition = true
+            },
+            onPolesTap = {
+                sheetTitle = polesTitle
+                sheetRaces = stats.poleRaces
+                sheetShowPosition = false
+            },
+        )
+        Spacer(Modifier.height(28.dp))
+        Text(stringResource(R.string.constructor_drivers_title), style = AppStyles.h2)
+        Spacer(Modifier.height(12.dp))
+        stats.related.forEach { driver ->
+            CareerListTile(
+                title = driver.fullName,
+                subtitle = "",
+                onClick = { onDriverClick(driver) },
+                trailing = { CountryFlag(countryOrNationality = driver.nationality) },
+            )
+        }
+        if (news.isNotEmpty()) {
+            Spacer(Modifier.height(28.dp))
+            Text(stringResource(R.string.driver_news_title), style = AppStyles.h2)
+            Spacer(Modifier.height(12.dp))
+            news.forEach { article ->
+                NewsArticleTile(article)
                 Spacer(Modifier.height(12.dp))
-                stats.related.forEach { driver ->
-                    CareerListTile(
-                        title = driver.fullName,
-                        subtitle = displayValue(driver.nationality),
-                        onClick = { onDriverClick(driver) },
-                    )
-                }
             }
         }
+    }
+
+    sheetTitle?.let { title ->
+        CareerRaceResultsSheet(
+            title = title,
+            races = sheetRaces,
+            showPosition = sheetShowPosition,
+            onDismiss = { sheetTitle = null },
+            onCircuitClick = onCircuitClick,
+        )
     }
 }

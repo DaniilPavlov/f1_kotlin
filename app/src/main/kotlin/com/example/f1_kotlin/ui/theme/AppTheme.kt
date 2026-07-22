@@ -15,7 +15,10 @@ val F1Pink = Color(0xFFF3B2AE)
 val F1White = Color(0xFFFFFFFF)
 val F1GrayBg = Color(0xFFF6F6F6)
 val F1StrokeGray = Color(0xFFD8D8D8)
+val F1TextGray = Color(0xFFB6B6B6)
 val F1ShadowColor = Color(0xFFD7D7D7)
+val F1ShimmerBase = Color(0xFFC8C8C8)
+val F1ShimmerHighlight = Color(0xFFE0E0E0)
 
 /** Шрифты из res/font — подключаются к TextStyle в Compose. */
 val HelveticaBold = FontFamily(Font(R.font.helvetica_neue_cyr_bold, FontWeight.Bold))

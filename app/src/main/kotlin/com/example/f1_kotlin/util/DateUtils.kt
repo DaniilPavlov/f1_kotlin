@@ -4,7 +4,10 @@ import android.content.Intent
 import android.net.Uri
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -34,14 +37,29 @@ object DateUtils {
      * Собирает [LocalDateTime] из даты и времени гонки/сессии и переводит UTC → локальное время.
      *
      * Если время в ответе API пустое, возвращает null (сессия без точного времени).
-    */
+     */
     fun toLocalDateTime(date: String, time: String?): LocalDateTime? {
         if (time.isNullOrBlank()) return null
-        val parts = time.split(":")
-        if (parts.size < 2) return null
-        val utc = LocalDate.parse(date).atTime(parts[0].toInt(), parts[1].toInt())
-        val offsetHours = ZoneId.systemDefault().rules.getOffset(utc.atZone(ZoneId.of("UTC")).toInstant()).totalSeconds / 3600
-        return utc.plusHours(offsetHours.toLong())
+        return parseUtcSession(date, time).withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+    }
+
+    /**
+     * Парсит UTC-дату/время сессии. Пустое [time] → полночь UTC (как в Flutter [RaceDateTimeHelper]).
+     */
+    fun parseUtcSession(date: String, time: String?): ZonedDateTime {
+        val raw = time?.trim().orEmpty().removeSuffix("Z")
+        val localTime = if (raw.isEmpty()) {
+            LocalTime.MIDNIGHT
+        } else {
+            val parts = raw.split(":")
+            require(parts.size >= 2) { "Invalid session time: $time" }
+            LocalTime.of(
+                parts[0].toInt(),
+                parts[1].toInt(),
+                parts.getOrNull(2)?.toInt() ?: 0,
+            )
+        }
+        return LocalDate.parse(date).atTime(localTime).atZone(ZoneOffset.UTC)
     }
 }
 

@@ -22,10 +22,10 @@ import com.example.f1_kotlin.data.model.DriverModel
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CustomSwitcher
 import com.example.f1_kotlin.ui.components.ErrorBody
-import com.example.f1_kotlin.ui.components.LoadingIndicator
 import com.example.f1_kotlin.ui.components.SeasonPickerField
 import com.example.f1_kotlin.ui.components.TournamentConstructorsTable
 import com.example.f1_kotlin.ui.components.TournamentDriversTable
+import com.example.f1_kotlin.ui.components.shimmer.TournamentTablesShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.viewmodel.HallOfFameViewModel
@@ -43,7 +43,7 @@ fun HallOfFameScreen(
     val error by viewModel.error.collectAsState()
 
     when {
-        drivers.isLoading || constructors.isLoading -> LoadingIndicator(Modifier.fillMaxSize())
+        drivers.isLoading || constructors.isLoading -> TournamentTablesShimmer(showHeader = false, modifier = Modifier.fillMaxSize())
         error != null -> ErrorBody(error?.title, error?.subtitle, onRetry = viewModel::loadAllData, modifier = Modifier.fillMaxSize())
         drivers is AsyncValue.Value && constructors is AsyncValue.Value -> {
             val driversList = (drivers as AsyncValue.Value).value
@@ -85,6 +85,6 @@ fun HallOfFameScreen(
                 Spacer(Modifier.height(32.dp))
             }
         }
-        else -> LoadingIndicator(Modifier.fillMaxSize())
+        else -> TournamentTablesShimmer(showHeader = false, modifier = Modifier.fillMaxSize())
     }
 }

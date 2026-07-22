@@ -34,9 +34,13 @@ import com.example.f1_kotlin.ui.components.RacePickerField
 import com.example.f1_kotlin.ui.components.RaceResultsTable
 import com.example.f1_kotlin.ui.components.SeasonPickerField
 import com.example.f1_kotlin.ui.components.SectionHeader
+import com.example.f1_kotlin.ui.components.shimmer.LastRaceSectionShimmer
+import com.example.f1_kotlin.ui.components.shimmer.RaceInfoShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
+import com.example.f1_kotlin.util.RegisterShareAction
+import com.example.f1_kotlin.util.rememberShareRaceAction
 import com.example.f1_kotlin.viewmodel.RaceInfoScreenViewModel
 import com.example.f1_kotlin.viewmodel.RaceSearchViewModel
 import com.example.f1_kotlin.viewmodel.ResultsViewModel
@@ -45,40 +49,69 @@ import com.example.f1_kotlin.viewmodel.ResultsViewModel
 fun ResultsScreen(
     viewModel: ResultsViewModel,
     onSearchRace: () -> Unit,
+    onHallOfFame: () -> Unit,
+    onH2hDrivers: () -> Unit,
+    onH2hConstructors: () -> Unit,
+    onFinishStatus: () -> Unit,
     onRaceDetails: (RaceModel) -> Unit,
     onDriverClick: (DriverModel) -> Unit,
 ) {
     val lastRace by viewModel.lastRace.collectAsState()
+    val scoreboard by viewModel.scoreboard.collectAsState()
 
-    when (val state = lastRace) {
-        is AsyncValue.Loading -> LoadingIndicator(Modifier.fillMaxSize())
-        is AsyncValue.Error -> ErrorBody(state.message, state.subtitle, onRetry = viewModel::loadAllData, modifier = Modifier.fillMaxSize())
-        is AsyncValue.Value -> Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(vertical = AppDimens.verticalPadding.dp),
-        ) {
-            Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
-                Text(stringResource(R.string.last_race), style = AppStyles.h2)
-                Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                Text(state.value.raceName, style = AppStyles.h2)
-                Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.season_label, state.value.season), style = AppStyles.h2, modifier = Modifier.weight(1f))
-                    Text(stringResource(R.string.round_label, state.value.round), style = AppStyles.h2)
-                }
-            }
-            Spacer(Modifier.height(10.dp))
-            RaceResultsTable(
-                race = state.value,
-                maxRows = 3,
-                onDetailsClick = { onRaceDetails(state.value) },
-                onDriverClick = onDriverClick,
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = AppDimens.verticalPadding.dp),
+    ) {
+        WeekendScoreboardSection(scoreboard)
+
+        when (val state = lastRace) {
+            is AsyncValue.Loading -> LastRaceSectionShimmer()
+            is AsyncValue.Error -> ErrorBody(
+                state.message,
+                state.subtitle,
+                onRetry = viewModel::loadAllData,
+                modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp),
             )
-            Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-            BoxedAction(title = stringResource(R.string.choose_specific_race), onClick = onSearchRace)
+            is AsyncValue.Value -> Column(
+                modifier = Modifier.padding(vertical = AppDimens.verticalPadding.dp),
+            ) {
+                Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
+                    Text(stringResource(R.string.last_race), style = AppStyles.h2)
+                    Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                    Text(state.value.raceName, style = AppStyles.h2)
+                    Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            stringResource(R.string.season_label, state.value.season),
+                            style = AppStyles.h2,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(stringResource(R.string.round_label, state.value.round), style = AppStyles.h2)
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                RaceResultsTable(
+                    race = state.value,
+                    maxRows = 3,
+                    onDetailsClick = { onRaceDetails(state.value) },
+                    onDriverClick = onDriverClick,
+                )
+            }
         }
+
+        Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+        BoxedAction(title = stringResource(R.string.choose_specific_race), onClick = onSearchRace)
+        Spacer(Modifier.height(12.dp))
+        BoxedAction(title = stringResource(R.string.hall_of_fame_title), onClick = onHallOfFame)
+        Spacer(Modifier.height(12.dp))
+        BoxedAction(title = stringResource(R.string.h2h_title), onClick = onH2hDrivers)
+        Spacer(Modifier.height(12.dp))
+        BoxedAction(title = stringResource(R.string.h2h_constructors_title), onClick = onH2hConstructors)
+        Spacer(Modifier.height(12.dp))
+        BoxedAction(title = stringResource(R.string.finish_status_title), onClick = onFinishStatus)
     }
 }
 
@@ -165,9 +198,10 @@ fun RaceInfoScreen(
             onRetry = viewModel::loadAllData,
             modifier = Modifier.fillMaxSize(),
         )
-        race.isLoading -> LoadingIndicator(Modifier.fillMaxSize())
+        race.isLoading -> RaceInfoShimmer(modifier = Modifier.fillMaxSize())
         race is AsyncValue.Value -> {
             val raceData = (race as AsyncValue.Value).value
+            RegisterShareAction(rememberShareRaceAction(raceData))
             Column(
                 modifier = Modifier
                     .fillMaxSize()

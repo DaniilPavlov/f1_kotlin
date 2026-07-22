@@ -5,16 +5,21 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,13 +29,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.data.circuits.CircuitLayoutAssets
 import com.example.f1_kotlin.data.model.CircuitModel
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CareerListTile
@@ -38,6 +46,11 @@ import com.example.f1_kotlin.ui.components.CustomSwitcher
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.LinkText
 import com.example.f1_kotlin.ui.components.LoadingIndicator
+import com.example.f1_kotlin.ui.components.circuits.CircuitLayoutImage
+import com.example.f1_kotlin.ui.components.circuits.CircuitStatsGrid
+import com.example.f1_kotlin.ui.components.shimmer.CareerScreenShimmer
+import com.example.f1_kotlin.ui.components.shimmer.CircuitsShimmer
+import com.example.f1_kotlin.ui.components.CountryFlag
 import com.example.f1_kotlin.ui.map.CircuitsTileSource
 import com.example.f1_kotlin.ui.map.F1CircuitsClusterer
 import com.example.f1_kotlin.ui.map.MapMarkerIcons
@@ -66,7 +79,7 @@ fun CircuitsScreen(
     val activePage by viewModel.activePage.collectAsState()
 
     when (val state = circuits) {
-        is AsyncValue.Loading -> LoadingIndicator(Modifier.fillMaxSize())
+        is AsyncValue.Loading -> CircuitsShimmer(modifier = Modifier.fillMaxSize())
         is AsyncValue.Error -> ErrorBody(state.message, state.subtitle, onRetry = viewModel::loadCircuits, modifier = Modifier.fillMaxSize())
         is AsyncValue.Value -> Column(modifier = Modifier.fillMaxSize()) {
             Spacer(Modifier.height(12.dp))
@@ -94,7 +107,7 @@ fun CircuitsScreen(
 private fun CircuitsList(circuits: List<CircuitModel>, onCircuitClick: (String) -> Unit) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = AppDimens.horizontalPadding.dp)) {
         items(circuits) { circuit ->
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
@@ -102,8 +115,28 @@ private fun CircuitsList(circuits: List<CircuitModel>, onCircuitClick: (String) 
                     .border(1.dp, F1Red, RoundedCornerShape(20.dp))
                     .clickable { onCircuitClick(circuit.circuitId) }
                     .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(circuit.circuitName, style = AppStyles.h3)
+                Text(
+                    text = circuit.circuitName,
+                    style = AppStyles.h3,
+                    modifier = Modifier.weight(1f),
+                )
+                if (CircuitLayoutAssets.hasLayout(circuit.circuitId)) {
+                    Box(modifier = Modifier.width(72.dp).height(48.dp)) {
+                        CircuitLayoutImage(
+                            circuitId = circuit.circuitId,
+                            height = 48.dp,
+                            padding = 0.dp,
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = F1Red,
+                    )
+                }
             }
         }
     }
@@ -194,10 +227,11 @@ fun CircuitDetailScreen(
 ) {
     val circuitState by viewModel.circuit.collectAsState()
     val winnersState by viewModel.winners.collectAsState()
+    val stats by viewModel.stats.collectAsState()
     val context = LocalContext.current
 
     when (val state = circuitState) {
-        is AsyncValue.Loading -> LoadingIndicator(Modifier.fillMaxSize())
+        is AsyncValue.Loading -> CareerScreenShimmer(modifier = Modifier.fillMaxSize())
         is AsyncValue.Error -> ErrorBody(state.message, state.subtitle, onRetry = viewModel::loadAllData, modifier = Modifier.fillMaxSize())
         is AsyncValue.Value -> Column(
             modifier = Modifier
@@ -205,11 +239,26 @@ fun CircuitDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
         ) {
+            if (CircuitLayoutAssets.hasLayout(state.value.circuitId)) {
+                CircuitLayoutImage(circuitId = state.value.circuitId, height = 220.dp)
+                Spacer(Modifier.height(16.dp))
+            }
             Text(state.value.circuitName, style = AppStyles.h1)
-            Spacer(Modifier.height(20.dp))
+            stats?.let {
+                Spacer(Modifier.height(16.dp))
+                CircuitStatsGrid(stats = it)
+            }
+            Spacer(Modifier.height(16.dp))
             LinkText(stringResource(R.string.read_on_wikipedia)) { openUrl(context, state.value.url) }
-            Spacer(Modifier.height(20.dp))
-            Text(stringResource(R.string.country_label, state.value.location.country), style = AppStyles.h3)
+            Spacer(Modifier.height(16.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("${stringResource(R.string.country)}: ", style = AppStyles.h3)
+                CountryFlag(
+                    countryOrNationality = state.value.location.country,
+                    fontSize = 28.sp,
+                    fallbackStyle = AppStyles.h3,
+                )
+            }
             Spacer(Modifier.height(10.dp))
             Text(stringResource(R.string.city_label, state.value.location.locality), style = AppStyles.h3)
             Spacer(Modifier.height(28.dp))

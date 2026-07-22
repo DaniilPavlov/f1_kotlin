@@ -5,8 +5,16 @@
     <string name="nav_home">Home</string>
     <string name="nav_results">Results</string>
     <string name="nav_calendar">Calendar</string>
-    <string name="nav_hall_of_fame">Hall of Fame</string>
+    <string name="nav_news">News</string>
     <string name="nav_circuits">Circuits</string>
+
+    <string name="news_empty">No news right now</string>
+    <string name="home_weekend_title">Race weekend</string>
+    <string name="home_weekend_live">Live</string>
+    <string name="home_weekend_leader">Leader: %1$s</string>
+    <string name="home_weekend_winner">Winner: %1$s</string>
+    <string name="weekend_session_results_title">Results: %1$s</string>
+    <string name="weekend_session_results_empty">No results yet</string>
 
     <string name="home_standings_title">Current season standings</string>
     <string name="season_label">Season: %1$s</string>
@@ -18,12 +26,15 @@
     <string name="nationality">Nationality</string>
     <string name="points">Points</string>
     <string name="wins">Wins</string>
+    <string name="wins_short">W</string>
     <string name="country">Country</string>
-    <string name="time">Time</string>
-    <string name="laps">Laps</string>
-    <string name="duration">Duration</string>
-    <string name="stop">Stop</string>
-    <string name="fastest_suffix"> fastest</string>
+    <string name="time_status">Time /\nStatus</string>
+    <string name="best_lap">Best\nlap</string>
+    <string name="none_short">n/a</string>
+    <string name="fastest_lap_label">%1$s\nfastest\nlap</string>
+    <string name="stop_number">Stop\nnumber</string>
+    <string name="stop_time">Stop\ntime</string>
+    <string name="race_time">Race\ntime</string>
 
     <string name="detailed_info">Detailed information</string>
     <string name="race">Race</string>
@@ -36,9 +47,7 @@
 
     <string name="race_search_title">Race search</string>
     <string name="season">Season</string>
-    <string name="year_hint">Year</string>
     <string name="round">Round</string>
-    <string name="number_hint">Number</string>
     <string name="search">Search</string>
     <string name="race_search_info">Pick a season, then a race from the list.</string>
     <string name="select_season">Select season</string>
@@ -48,14 +57,56 @@
     <string name="races_load_error">Could not load races</string>
 
     <string name="hall_of_fame_title">Hall of Fame</string>
+    <string name="h2h_title">H2H · Drivers</string>
+    <string name="h2h_subtitle">Compare two drivers with filters for period and driver list</string>
+    <string name="h2h_driver_a">Driver 1</string>
+    <string name="h2h_driver_b">Driver 2</string>
+    <string name="h2h_compare">Compare</string>
+    <string name="h2h_filters_title">Filters</string>
+    <string name="h2h_period_filter">Period</string>
+    <string name="h2h_season_filter">Season</string>
+    <string name="h2h_current_season">Current</string>
+    <string name="h2h_pick_year">Pick year</string>
+    <string name="h2h_drivers_filter">Drivers</string>
+    <string name="h2h_current_drivers">Current</string>
+    <string name="h2h_all_drivers">All</string>
+    <string name="h2h_search_driver">Name or code</string>
+    <string name="h2h_drivers_empty">No drivers found</string>
+    <string name="h2h_constructors_title">H2H · Constructors</string>
+    <string name="h2h_constructors_subtitle">Compare two constructors with filters for period and constructor list</string>
+    <string name="h2h_constructor_a">Constructor 1</string>
+    <string name="h2h_constructor_b">Constructor 2</string>
+    <string name="h2h_constructors_filter">Constructors</string>
+    <string name="h2h_current_constructors">Current</string>
+    <string name="h2h_all_constructors">All</string>
+    <string name="h2h_search_constructor">Name</string>
+    <string name="h2h_constructors_empty">No constructors found</string>
+    <string name="select_driver">Select a driver</string>
+    <string name="select_constructor">Select a constructor</string>
+    <string name="drivers_load_error">Could not load drivers</string>
+    <string name="constructors_load_error">Could not load constructors</string>
+    <string name="finish_status_title">Finish statuses</string>
+    <string name="finish_status_subtitle">How drivers finished races this season — Finished, Retired, DSQ, +laps, and more.</string>
+    <string name="finish_status_empty">No finish statuses for this season</string>
     <string name="on_map">On map</string>
     <string name="as_list">List</string>
     <string name="circuit_info_title">Circuit information</string>
     <string name="read_on_wikipedia">Read on Wikipedia</string>
-    <string name="country_label">Country: %1$s</string>
     <string name="city_label">City: %1$s</string>
     <string name="circuit_winners_title">Winners</string>
     <string name="circuit_winners_empty">No race winners for this circuit yet</string>
+    <string name="circuit_stat_length">Length</string>
+    <string name="circuit_stat_laps">Laps</string>
+    <string name="circuit_stat_turns">Turns</string>
+    <string name="circuit_stat_top_speed">Speed</string>
+    <string name="circuit_stat_elevation">Elevation</string>
+
+    <string name="schedule_round">Round %1$s</string>
+    <string name="schedule_countdown_title">FP1 starts in</string>
+    <string name="schedule_days">Days</string>
+    <string name="schedule_hours">Hours</string>
+    <string name="schedule_minutes">Minutes</string>
+    <string name="schedule_view_sessions">View schedule</string>
 
     <string name="first_practice">First practice</string>
     <string name="second_practice">Second practice</string>
@@ -72,6 +123,11 @@
     <string name="career_stat_races">Races</string>
     <string name="career_stat_podiums">Podiums</string>
     <string name="career_stat_poles">Poles</string>
+    <string name="career_race_list_empty">No races in this list</string>
+    <string name="share">Share</string>
+    <string name="share_no_results">No race results yet</string>
+    <string name="share_and_more">…and %1$d more</string>
+    <string name="driver_news_title">Latest news</string>
     <string name="driver_teams_title">Teams</string>
     <string name="constructor_drivers_title">Drivers</string>
 

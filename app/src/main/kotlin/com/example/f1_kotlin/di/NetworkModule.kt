@@ -1,6 +1,7 @@
 package com.example.f1_kotlin.di
 
 import com.example.f1_kotlin.BuildConfig
+import com.example.f1_kotlin.data.api.EspnApiService
 import com.example.f1_kotlin.data.api.F1ApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -65,6 +66,26 @@ object NetworkModule {
         return builder.build()
     }
 
+    /** Separate OkHttp for ESPN (no Ergast app headers; longer timeouts for news). */
+    @Provides
+    @Singleton
+    @EspnClient
+    fun provideEspnOkHttpClient(): OkHttpClient {
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(40, TimeUnit.SECONDS)
+            .writeTimeout(40, TimeUnit.SECONDS)
+            .callTimeout(60, TimeUnit.SECONDS)
+        if (BuildConfig.DEBUG) {
+            builder.addInterceptor(
+                HttpLoggingInterceptor().apply {
+                    level = HttpLoggingInterceptor.Level.BASIC
+                },
+            )
+        }
+        return builder.build()
+    }
+
     /** Retrofit превращает [F1ApiService] в реальные HTTP GET-запросы. */
     @Provides
     @Singleton
@@ -75,4 +96,15 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(F1ApiService::class.java)
+
+    /** Dedicated Retrofit for unofficial ESPN Site API. */
+    @Provides
+    @Singleton
+    fun provideEspnApiService(@EspnClient okHttpClient: OkHttpClient, moshi: Moshi): EspnApiService =
+        Retrofit.Builder()
+            .baseUrl(EspnApiService.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(EspnApiService::class.java)
 }

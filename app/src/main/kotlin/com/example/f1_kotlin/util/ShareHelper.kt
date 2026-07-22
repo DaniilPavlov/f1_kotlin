@@ -1,0 +1,200 @@
+package com.example.f1_kotlin.util
+
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.PixelFormat
+import android.view.View
+import android.view.WindowManager
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.core.content.FileProvider
+import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.ui.share.ShareCareerCard
+import com.example.f1_kotlin.ui.share.ShareRaceResultsCard
+import com.example.f1_kotlin.ui.theme.F1Theme
+import java.io.File
+import kotlin.coroutines.resume
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+
+/** Screens register a share action for the app bar; cleared on dispose. */
+val LocalShareActionSetter = staticCompositionLocalOf<(((() -> Unit)?) -> Unit)> {
+    error("LocalShareActionSetter not provided")
+}
+
+/** Registers [onShare] on the app bar while this composition is active. */
+@Composable
+fun RegisterShareAction(onShare: (() -> Unit)?) {
+    val setShare = LocalShareActionSetter.current
+    DisposableEffect(onShare) {
+        setShare(onShare)
+        onDispose { setShare(null) }
+    }
+}
+
+@Composable
+fun rememberShareCareerAction(title: String, races: Int, wins: Int, podiums: Int, poles: Int): () -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    return remember(title, races, wins, podiums, poles) {
+        {
+            scope.launch {
+                ShareHelper.shareComposableAsPng(
+                    context = context,
+                    fileName = "f1_career_${System.currentTimeMillis()}.png",
+                ) {
+                    ShareCareerCard(
+                        title = title,
+                        races = races,
+                        wins = wins,
+                        podiums = podiums,
+                        poles = poles,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun rememberShareRaceAction(race: RaceModel): () -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    return remember(race.season, race.round, race.raceName, race.results) {
+        {
+            scope.launch {
+                ShareHelper.shareComposableAsPng(
+                    context = context,
+                    fileName = "f1_race_${race.season}_${race.round}.png",
+                ) {
+                    ShareRaceResultsCard(race = race)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Renders [content] off-screen, saves PNG to cache, opens the system share sheet.
+ */
+object ShareHelper {
+    suspend fun shareComposableAsPng(
+        context: Context,
+        fileName: String,
+        content: @Composable () -> Unit,
+    ) {
+        val activity = context.findActivity() ?: return
+        val bitmap = withContext(Dispatchers.Main) {
+            captureComposable(activity, content)
+        } ?: return
+        withContext(Dispatchers.IO) {
+            shareBitmap(activity, bitmap, fileName)
+        }
+    }
+
+    private suspend fun captureComposable(
+        activity: Activity,
+        content: @Composable () -> Unit,
+    ): Bitmap? = suspendCancellableCoroutine { cont ->
+        val windowManager = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val composeView = ComposeView(activity).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            setContent {
+                F1Theme {
+                    content()
+                }
+            }
+        }
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            token = activity.window.decorView.windowToken
+            x = -10_000
+            y = 0
+            title = "f1_share_capture"
+        }
+
+        fun cleanup() {
+            runCatching {
+                if (composeView.parent != null) windowManager.removeView(composeView)
+            }
+        }
+
+        cont.invokeOnCancellation { cleanup() }
+
+        try {
+            windowManager.addView(composeView, params)
+        } catch (_: Exception) {
+            cont.resume(null)
+            return@suspendCancellableCoroutine
+        }
+
+        composeView.post {
+            composeView.post {
+                try {
+                    val widthSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                    val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                    composeView.measure(widthSpec, heightSpec)
+                    val width = composeView.measuredWidth.coerceAtLeast(1)
+                    val height = composeView.measuredHeight.coerceAtLeast(1)
+                    composeView.layout(0, 0, width, height)
+                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bitmap)
+                    composeView.draw(canvas)
+                    cleanup()
+                    if (cont.isActive) cont.resume(bitmap)
+                } catch (_: Exception) {
+                    cleanup()
+                    if (cont.isActive) cont.resume(null)
+                }
+            }
+        }
+    }
+
+    private fun shareBitmap(context: Context, bitmap: Bitmap, fileName: String) {
+        val dir = File(context.cacheDir, "share").apply { mkdirs() }
+        val file = File(dir, fileName)
+        file.outputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+        }
+        bitmap.recycle()
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file,
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+}
+
+private fun Context.findActivity(): Activity? {
+    var current: Context? = this
+    while (current is ContextWrapper) {
+        if (current is Activity) return current
+        current = current.baseContext
+    }
+    return null
+}

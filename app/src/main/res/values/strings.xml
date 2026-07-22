@@ -5,8 +5,16 @@
     <string name="nav_home">Главная</string>
     <string name="nav_results">Результаты</string>
     <string name="nav_calendar">Календарь</string>
-    <string name="nav_hall_of_fame">Зал славы</string>
+    <string name="nav_news">Новости</string>
     <string name="nav_circuits">Трассы</string>
+
+    <string name="news_empty">Новостей пока нет</string>
+    <string name="home_weekend_title">Уикенд</string>
+    <string name="home_weekend_live">Live</string>
+    <string name="home_weekend_leader">Лидер: %1$s</string>
+    <string name="home_weekend_winner">Победитель: %1$s</string>
+    <string name="weekend_session_results_title">Результаты: %1$s</string>
+    <string name="weekend_session_results_empty">Результатов пока нет</string>
 
     <string name="home_standings_title">Турнирная таблица текущего сезона</string>
     <string name="season_label">Сезон: %1$s</string>
@@ -18,12 +26,15 @@
     <string name="nationality">Национальность</string>
     <string name="points">Очки</string>
     <string name="wins">Победы</string>
+    <string name="wins_short">W</string>
     <string name="country">Страна</string>
-    <string name="time">Время</string>
-    <string name="laps">Круги</string>
-    <string name="duration">Длительность</string>
-    <string name="stop">Стоп</string>
-    <string name="fastest_suffix"> самый быстрый</string>
+    <string name="time_status">Время /\nстатус</string>
+    <string name="best_lap">Лучший\nкруг</string>
+    <string name="none_short">нет</string>
+    <string name="fastest_lap_label">%1$s\nсамый\nбыстрый</string>
+    <string name="stop_number">Номер\nостановки</string>
+    <string name="stop_time">Время\nстопа</string>
+    <string name="race_time">Время\nгонки</string>
 
     <string name="detailed_info">Подробная информация</string>
     <string name="race">Гонка</string>
@@ -36,9 +47,7 @@
 
     <string name="race_search_title">Поиск гонки</string>
     <string name="season">Сезон</string>
-    <string name="year_hint">Год</string>
     <string name="round">Раунд</string>
-    <string name="number_hint">Номер</string>
     <string name="search">Поиск</string>
     <string name="race_search_info">Выберите сезон, затем гонку из списка.</string>
     <string name="select_season">Выберите сезон</string>
@@ -48,14 +57,56 @@
     <string name="races_load_error">Не удалось загрузить гонки</string>
 
     <string name="hall_of_fame_title">Зал славы</string>
+    <string name="h2h_title">H2H · Пилоты</string>
+    <string name="h2h_subtitle">Сравните двух пилотов с фильтрами периода и списка</string>
+    <string name="h2h_driver_a">Пилот 1</string>
+    <string name="h2h_driver_b">Пилот 2</string>
+    <string name="h2h_compare">Сравнить</string>
+    <string name="h2h_filters_title">Фильтры</string>
+    <string name="h2h_period_filter">Период</string>
+    <string name="h2h_season_filter">Сезон</string>
+    <string name="h2h_current_season">Текущий</string>
+    <string name="h2h_pick_year">Выбор года</string>
+    <string name="h2h_drivers_filter">Пилоты</string>
+    <string name="h2h_current_drivers">Текущие</string>
+    <string name="h2h_all_drivers">Все</string>
+    <string name="h2h_search_driver">Имя или код</string>
+    <string name="h2h_drivers_empty">Пилоты не найдены</string>
+    <string name="h2h_constructors_title">H2H · Конструкторы</string>
+    <string name="h2h_constructors_subtitle">Сравните двух конструкторов с фильтрами периода и списка</string>
+    <string name="h2h_constructor_a">Конструктор 1</string>
+    <string name="h2h_constructor_b">Конструктор 2</string>
+    <string name="h2h_constructors_filter">Конструкторы</string>
+    <string name="h2h_current_constructors">Текущие</string>
+    <string name="h2h_all_constructors">Все</string>
+    <string name="h2h_search_constructor">Название</string>
+    <string name="h2h_constructors_empty">Конструкторы не найдены</string>
+    <string name="select_driver">Выберите пилота</string>
+    <string name="select_constructor">Выберите конструктора</string>
+    <string name="drivers_load_error">Не удалось загрузить пилотов</string>
+    <string name="constructors_load_error">Не удалось загрузить конструкторов</string>
+    <string name="finish_status_title">Статусы финиша</string>
+    <string name="finish_status_subtitle">Как пилоты завершали гонки в сезоне — Finished, Retired, DSQ, +круги и другие.</string>
+    <string name="finish_status_empty">Нет статусов финиша за этот сезон</string>
     <string name="on_map">На карте</string>
     <string name="as_list">Списком</string>
     <string name="circuit_info_title">Информация о трассе</string>
     <string name="read_on_wikipedia">Прочитать информацию в википедии</string>
-    <string name="country_label">Страна: %1$s</string>
     <string name="city_label">Город: %1$s</string>
     <string name="circuit_winners_title">Победители</string>
     <string name="circuit_winners_empty">Побед на этой трассе пока нет</string>
+    <string name="circuit_stat_length">Длина</string>
+    <string name="circuit_stat_laps">Круги</string>
+    <string name="circuit_stat_turns">Повороты</string>
+    <string name="circuit_stat_top_speed">Скорость</string>
+    <string name="circuit_stat_elevation">Перепад</string>
+
+    <string name="schedule_round">Этап %1$s</string>
+    <string name="schedule_countdown_title">До FP1</string>
+    <string name="schedule_days">Дни</string>
+    <string name="schedule_hours">Часы</string>
+    <string name="schedule_minutes">Минуты</string>
+    <string name="schedule_view_sessions">Расписание сессий</string>
 
     <string name="first_practice">Первая практика</string>
     <string name="second_practice">Вторая практика</string>
@@ -72,6 +123,11 @@
     <string name="career_stat_races">Гонки</string>
     <string name="career_stat_podiums">Подиумы</string>
     <string name="career_stat_poles">Поулы</string>
+    <string name="career_race_list_empty">В этом списке пока нет гонок</string>
+    <string name="share">Поделиться</string>
+    <string name="share_no_results">Результатов гонки пока нет</string>
+    <string name="share_and_more">…и ещё %1$d</string>
+    <string name="driver_news_title">Последние новости</string>
     <string name="driver_teams_title">Команды</string>
     <string name="constructor_drivers_title">Пилоты</string>
 

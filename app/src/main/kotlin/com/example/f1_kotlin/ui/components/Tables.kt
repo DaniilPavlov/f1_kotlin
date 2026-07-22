@@ -20,63 +20,97 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.model.ConstructorStandingsModel
-import com.example.f1_kotlin.data.model.DriverStandingsModel
 import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.data.model.DriverStandingsModel
 import com.example.f1_kotlin.data.model.PitStopModel
 import com.example.f1_kotlin.data.model.QualifyingResultModel
 import com.example.f1_kotlin.data.model.RaceModel
 import com.example.f1_kotlin.data.model.RaceResultModel
-import com.example.f1_kotlin.R
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
+import com.example.f1_kotlin.ui.theme.F1GrayBg
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1White
 import com.example.f1_kotlin.util.DateUtils
 
-/** Таблица чемпионата пилотов (вкладки Главная и Зал славы). */
+/**
+ * Ширины как во Flutter `tournament_drivers_table`:
+ * Fraction(0.05), Flex(0.2/0.3/0.15/0.05/0.25).
+ */
+private val DriversTableWeights = listOf(0.05f, 0.2f, 0.3f, 0.15f, 0.05f, 0.25f)
+
+/** Flutter: Fraction(0.05), Flex(0.3/0.3/0.2/0.15). */
+private val ConstructorsTableWeights = listOf(0.05f, 0.3f, 0.3f, 0.2f, 0.15f)
+
+/** Flutter RaceInfoTable: Flex 1.15 / 1.35 / 1.1 / 0.55 / 0.9. */
+private val RaceResultsTableWeights = listOf(1.15f, 1.35f, 1.1f, 0.55f, 0.9f)
+
+/** Таблица чемпионата пилотов (Главная / Зал славы) — колонки как во Flutter. */
 @Composable
 fun TournamentDriversTable(
     drivers: List<DriverStandingsModel>,
     onDriverClick: ((DriverModel) -> Unit)? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        TableHeaderRow(listOf("#", stringResource(R.string.driver), stringResource(R.string.country), stringResource(R.string.points), stringResource(R.string.wins), stringResource(R.string.constructor)))
+        TableHeaderRow(
+            cells = listOf(
+                "",
+                stringResource(R.string.driver),
+                stringResource(R.string.nationality),
+                stringResource(R.string.points),
+                stringResource(R.string.wins_short),
+                stringResource(R.string.constructor),
+            ),
+            weights = DriversTableWeights,
+        )
         drivers.forEachIndexed { index, item ->
             TableDataRow(
                 cells = listOf(
-                    "${index + 1}",
-                    item.driver.fullName,
-                    item.driver.nationality,
-                    item.points,
-                    item.wins,
-                    item.constructors.firstOrNull()?.name.orEmpty(),
+                    TableCell.Text("${index + 1}"),
+                    TableCell.Text("${item.driver.givenName}\n${item.driver.familyName}"),
+                    TableCell.Flag(item.driver.nationality),
+                    TableCell.Text(item.points),
+                    TableCell.Text(item.wins),
+                    TableCell.Text(item.constructors.firstOrNull()?.name.orEmpty()),
                 ),
                 index = index,
+                weights = DriversTableWeights,
                 onClick = onDriverClick?.let { { it(item.driver) } },
             )
         }
     }
 }
 
-/** Таблица чемпионата конструкторов. */
+/** Таблица чемпионата конструкторов — колонки как во Flutter. */
 @Composable
 fun TournamentConstructorsTable(
     constructors: List<ConstructorStandingsModel>,
     onConstructorClick: ((com.example.f1_kotlin.data.model.ConstructorModel) -> Unit)? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        TableHeaderRow(listOf("#", stringResource(R.string.constructor), stringResource(R.string.country), stringResource(R.string.points), stringResource(R.string.wins)))
+        TableHeaderRow(
+            cells = listOf(
+                "",
+                stringResource(R.string.constructor),
+                stringResource(R.string.country),
+                stringResource(R.string.points),
+                stringResource(R.string.wins),
+            ),
+            weights = ConstructorsTableWeights,
+        )
         constructors.forEachIndexed { index, item ->
             TableDataRow(
                 cells = listOf(
-                    "${index + 1}",
-                    item.constructor.name,
-                    item.constructor.nationality,
-                    item.points,
-                    item.wins,
+                    TableCell.Text("${index + 1}"),
+                    TableCell.Text(item.constructor.name),
+                    TableCell.Flag(item.constructor.nationality),
+                    TableCell.Text(item.points),
+                    TableCell.Text(item.wins),
                 ),
                 index = index,
+                weights = ConstructorsTableWeights,
                 onClick = onConstructorClick?.let { { it(item.constructor) } },
             )
         }
@@ -84,11 +118,8 @@ fun TournamentConstructorsTable(
 }
 
 /**
- * Таблица результатов гонки.
- *
- * @param maxRows ограничить число строк (на главной результатов — топ-3)
- * @param showHeader показывать ли красную шапку с колонками
- * @param onDetailsClick если задан — рисуем строку «Подробная информация» внизу таблицы
+ * Таблица результатов гонки — как Flutter `RaceInfoTable`:
+ * Driver(pos+name) · Constructor · Time/Status · Points · Best lap.
  */
 @Composable
 fun RaceResultsTable(
@@ -104,17 +135,25 @@ fun RaceResultsTable(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         if (showHeader) {
-            TableHeaderRow(listOf("#", stringResource(R.string.driver), stringResource(R.string.constructor), stringResource(R.string.points), stringResource(R.string.laps), stringResource(R.string.time)))
+            TableHeaderRow(
+                cells = listOf(
+                    stringResource(R.string.driver),
+                    stringResource(R.string.constructor),
+                    stringResource(R.string.time_status),
+                    stringResource(R.string.points),
+                    stringResource(R.string.best_lap),
+                ),
+                weights = RaceResultsTableWeights,
+            )
         }
         rows.forEachIndexed { index, result ->
-            val isFastest = result.fastestLap?.time?.time == fastest && fastest != "999999"
-            RaceResultRow(result, index + 1, isFastest, onDriverClick)
+            RaceResultRow(result, index, fastest, onDriverClick)
         }
         if (onDetailsClick != null) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(com.example.f1_kotlin.ui.theme.F1GrayBg)
+                    .background(F1GrayBg)
                     .clickable(onClick = onDetailsClick)
                     .padding(vertical = 10.dp, horizontal = 12.dp),
                 horizontalArrangement = Arrangement.End,
@@ -130,33 +169,42 @@ fun RaceResultsTable(
 @Composable
 private fun RaceResultRow(
     result: RaceResultModel,
-    position: Int,
-    isFastest: Boolean,
+    index: Int,
+    fastestLap: String,
     onDriverClick: ((DriverModel) -> Unit)?,
 ) {
-    val fastestSuffix = stringResource(R.string.fastest_suffix)
-    val timeText = buildString {
-        append(result.time?.time ?: result.status)
-        if (isFastest) append(fastestSuffix)
+    val classified = result.time != null || result.status.equals("Finished", ignoreCase = true)
+    val timeOrStatus = result.time?.time ?: result.status
+    val lapTime = result.fastestLap?.time?.time
+    val isFastest = lapTime != null && lapTime == fastestLap && fastestLap != "999999"
+    val noneLabel = stringResource(R.string.none_short)
+    val fastestLabel = lapTime?.let { stringResource(R.string.fastest_lap_label, it) }
+    val bestLapText = when {
+        lapTime == null -> noneLabel
+        isFastest -> fastestLabel.orEmpty()
+        else -> lapTime
     }
+
     TableDataRow(
         cells = listOf(
-            "$position",
-            result.driver.fullName,
-            result.constructor.name,
-            result.points,
-            result.laps,
-            timeText,
+            TableCell.PlaceAndName(
+                place = result.positionText,
+                name = "${result.driver.givenName}\n${result.driver.familyName}",
+                placeColor = if (classified) null else F1Red,
+            ),
+            TableCell.Text(result.constructor.name),
+            TableCell.Text(timeOrStatus, color = if (classified) null else F1Red),
+            TableCell.Text(result.points),
+            TableCell.Text(bestLapText, color = if (isFastest) F1Red else null),
         ),
-        index = position,
-        highlight = isFastest,
+        index = index,
+        weights = RaceResultsTableWeights,
         onClick = onDriverClick?.let { { it(result.driver) } },
     )
 }
 
 /**
- * Таблица квалификации Q1/Q2/Q3.
- * Прочерк «-» ставится, если пилот не прошёл в следующий сегмент (позиция 16+ / 11+).
+ * Квалификация — как Flutter: Driver(place+name) · Constructor · Q1 · Q2 · Q3 (равные колонки).
  */
 @Composable
 fun QualifyingTable(
@@ -164,17 +212,29 @@ fun QualifyingTable(
     onDriverClick: ((DriverModel) -> Unit)? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        TableHeaderRow(listOf("#", stringResource(R.string.driver), stringResource(R.string.constructor), "Q1", "Q2", "Q3"))
+        TableHeaderRow(
+            cells = listOf(
+                stringResource(R.string.driver),
+                stringResource(R.string.constructor),
+                "Q1",
+                "Q2",
+                "Q3",
+            ),
+        )
         results.forEachIndexed { index, item ->
             val position = item.position.toIntOrNull() ?: (index + 1)
+            val q2 = item.Q2 ?: if (position < 16) "-" else ""
+            val q3 = item.Q3 ?: if (position < 11) "-" else ""
             TableDataRow(
                 cells = listOf(
-                    "${index + 1}",
-                    item.driver.fullName,
-                    item.constructor.name,
-                    item.Q1 ?: if (position >= 16) "-" else "",
-                    item.Q2 ?: if (position >= 11) "-" else "",
-                    item.Q3 ?: "-",
+                    TableCell.PlaceAndName(
+                        place = "${index + 1}",
+                        name = "${item.driver.givenName}\n${item.driver.familyName}",
+                    ),
+                    TableCell.Text(item.constructor.name),
+                    TableCell.Text(item.Q1.orEmpty()),
+                    TableCell.Text(q2),
+                    TableCell.Text(q3),
                 ),
                 index = index,
                 onClick = onDriverClick?.let { { it(item.driver) } },
@@ -183,22 +243,30 @@ fun QualifyingTable(
     }
 }
 
-/** Таблица пит-стопов. В [PitStopModel.driverId] уже подставлено ФИО из Repository. */
+/**
+ * Пит-стопы — как Flutter: Driver(place+name) · Lap · Stop number · Stop time(duration) · Race time.
+ */
 @Composable
 fun PitStopsTable(stops: List<PitStopModel>) {
     Column(modifier = Modifier.fillMaxWidth()) {
         TableHeaderRow(
-            listOf(
+            cells = listOf(
                 stringResource(R.string.driver),
                 stringResource(R.string.lap),
-                stringResource(R.string.stop),
-                stringResource(R.string.time),
-                stringResource(R.string.duration),
+                stringResource(R.string.stop_number),
+                stringResource(R.string.stop_time),
+                stringResource(R.string.race_time),
             ),
         )
         stops.forEachIndexed { index, stop ->
             TableDataRow(
-                cells = listOf(stop.driverId, stop.lap, stop.stop, stop.time, stop.duration),
+                cells = listOf(
+                    TableCell.PlaceAndName(place = "${index + 1}", name = stop.driverId),
+                    TableCell.Text(stop.lap),
+                    TableCell.Text(stop.stop),
+                    TableCell.Text(stop.duration),
+                    TableCell.Text(stop.time),
+                ),
                 index = index,
             )
         }

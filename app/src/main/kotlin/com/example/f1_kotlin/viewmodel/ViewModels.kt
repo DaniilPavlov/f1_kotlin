@@ -10,6 +10,7 @@ import com.example.f1_kotlin.domain.AppException
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.domain.ErrorStrings
 import com.example.f1_kotlin.util.DateUtils
+import com.example.f1_kotlin.util.RaceDateTimeHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZonedDateTime
 import javax.inject.Inject
 
 /**
@@ -57,6 +59,9 @@ class ScheduleViewModel @Inject constructor(
     private val _scheduleItems = MutableStateFlow<List<ScheduleSessionItem>>(emptyList())
     val scheduleItems: StateFlow<List<ScheduleSessionItem>> = _scheduleItems.asStateFlow()
 
+    private val _upcomingRace = MutableStateFlow<RaceModel?>(null)
+    val upcomingRace: StateFlow<RaceModel?> = _upcomingRace.asStateFlow()
+
     private val _error = MutableStateFlow<AppException?>(null)
     val error: StateFlow<AppException?> = _error.asStateFlow()
 
@@ -70,6 +75,7 @@ class ScheduleViewModel @Inject constructor(
 
             repository.peekScheduleCache()?.let {
                 _races.value = AsyncValue.Value(it)
+                refreshUpcoming()
                 onSelectDay(LocalDate.now())
             } ?: run {
                 _races.value = AsyncValue.Loading
@@ -79,6 +85,7 @@ class ScheduleViewModel @Inject constructor(
                 current = _races.value,
                 onSuccess = { races ->
                     _races.value = AsyncValue.Value(races)
+                    refreshUpcoming()
                     onSelectDay(LocalDate.now())
                 },
                 onFailure = { ex ->
@@ -108,6 +115,17 @@ class ScheduleViewModel @Inject constructor(
         if (races.any { LocalDate.parse(it.date) == day }) return com.example.f1_kotlin.R.drawable.calendar_finish
         if (races.any { hasSessionOnDay(it, day) }) return com.example.f1_kotlin.R.drawable.calendar_car
         return null
+    }
+
+    private fun refreshUpcoming() {
+        val races = _races.value.getOrNull() ?: run {
+            _upcomingRace.value = null
+            return
+        }
+        val now = ZonedDateTime.now()
+        _upcomingRace.value = races
+            .filter { RaceDateTimeHelper.isUpcoming(it, now) }
+            .minByOrNull { RaceDateTimeHelper.raceLocal(it) }
     }
 
     private fun hasSessionOnDay(race: RaceModel, day: LocalDate): Boolean =

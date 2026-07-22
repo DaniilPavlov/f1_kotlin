@@ -1,0 +1,170 @@
+{
+  "albert_park": {
+    "lengthKm": 5.278,
+    "laps": 58,
+    "turns": 14,
+    "topSpeedKmh": 320.0,
+    "elevationM": 3.0
+  },
+  "bahrain": {
+    "lengthKm": 5.412,
+    "laps": 57,
+    "turns": 15,
+    "topSpeedKmh": 330.0,
+    "elevationM": 1.0
+  },
+  "jeddah": {
+    "lengthKm": 6.174,
+    "laps": 50,
+    "turns": 27,
+    "topSpeedKmh": 340.0,
+    "elevationM": 12.0
+  },
+  "suzuka": {
+    "lengthKm": 5.807,
+    "laps": 53,
+    "turns": 18,
+    "topSpeedKmh": 325.0,
+    "elevationM": 40.0
+  },
+  "shanghai": {
+    "lengthKm": 5.451,
+    "laps": 56,
+    "turns": 16,
+    "topSpeedKmh": 330.0,
+    "elevationM": 5.0
+  },
+  "miami": {
+    "lengthKm": 5.412,
+    "laps": 57,
+    "turns": 19,
+    "topSpeedKmh": 325.0,
+    "elevationM": 2.0
+  },
+  "imola": {
+    "lengthKm": 4.909,
+    "laps": 63,
+    "turns": 19,
+    "topSpeedKmh": 320.0,
+    "elevationM": 20.0
+  },
+  "monaco": {
+    "lengthKm": 3.337,
+    "laps": 78,
+    "turns": 19,
+    "topSpeedKmh": 290.0,
+    "elevationM": 42.0
+  },
+  "catalunya": {
+    "lengthKm": 4.657,
+    "laps": 66,
+    "turns": 14,
+    "topSpeedKmh": 320.0,
+    "elevationM": 30.0
+  },
+  "villeneuve": {
+    "lengthKm": 4.361,
+    "laps": 70,
+    "turns": 14,
+    "topSpeedKmh": 330.0,
+    "elevationM": 6.0
+  },
+  "red_bull_ring": {
+    "lengthKm": 4.318,
+    "laps": 71,
+    "turns": 10,
+    "topSpeedKmh": 325.0,
+    "elevationM": 65.0
+  },
+  "silverstone": {
+    "lengthKm": 5.891,
+    "laps": 52,
+    "turns": 18,
+    "topSpeedKmh": 330.0,
+    "elevationM": 15.0
+  },
+  "spa": {
+    "lengthKm": 7.004,
+    "laps": 44,
+    "turns": 19,
+    "topSpeedKmh": 340.0,
+    "elevationM": 102.2
+  },
+  "hungaroring": {
+    "lengthKm": 4.381,
+    "laps": 70,
+    "turns": 14,
+    "topSpeedKmh": 310.3,
+    "elevationM": 34.62
+  },
+  "zandvoort": {
+    "lengthKm": 4.259,
+    "laps": 72,
+    "turns": 14,
+    "topSpeedKmh": 310.0,
+    "elevationM": 8.0
+  },
+  "monza": {
+    "lengthKm": 5.793,
+    "laps": 53,
+    "turns": 11,
+    "topSpeedKmh": 360.0,
+    "elevationM": 12.0
+  },
+  "baku": {
+    "lengthKm": 6.003,
+    "laps": 51,
+    "turns": 20,
+    "topSpeedKmh": 350.0,
+    "elevationM": 20.0
+  },
+  "marina_bay": {
+    "lengthKm": 4.94,
+    "laps": 62,
+    "turns": 19,
+    "topSpeedKmh": 310.0,
+    "elevationM": 5.0
+  },
+  "americas": {
+    "lengthKm": 5.513,
+    "laps": 56,
+    "turns": 20,
+    "topSpeedKmh": 325.0,
+    "elevationM": 41.0
+  },
+  "rodriguez": {
+    "lengthKm": 4.304,
+    "laps": 71,
+    "turns": 17,
+    "topSpeedKmh": 340.0,
+    "elevationM": 18.0
+  },
+  "interlagos": {
+    "lengthKm": 4.309,
+    "laps": 71,
+    "turns": 15,
+    "topSpeedKmh": 330.0,
+    "elevationM": 40.0
+  },
+  "vegas": {
+    "lengthKm": 6.201,
+    "laps": 50,
+    "turns": 17,
+    "topSpeedKmh": 340.0,
+    "elevationM": 5.0
+  },
+  "losail": {
+    "lengthKm": 5.419,
+    "laps": 57,
+    "turns": 16,
+    "topSpeedKmh": 330.0,
+    "elevationM": 8.0
+  },
+  "yas_marina": {
+    "lengthKm": 5.281,
+    "laps": 58,
+    "turns": 16,
+    "topSpeedKmh": 325.0,
+    "elevationM": 5.0
+  }
+}

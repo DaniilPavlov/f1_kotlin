@@ -3,10 +3,12 @@ package com.example.f1_kotlin.viewmodel
 import com.example.f1_kotlin.data.model.CircuitLocationModel
 import com.example.f1_kotlin.data.model.CircuitModel
 import com.example.f1_kotlin.data.model.RaceModel
+import com.example.f1_kotlin.data.repository.EspnRepository
 import com.example.f1_kotlin.data.repository.F1Repository
 import com.example.f1_kotlin.domain.AppException
 import com.example.f1_kotlin.domain.AsyncValue
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,11 +33,16 @@ import org.junit.Test
 class ResultsViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var repository: F1Repository
+    private lateinit var espnRepository: EspnRepository
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         repository = mockk()
+        espnRepository = mockk(relaxed = true)
+        every { espnRepository.isScoreboardFresh } returns false
+        every { espnRepository.peekScoreboard } returns null
+        coEvery { espnRepository.getScoreboardEvent(any()) } returns Result.success(null)
     }
 
     @After
@@ -50,7 +57,7 @@ class ResultsViewModelTest {
         coEvery { repository.peekLastRaceCache() } returns null
         coEvery { repository.getLastRace() } returns Result.success(race)
 
-        val viewModel = ResultsViewModel(repository)
+        val viewModel = ResultsViewModel(repository, espnRepository)
         advanceUntilIdle()
 
         val state = viewModel.lastRace.value
@@ -66,7 +73,7 @@ class ResultsViewModelTest {
             AppException("Соединение отсутствует"),
         )
 
-        val viewModel = ResultsViewModel(repository)
+        val viewModel = ResultsViewModel(repository, espnRepository)
         advanceUntilIdle()
 
         assertTrue(viewModel.lastRace.value is AsyncValue.Error)

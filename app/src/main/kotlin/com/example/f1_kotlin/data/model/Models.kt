@@ -227,6 +227,7 @@ data class CircuitLocationModel(
 
 @JsonClass(generateAdapter = true)
 data class DriverFetchingModel(
+    val total: String? = null,
     @Json(name = "DriverTable") val driverTable: DriverTableModel,
 )
 
@@ -237,6 +238,7 @@ data class DriverTableModel(
 
 @JsonClass(generateAdapter = true)
 data class ConstructorFetchingModel(
+    val total: String? = null,
     @Json(name = "ConstructorTable") val constructorTable: ConstructorTableModel,
 )
 
@@ -252,6 +254,50 @@ data class MrDataTotalModel(
     @Json(name = "ConstructorTable") val constructorTable: ConstructorTableModel? = null,
     @Json(name = "DriverTable") val driverTable: DriverTableModel? = null,
     @Json(name = "SeasonTable") val seasonTable: SeasonTableModel? = null,
+    @Json(name = "StatusTable") val statusTable: StatusTableModel? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class StatusTableModel(
+    @Json(name = "Status") val status: List<FinishStatusDto> = emptyList(),
+)
+
+@JsonClass(generateAdapter = true)
+data class FinishStatusDto(
+    val statusId: String? = null,
+    val status: String? = null,
+    val count: String? = null,
+)
+
+/** Статус финиша сезона из Jolpica `/{year}/status`. */
+data class FinishStatusItem(
+    val statusId: String,
+    val status: String,
+    val count: Int,
+) {
+    /** Retired / DNF-подобные и дисквалификации. */
+    val isHighlight: Boolean
+        get() {
+            val lower = status.lowercase()
+            return lower.contains("retir") ||
+                lower.contains("disqual") ||
+                lower.contains("accident") ||
+                lower.contains("collision") ||
+                lower.contains("did not start") ||
+                lower.contains("dns") ||
+                lower.contains("dnf") ||
+                lower.startsWith("+") ||
+                lower.contains("lapped") ||
+                lower.contains("not classified")
+        }
+}
+
+/** Метрики для сравнения H2H (пилот или конструктор). */
+data class H2hStats(
+    val races: Int,
+    val wins: Int,
+    val podiums: Int,
+    val poles: Int,
 )
 
 @JsonClass(generateAdapter = true)
@@ -265,6 +311,21 @@ data class SeasonModel(
     val url: String,
 )
 
+/** Финиш в конкретной гонке (победа / подиум / поул). */
+data class CareerRaceResult(
+    val season: String,
+    val round: String,
+    val raceName: String,
+    val position: Int,
+    val constructor: ConstructorModel,
+    val circuit: CircuitModel,
+    val driver: DriverModel? = null,
+) {
+    /** Подзаголовок строки: пилот (если есть) или конструктор. */
+    val entityName: String
+        get() = driver?.fullName?.trim()?.takeIf { it.isNotEmpty() } ?: constructor.name
+}
+
 /** Карьерная статистика пилота или конструктора. */
 data class CareerStats<T>(
     val races: Int,
@@ -273,6 +334,9 @@ data class CareerStats<T>(
     val poles: Int,
     val current: List<T>,
     val related: List<T>,
+    val winRaces: List<CareerRaceResult> = emptyList(),
+    val podiumRaces: List<CareerRaceResult> = emptyList(),
+    val poleRaces: List<CareerRaceResult> = emptyList(),
 )
 
 /** Победа на трассе (история ГП). */
