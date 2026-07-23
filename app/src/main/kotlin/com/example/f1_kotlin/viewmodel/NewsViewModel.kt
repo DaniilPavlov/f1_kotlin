@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.data.repository.IEspnRepository
+import com.example.f1_kotlin.domain.AppDataRefresh
 import com.example.f1_kotlin.domain.AsyncValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ data class NewsUiState(
 @HiltViewModel
 class NewsViewModel @Inject constructor(
     private val espnRepository: IEspnRepository,
+    private val appDataRefresh: AppDataRefresh,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
@@ -35,6 +37,7 @@ class NewsViewModel @Inject constructor(
         loadJob.launch(viewModelScope) {
             if (forceRefresh) {
                 _uiState.update { it.copy(isRefreshing = true) }
+                appDataRefresh.clearAll()
             }
             try {
                 if (!forceRefresh) {

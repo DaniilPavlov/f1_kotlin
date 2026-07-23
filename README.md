@@ -18,11 +18,11 @@ Same idea, other stacks:
 |------|------------|
 | UI | Jetpack Compose, Material 3, type-safe Navigation Compose (`kotlinx.serialization` routes) |
 | Presentation | One ViewModel file per screen; `*UiState` + `AsyncValue` |
-| Domain | Plain Kotlin models; `AppError` / `toAppError()` for UI errors |
+| Domain | Plain Kotlin models; `AppError` / `toAppError()`; `AppDataRefresh` |
 | DI | Hilt; `IF1Repository` / `IEspnRepository` bound with `@Binds` |
 | Network | Retrofit + OkHttp + Moshi DTOs; mappers DTO → domain |
 | Images | Coil |
-| Cache | Room (offline peek → refresh); ESPN in-memory TTL |
+| Cache | Room (offline peek → refresh); ESPN in-memory TTL; `AppDataRefresh.clearAll` |
 | Time | java.time |
 | Map | OSMDroid + OSMBonusPack (Carto tiles) |
 
@@ -44,6 +44,7 @@ Same idea, other stacks:
 - **Errors** — repositories return `Result`; failures map to `AppError` (`toAppError`) for UI.
 - **Repositories** — `IF1Repository` + `IEspnRepository` interfaces; concrete impls bound in Hilt (`RepositoryModule`).
 - **ViewModels** — one file per screen under `viewmodel/` (no giant shared files).
+- **Refresh** — `AppDataRefresh.clearAll()` resets ESPN TTL + Room cache + in-memory F1 caches; `refreshAll()` on main screens calls it before reload (ErrorBody / pull-to-refresh).
 
 ## Structure
 
@@ -129,7 +130,14 @@ For release APK signing (optional) — `ANDROID_KEYSTORE_*` secrets in GitHub Ac
 
 The app reads the local Room cache first (peek), then refreshes from the network.  
 If the network is unavailable but cache exists, the UI keeps the last known data.  
-ESPN news/scoreboard use a short in-memory TTL (no Room); scoreboard network failures hide the block instead of breaking Results.
+ESPN news/scoreboard use a short in-memory TTL (no Room); scoreboard network failures hide the block instead of breaking Results.  
+Forced reload (`refreshAll`) clears ESPN + Room + in-memory caches via `AppDataRefresh`.
+
+## Changelog
+
+### 1.4.0
+
+- `AppDataRefresh` facade: ErrorBody / pull-to-refresh on Home, Results, Circuits, News clears caches via `refreshAll()` before reload.
 
 ## Features
 

@@ -6,6 +6,7 @@ import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.data.model.EspnScoreboardEvent
 import com.example.f1_kotlin.data.repository.IEspnRepository
 import com.example.f1_kotlin.data.repository.IF1Repository
+import com.example.f1_kotlin.domain.AppDataRefresh
 import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
 import io.mockk.coEvery
@@ -36,12 +37,14 @@ class ResultsViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var repository: IF1Repository
     private lateinit var espnRepository: IEspnRepository
+    private lateinit var appDataRefresh: AppDataRefresh
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         repository = mockk()
         espnRepository = mockk(relaxed = true)
+        appDataRefresh = mockk(relaxed = true)
         every { espnRepository.isScoreboardFresh } returns false
         every { espnRepository.peekScoreboard } returns null
         coEvery { espnRepository.getScoreboardEvent(any()) } returns Result.success(null)
@@ -59,7 +62,7 @@ class ResultsViewModelTest {
         coEvery { repository.peekLastRaceCache() } returns null
         coEvery { repository.getLastRace() } returns Result.success(race)
 
-        val viewModel = ResultsViewModel(repository, espnRepository)
+        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value.lastRace
@@ -75,7 +78,7 @@ class ResultsViewModelTest {
             AppError("Соединение отсутствует").asException(),
         )
 
-        val viewModel = ResultsViewModel(repository, espnRepository)
+        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh)
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.lastRace is AsyncValue.Error)
@@ -93,7 +96,7 @@ class ResultsViewModelTest {
             AppError("Соединение отсутствует").asException(),
         )
 
-        val viewModel = ResultsViewModel(repository, espnRepository)
+        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh)
         advanceUntilIdle()
 
         val scoreboard = viewModel.uiState.value.scoreboard
@@ -118,7 +121,7 @@ class ResultsViewModelTest {
         every { espnRepository.peekScoreboard } returns null
         coEvery { espnRepository.getScoreboardEvent(forceRefresh = false) } returns Result.success(event)
 
-        val viewModel = ResultsViewModel(repository, espnRepository)
+        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh)
         advanceUntilIdle()
 
         coEvery { espnRepository.getScoreboardEvent(forceRefresh = true) } returns Result.failure(

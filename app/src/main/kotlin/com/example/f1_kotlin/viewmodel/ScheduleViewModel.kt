@@ -3,11 +3,11 @@ package com.example.f1_kotlin.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.f1_kotlin.data.repository.IF1Repository
+import com.example.f1_kotlin.domain.AppDataRefresh
 import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.model.RaceSession
-import com.example.f1_kotlin.domain.toAppError
 import com.example.f1_kotlin.util.DateUtils
 import com.example.f1_kotlin.util.RaceDateTimeHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,6 +39,7 @@ data class ScheduleUiState(
     val scheduleItems: List<ScheduleSessionItem> = emptyList(),
     val upcomingRace: Race? = null,
     val error: AppError? = null,
+    val isRefreshing: Boolean = false,
 )
 
 /**
@@ -46,10 +47,12 @@ data class ScheduleUiState(
  *
  * Загружает расписание сезона, строит список сессий на выбранный день
  * и подсказывает иконки для дней в календаре (практика / гонка).
+ * [refreshAll] чистит кэши через [AppDataRefresh] и грузит заново (ErrorBody / pull-to-refresh).
  */
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
     private val repository: IF1Repository,
+    private val appDataRefresh: AppDataRefresh,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
@@ -62,14 +65,38 @@ class ScheduleViewModel @Inject constructor(
 
     fun loadAllData() {
         loadJob.launch(viewModelScope) {
-            _uiState.update { it.copy(error = null) }
+            loadInternal(clearCaches = false)
+        }
+    }
 
-            repository.peekScheduleCache()?.let {
-                _uiState.update { state -> state.copy(races = AsyncValue.Value(it)) }
-                refreshUpcoming()
-                onSelectDay(LocalDate.now())
-            } ?: run {
-                _uiState.update { it.copy(races = AsyncValue.Loading) }
+    /** ErrorBody / pull-to-refresh: сброс кэшей, затем сеть. */
+    fun refreshAll() {
+        loadJob.launch(viewModelScope) {
+            loadInternal(clearCaches = true)
+        }
+    }
+
+    private suspend fun loadInternal(clearCaches: Boolean) {
+        try {
+            if (clearCaches) {
+                appDataRefresh.clearAll()
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = true,
+                        error = null,
+                        races = if (it.races is AsyncValue.Value) it.races else AsyncValue.Loading,
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(error = null) }
+
+                repository.peekScheduleCache()?.let {
+                    _uiState.update { state -> state.copy(races = AsyncValue.Value(it)) }
+                    refreshUpcoming()
+                    onSelectDay(LocalDate.now())
+                } ?: run {
+                    _uiState.update { it.copy(races = AsyncValue.Loading) }
+                }
             }
 
             repository.getCurrentSchedule().applyUnlessCached(
@@ -90,6 +117,8 @@ class ScheduleViewModel @Inject constructor(
                     }
                 },
             )
+        } finally {
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 

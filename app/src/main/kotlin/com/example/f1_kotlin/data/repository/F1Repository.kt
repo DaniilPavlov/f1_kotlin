@@ -436,6 +436,11 @@ class F1Repository @Inject constructor(
     private suspend fun <T> loadCacheList(key: String, itemClass: Class<T>): List<T>? =
         cacheDao.get(key)?.json?.let { cacheJsonMapper.fromJsonList(it, itemClass) }
 
+    override fun clearInMemoryCaches() {
+        circuitsMemoryCache = null
+        driverNamesCache.clear()
+    }
+
     private companion object {
         const val MAX_DRIVER_FETCH_PARALLEL = 8
     }

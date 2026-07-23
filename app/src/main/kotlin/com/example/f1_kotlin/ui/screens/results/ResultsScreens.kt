@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,7 +62,8 @@ fun ResultsScreen(
     val uiState by viewModel.uiState.collectAsState()
     ResultsScreenContent(
         uiState = uiState,
-        onRetry = viewModel::loadAllData,
+        onRetry = viewModel::refreshAll,
+        onRefresh = viewModel::refreshAll,
         onSearchRace = onSearchRace,
         onHallOfFame = onHallOfFame,
         onH2hDrivers = onH2hDrivers,
@@ -72,10 +75,13 @@ fun ResultsScreen(
 }
 
 /** Testable content — no Hilt / ViewModel required. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongParameterList")
 @Composable
 fun ResultsScreenContent(
     uiState: ResultsUiState,
     onRetry: () -> Unit = {},
+    onRefresh: () -> Unit = {},
     onSearchRace: () -> Unit = {},
     onHallOfFame: () -> Unit = {},
     onH2hDrivers: () -> Unit = {},
@@ -84,59 +90,65 @@ fun ResultsScreenContent(
     onRaceDetails: (Race) -> Unit = {},
     onDriverClick: (Driver) -> Unit = {},
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = AppDimens.verticalPadding.dp),
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize(),
     ) {
-        WeekendScoreboardSection(uiState.scoreboard)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = AppDimens.verticalPadding.dp),
+        ) {
+            WeekendScoreboardSection(uiState.scoreboard)
 
-        when (val state = uiState.lastRace) {
-            is AsyncValue.Loading -> LastRaceSectionShimmer()
-            is AsyncValue.Error -> ErrorBody(
-                state.message,
-                state.subtitle,
-                onRetry = onRetry,
-                modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp),
-            )
-            is AsyncValue.Value -> Column(
-                modifier = Modifier.padding(vertical = AppDimens.verticalPadding.dp),
-            ) {
-                Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
-                    Text(stringResource(R.string.last_race), style = AppStyles.h2)
-                    Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                    Text(state.value.raceName, style = AppStyles.h2)
-                    Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            stringResource(R.string.season_label, state.value.season),
-                            style = AppStyles.h2,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(stringResource(R.string.round_label, state.value.round), style = AppStyles.h2)
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                RaceResultsTable(
-                    race = state.value,
-                    maxRows = 3,
-                    onDetailsClick = { onRaceDetails(state.value) },
-                    onDriverClick = onDriverClick,
+            when (val state = uiState.lastRace) {
+                is AsyncValue.Loading -> LastRaceSectionShimmer()
+                is AsyncValue.Error -> ErrorBody(
+                    state.message,
+                    state.subtitle,
+                    onRetry = onRetry,
+                    modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp),
                 )
+                is AsyncValue.Value -> Column(
+                    modifier = Modifier.padding(vertical = AppDimens.verticalPadding.dp),
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
+                        Text(stringResource(R.string.last_race), style = AppStyles.h2)
+                        Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                        Text(state.value.raceName, style = AppStyles.h2)
+                        Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                stringResource(R.string.season_label, state.value.season),
+                                style = AppStyles.h2,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(stringResource(R.string.round_label, state.value.round), style = AppStyles.h2)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    RaceResultsTable(
+                        race = state.value,
+                        maxRows = 3,
+                        onDetailsClick = { onRaceDetails(state.value) },
+                        onDriverClick = onDriverClick,
+                    )
+                }
             }
-        }
 
-        Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-        BoxedAction(title = stringResource(R.string.choose_specific_race), onClick = onSearchRace)
-        Spacer(Modifier.height(12.dp))
-        BoxedAction(title = stringResource(R.string.hall_of_fame_title), onClick = onHallOfFame)
-        Spacer(Modifier.height(12.dp))
-        BoxedAction(title = stringResource(R.string.h2h_title), onClick = onH2hDrivers)
-        Spacer(Modifier.height(12.dp))
-        BoxedAction(title = stringResource(R.string.h2h_constructors_title), onClick = onH2hConstructors)
-        Spacer(Modifier.height(12.dp))
-        BoxedAction(title = stringResource(R.string.finish_status_title), onClick = onFinishStatus)
+            Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+            BoxedAction(title = stringResource(R.string.choose_specific_race), onClick = onSearchRace)
+            Spacer(Modifier.height(12.dp))
+            BoxedAction(title = stringResource(R.string.hall_of_fame_title), onClick = onHallOfFame)
+            Spacer(Modifier.height(12.dp))
+            BoxedAction(title = stringResource(R.string.h2h_title), onClick = onH2hDrivers)
+            Spacer(Modifier.height(12.dp))
+            BoxedAction(title = stringResource(R.string.h2h_constructors_title), onClick = onH2hConstructors)
+            Spacer(Modifier.height(12.dp))
+            BoxedAction(title = stringResource(R.string.finish_status_title), onClick = onFinishStatus)
+        }
     }
 }
 

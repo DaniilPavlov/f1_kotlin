@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,6 +34,7 @@ import com.example.f1_kotlin.viewmodel.ScheduleViewModel
  * Сверху — [F1Calendar], снизу — карточки сессий на выбранный день
  * или [ScheduleRaceFeaturedCard] с countdown, если день пустой и есть upcoming race.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(viewModel: ScheduleViewModel) {
     val uiState by viewModel.uiState.collectAsState()
@@ -41,39 +44,48 @@ fun ScheduleScreen(viewModel: ScheduleViewModel) {
         uiState.error != null && uiState.races.isError -> ErrorBody(
             uiState.error?.title,
             uiState.error?.subtitle,
-            onRetry = viewModel::loadAllData,
+            onRetry = viewModel::refreshAll,
             modifier = Modifier.fillMaxSize(),
         )
         uiState.races.isLoading -> ScheduleShimmer(modifier = Modifier.fillMaxSize())
-        else -> Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
+        else -> PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = viewModel::refreshAll,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            F1Calendar(
-                selectedDate = uiState.selectedDate,
-                focusedMonth = uiState.focusedMonth,
-                userPickedDay = uiState.userPickedDay,
-                logoForDay = viewModel::logoForDay,
-                onDaySelected = viewModel::onSelectDay,
-                onMonthChanged = viewModel::onMonthChanged,
-            )
-            Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-            if (uiState.scheduleItems.isNotEmpty()) {
-                uiState.scheduleItems.forEach { item ->
-                    if (item.titleRes == null) {
-                        Text(item.raceName, style = AppStyles.h3, modifier = Modifier.padding(bottom = 12.dp))
-                    } else {
-                        ScheduleSessionCard(stringResource(item.titleRes), item.date.date, item.date.time)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        horizontal = AppDimens.horizontalPadding.dp,
+                        vertical = AppDimens.verticalPadding.dp,
+                    ),
+            ) {
+                F1Calendar(
+                    selectedDate = uiState.selectedDate,
+                    focusedMonth = uiState.focusedMonth,
+                    userPickedDay = uiState.userPickedDay,
+                    logoForDay = viewModel::logoForDay,
+                    onDaySelected = viewModel::onSelectDay,
+                    onMonthChanged = viewModel::onMonthChanged,
+                )
+                Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                if (uiState.scheduleItems.isNotEmpty()) {
+                    uiState.scheduleItems.forEach { item ->
+                        if (item.titleRes == null) {
+                            Text(item.raceName, style = AppStyles.h3, modifier = Modifier.padding(bottom = 12.dp))
+                        } else {
+                            ScheduleSessionCard(stringResource(item.titleRes), item.date.date, item.date.time)
+                        }
                     }
-                }
-            } else {
-                uiState.upcomingRace?.let { race ->
-                    ScheduleRaceFeaturedCard(
-                        race = race,
-                        onViewSessions = { sessionsRace = race },
-                    )
+                } else {
+                    uiState.upcomingRace?.let { race ->
+                        ScheduleRaceFeaturedCard(
+                            race = race,
+                            onViewSessions = { sessionsRace = race },
+                        )
+                    }
                 }
             }
         }

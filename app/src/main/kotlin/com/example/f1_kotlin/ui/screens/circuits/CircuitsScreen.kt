@@ -82,7 +82,7 @@ fun CircuitsScreen(
         is AsyncValue.Error -> ErrorBody(
             state.message,
             state.subtitle,
-            onRetry = viewModel::loadCircuits,
+            onRetry = viewModel::refreshAll,
             modifier = Modifier.fillMaxSize(),
         )
         is AsyncValue.Value -> Column(modifier = Modifier.fillMaxSize()) {

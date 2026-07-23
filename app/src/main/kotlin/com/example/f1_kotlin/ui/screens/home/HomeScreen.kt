@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,7 +41,8 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     HomeScreenContent(
         uiState = uiState,
-        onRetry = viewModel::loadAllData,
+        onRetry = viewModel::refreshAll,
+        onRefresh = viewModel::refreshAll,
         onChangeTable = viewModel::changeActiveTable,
         onDriverClick = onDriverClick,
         onConstructorClick = onConstructorClick,
@@ -47,6 +50,7 @@ fun HomeScreen(
 }
 
 /** Testable content — no Hilt / ViewModel required. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenContent(
     uiState: HomeUiState,
@@ -54,6 +58,7 @@ fun HomeScreenContent(
     onChangeTable: (Int) -> Unit,
     onDriverClick: (Driver) -> Unit = {},
     onConstructorClick: (Constructor) -> Unit = {},
+    onRefresh: () -> Unit = {},
 ) {
     val drivers = uiState.drivers
     val constructors = uiState.constructors
@@ -67,38 +72,44 @@ fun HomeScreenContent(
             modifier = Modifier.fillMaxSize(),
         )
         drivers is AsyncValue.Value && constructors is AsyncValue.Value -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = AppDimens.verticalPadding.dp),
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
-                    Text(stringResource(R.string.home_standings_title), style = AppStyles.h1)
-                    Spacer(Modifier.height(32.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            stringResource(R.string.season_label, uiState.season),
-                            style = AppStyles.h2,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(stringResource(R.string.round_label, uiState.round), style = AppStyles.h2)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = AppDimens.verticalPadding.dp),
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
+                        Text(stringResource(R.string.home_standings_title), style = AppStyles.h1)
+                        Spacer(Modifier.height(32.dp))
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                stringResource(R.string.season_label, uiState.season),
+                                style = AppStyles.h2,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(stringResource(R.string.round_label, uiState.round), style = AppStyles.h2)
+                        }
                     }
+                    Spacer(Modifier.height(32.dp))
+                    CustomSwitcher(
+                        stringResource(R.string.drivers),
+                        stringResource(R.string.constructors),
+                        uiState.activeTable,
+                        onChangeTable,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    if (uiState.activeTable == 0) {
+                        TournamentDriversTable(drivers.value, onDriverClick = onDriverClick)
+                    } else {
+                        TournamentConstructorsTable(constructors.value, onConstructorClick = onConstructorClick)
+                    }
+                    Spacer(Modifier.height(32.dp))
                 }
-                Spacer(Modifier.height(32.dp))
-                CustomSwitcher(
-                    stringResource(R.string.drivers),
-                    stringResource(R.string.constructors),
-                    uiState.activeTable,
-                    onChangeTable,
-                )
-                Spacer(Modifier.height(8.dp))
-                if (uiState.activeTable == 0) {
-                    TournamentDriversTable(drivers.value, onDriverClick = onDriverClick)
-                } else {
-                    TournamentConstructorsTable(constructors.value, onConstructorClick = onConstructorClick)
-                }
-                Spacer(Modifier.height(32.dp))
             }
         }
     }

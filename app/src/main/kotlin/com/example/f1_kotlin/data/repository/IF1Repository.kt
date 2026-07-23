@@ -91,4 +91,6 @@ interface IF1Repository {
     suspend fun currentConstructorsForDriver(driverId: String): List<Constructor>
 
     suspend fun currentDriversForConstructor(constructorId: String): List<Driver>
+
+    fun clearInMemoryCaches()
 }

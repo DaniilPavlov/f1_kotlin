@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.f1_kotlin.domain.model.ConstructorStanding
 import com.example.f1_kotlin.domain.model.DriverStanding
 import com.example.f1_kotlin.data.repository.IF1Repository
+import com.example.f1_kotlin.domain.AppDataRefresh
 import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,12 +24,17 @@ data class HomeUiState(
     val round: String = "",
     val activeTable: Int = 0,
     val error: AppError? = null,
+    val isRefreshing: Boolean = false,
 )
 
-/** ViewModel вкладки «Главная» — [LoadJobHolder] + peek-кэш, затем refresh с сети. */
+/**
+ * ViewModel вкладки «Главная» — [LoadJobHolder] + peek-кэш, затем refresh с сети.
+ * [refreshAll] чистит кэши через [AppDataRefresh] и грузит заново (ErrorBody retry / pull-to-refresh).
+ */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: IF1Repository,
+    private val appDataRefresh: AppDataRefresh,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
@@ -44,24 +51,53 @@ class HomeViewModel @Inject constructor(
 
     fun loadAllData() {
         loadJob.launch(viewModelScope) {
-            _uiState.update { it.copy(error = null) }
+            loadInternal(clearCaches = false)
+        }
+    }
 
-            repository.peekCurrentDriversCache()?.let { (list, meta) ->
+    /** ErrorBody / pull-to-refresh: сброс кэшей, затем сеть. */
+    fun refreshAll() {
+        loadJob.launch(viewModelScope) {
+            loadInternal(clearCaches = true)
+        }
+    }
+
+    private suspend fun loadInternal(clearCaches: Boolean) = coroutineScope {
+        try {
+            if (clearCaches) {
+                appDataRefresh.clearAll()
                 _uiState.update {
                     it.copy(
-                        drivers = AsyncValue.Value(list),
-                        season = meta.season,
-                        round = meta.round,
+                        isRefreshing = true,
+                        error = null,
+                        drivers = if (it.drivers is AsyncValue.Value) it.drivers else AsyncValue.Loading,
+                        constructors = if (it.constructors is AsyncValue.Value) {
+                            it.constructors
+                        } else {
+                            AsyncValue.Loading
+                        },
                     )
                 }
-            } ?: run {
-                _uiState.update { it.copy(drivers = AsyncValue.Loading) }
-            }
+            } else {
+                _uiState.update { it.copy(error = null) }
 
-            repository.peekCurrentConstructorsCache()?.let { list ->
-                _uiState.update { it.copy(constructors = AsyncValue.Value(list)) }
-            } ?: run {
-                _uiState.update { it.copy(constructors = AsyncValue.Loading) }
+                repository.peekCurrentDriversCache()?.let { (list, meta) ->
+                    _uiState.update {
+                        it.copy(
+                            drivers = AsyncValue.Value(list),
+                            season = meta.season,
+                            round = meta.round,
+                        )
+                    }
+                } ?: run {
+                    _uiState.update { it.copy(drivers = AsyncValue.Loading) }
+                }
+
+                repository.peekCurrentConstructorsCache()?.let { list ->
+                    _uiState.update { it.copy(constructors = AsyncValue.Value(list)) }
+                } ?: run {
+                    _uiState.update { it.copy(constructors = AsyncValue.Loading) }
+                }
             }
 
             val driversDeferred = async { repository.getCurrentDriverStandings() }
@@ -102,6 +138,8 @@ class HomeViewModel @Inject constructor(
                     }
                 },
             )
+        } finally {
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 }

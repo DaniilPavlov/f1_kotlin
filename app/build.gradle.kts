@@ -19,8 +19,8 @@ android {
         applicationId = "com.example.f1_kotlin"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.3.0"
+        versionCode = 202607230
+        versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

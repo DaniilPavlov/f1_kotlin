@@ -3,6 +3,7 @@ package com.example.f1_kotlin.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.f1_kotlin.data.repository.IF1Repository
+import com.example.f1_kotlin.domain.AppDataRefresh
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.domain.model.Circuit
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,10 +18,14 @@ data class CircuitsUiState(
     val activePage: Int = 0,
 )
 
-/** ViewModel вкладки «Трассы» — список всех трасс F1 (с offline-кэшем). */
+/**
+ * ViewModel вкладки «Трассы» — список всех трасс F1 (с offline-кэшем).
+ * [refreshAll] чистит кэши через [AppDataRefresh] и грузит заново (ErrorBody retry).
+ */
 @HiltViewModel
 class CircuitsViewModel @Inject constructor(
     private val repository: IF1Repository,
+    private val appDataRefresh: AppDataRefresh,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
@@ -37,21 +42,37 @@ class CircuitsViewModel @Inject constructor(
 
     fun loadCircuits() {
         loadJob.launch(viewModelScope) {
+            loadInternal(clearCaches = false)
+        }
+    }
+
+    /** ErrorBody: сброс кэшей, затем сеть. */
+    fun refreshAll() {
+        loadJob.launch(viewModelScope) {
+            loadInternal(clearCaches = true)
+        }
+    }
+
+    private suspend fun loadInternal(clearCaches: Boolean) {
+        if (clearCaches) {
+            appDataRefresh.clearAll()
+            _uiState.update { it.copy(circuits = AsyncValue.Loading) }
+        } else {
             repository.peekCircuitsCache()?.let { cached ->
                 _uiState.update { it.copy(circuits = AsyncValue.Value(cached)) }
             } ?: run {
                 _uiState.update { it.copy(circuits = AsyncValue.Loading) }
             }
-
-            repository.getCircuits().applyUnlessCached(
-                current = _uiState.value.circuits,
-                onSuccess = { list ->
-                    _uiState.update { it.copy(circuits = AsyncValue.Value(list)) }
-                },
-                onFailure = { err ->
-                    _uiState.update { it.copy(circuits = err.toAsyncError()) }
-                },
-            )
         }
+
+        repository.getCircuits().applyUnlessCached(
+            current = _uiState.value.circuits,
+            onSuccess = { list ->
+                _uiState.update { it.copy(circuits = AsyncValue.Value(list)) }
+            },
+            onFailure = { err ->
+                _uiState.update { it.copy(circuits = err.toAsyncError()) }
+            },
+        )
     }
 }
