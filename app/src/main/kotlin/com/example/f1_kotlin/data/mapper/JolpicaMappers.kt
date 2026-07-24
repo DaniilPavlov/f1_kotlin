@@ -33,7 +33,8 @@ import com.example.f1_kotlin.domain.model.StandingsMeta
 
 /**
  * Jolpica DTO (`data.model`) → domain (`domain.model`).
- * extension-mapper в data-слое.
+ *
+ * GoF Structural Adapter — чужой JSON Jolpica (DTO) → domain ([Driver], [Race], …).
  */
 
 fun DriverModel.toDomain() = Driver(

@@ -22,7 +22,7 @@ interface CacheDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: CacheEntry)
 
-    /** Удаляет все записи кэша (pull-to-refresh / [com.example.f1_kotlin.domain.AppDataRefresh.clearAll]). */
+    /** Удаляет все записи кэша (ручная очистка / тесты). Pull-to-refresh Room не трогает. */
     @Query("DELETE FROM cache_entries")
     suspend fun clearAll()
 }

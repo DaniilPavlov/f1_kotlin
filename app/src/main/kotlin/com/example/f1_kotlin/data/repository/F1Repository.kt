@@ -48,15 +48,11 @@ import kotlinx.coroutines.sync.withPermit
 /**
  * Repository — единая точка доступа к данным.
  *
- * **Общая стратегия для всех экранов:**
- * 1. [peek*Cache] — мгновенно отдать Room/память (UI не «висит» на loader);
- * 2. Сеть через [ApiCallHandler.safeCall] с автоповтором;
- * 3. При ошибке — fallback на Room.
+ * GoF Structural Proxy — суррогат перед API: [peek*Cache] отдаёт Room/память,
+ * сеть через [ApiCallHandler] только при необходимости, при ошибке — fallback на диск.
  *
  * API Jolpica лёгкий (~100–300 ms на запрос); тормозит N+1 в пит-стопах — исправлено
  * через кэш имён пилотов и лимит параллельных getDriver.
- *
- * Публичный API возвращает domain-модели; Moshi DTO кэшируются и маппятся через `.toDomain()`.
  */
 @Singleton
 class F1Repository @Inject constructor(

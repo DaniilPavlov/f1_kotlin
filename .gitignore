@@ -11,6 +11,8 @@ local.properties
 *.jks
 *.keystore
 key.properties
+app/google-services.json
+app/upload-keystore.jks
 
 # IDE
 .idea/
@@ -19,3 +21,7 @@ key.properties
 
 # OS
 .DS_Store
+
+# Firebase CLI
+firebase-debug.log
+.firebase/

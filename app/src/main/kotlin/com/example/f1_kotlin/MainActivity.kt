@@ -10,9 +10,12 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import com.example.f1_kotlin.domain.ForceUpdateGate
 import com.example.f1_kotlin.notifications.RaceReminderScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 /**
  * Единственная Activity в приложении.
@@ -27,6 +30,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject lateinit var reminderScheduler: RaceReminderScheduler
+    @Inject lateinit var forceUpdateGate: ForceUpdateGate
 
     /**
      * [installSplashScreen] — splash с логотипом на #333333.
@@ -43,9 +47,14 @@ class MainActivity : ComponentActivity() {
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
-                reminderScheduler.sync()
+                lifecycleScope.launch {
+                    forceUpdateGate.onResume()
+                    if (!forceUpdateGate.required.value) {
+                        reminderScheduler.sync()
+                    }
+                }
             }
         })
-        setContent { App() }
+        setContent { App(forceUpdateGate) }
     }
 }

@@ -153,7 +153,9 @@ fun LoadingIndicator(modifier: Modifier = Modifier) {
 
 /**
  * Экран/блок ошибки: иллюстрация, текст, кнопка повтора.
- * Используется при сетевых сбоях и ошибках API.
+ *
+ * GoF Behavioral Command — действие повтора инкапсулировано в [onRetry]
+ * (`refreshAll` / reload); вид только вызывает команду.
  */
 @Composable
 fun ErrorBody(

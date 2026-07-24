@@ -33,6 +33,12 @@ data class H2hScopeState(
             (!isSeasonScope || selectedSeason != null)
 }
 
+/**
+ * Общий скелет H2H-сравнения: два параллельных fetch → ошибка или пара [H2hStats].
+ *
+ * GoF Behavioral Strategy — способ получения статистики выбирается на вызове:
+ * [fetchA] / [fetchB] — взаимозаменяемые стратегии (драйверы / конструкторы / тесты).
+ */
 fun LoadJobHolder.launchH2hCompare(
     scope: CoroutineScope,
     canCompare: Boolean,

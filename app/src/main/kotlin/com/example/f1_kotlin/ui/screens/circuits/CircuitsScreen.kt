@@ -148,7 +148,9 @@ private fun CircuitsList(circuits: List<Circuit>, onCircuitClick: (String) -> Un
 
 /**
  * Карта трасс (OSMDroid): одна карта без повторения тайлов, пины 22 dp, красные кластеры.
- * [configureCircuitsMapView] отключает «мини-карты» при отдалении.
+ *
+ * GoF Structural Bridge — абстракция Compose-[CircuitsMap] отделена от реализации:
+ * OSMDroid [MapView] подключается через [AndroidView], не протекая в остальной UI.
  */
 @Composable
 private fun CircuitsMap(circuits: List<Circuit>, onCircuitClick: (String) -> Unit) {

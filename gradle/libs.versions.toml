@@ -24,6 +24,7 @@ coroutines = "1.8.1"
 kotlinxSerialization = "1.7.3"
 mockk = "1.13.12"
 coil = "2.7.0"
+appmetrica = "8.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -65,6 +66,11 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+# Pinned to versions present in local Gradle cache (Google Maven CDN flaky).
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx", version = "22.1.2" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version = "20.0.3" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version = "22.0.1" }
+appmetrica-analytics = { group = "io.appmetrica.analytics", name = "analytics", version.ref = "appmetrica" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

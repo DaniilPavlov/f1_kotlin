@@ -137,4 +137,7 @@
     <string name="locale_code_ru">RU</string>
     <string name="locale_code_en">EN</string>
     <string name="notification_channel_race_reminders">Race reminders</string>
+    <string name="force_update_title">App update required</string>
+    <string name="force_update_subtitle">This version is no longer supported. Download the latest release from GitHub.</string>
+    <string name="force_update_button">Update</string>
 </resources>

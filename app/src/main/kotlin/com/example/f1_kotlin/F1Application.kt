@@ -1,11 +1,20 @@
 package com.example.f1_kotlin
 
 import android.app.Application
+import android.util.Log
+import com.example.f1_kotlin.data.appmetrica.AppMetricaBootstrap
+import com.example.f1_kotlin.data.firebase.FirebaseBootstrap
+import com.example.f1_kotlin.data.firebase.RemoteConfigService
+import com.example.f1_kotlin.domain.ForceUpdateGate
 import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.notifications.RaceReminderScheduler
 import com.example.f1_kotlin.ui.map.OsmdroidInitializer
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Глобальный класс приложения, указанный в AndroidManifest.
@@ -20,16 +29,39 @@ import javax.inject.Inject
 @HiltAndroidApp
 class F1Application : Application() {
     @Inject lateinit var reminderScheduler: RaceReminderScheduler
+    @Inject lateinit var remoteConfig: RemoteConfigService
+    @Inject lateinit var forceUpdateGate: ForceUpdateGate
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         LocaleController.init(this)
         OsmdroidInitializer.ensureInitialized(this)
-        reminderScheduler.sync()
+
+        // Sync only — Remote Config fetch must not block main (was ANR / failed startup).
+        runCatching { FirebaseBootstrap.initializeSync(this) }
+            .onFailure { e -> Log.e(TAG, "Firebase core init failed", e) }
+        AppMetricaBootstrap.bootstrap(this)
+
+        applicationScope.launch {
+            runCatching { FirebaseBootstrap.fetchRemoteConfig(remoteConfig) }
+                .onFailure { e -> Log.e(TAG, "Remote Config bootstrap failed", e) }
+            forceUpdateGate.check()
+            if (!forceUpdateGate.required.value) {
+                reminderScheduler.sync()
+            }
+        }
     }
 
     fun toggleLocale() {
         LocaleController.toggle(this)
-        reminderScheduler.sync()
+        if (!forceUpdateGate.required.value) {
+            reminderScheduler.sync()
+        }
+    }
+
+    private companion object {
+        const val TAG = "F1Application"
     }
 }

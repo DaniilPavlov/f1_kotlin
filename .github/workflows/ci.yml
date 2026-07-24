@@ -41,6 +41,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Write Firebase stub
+        run: cp tool/ci/google-services.stub.json app/google-services.json
+
       - name: Detekt
         run: ./gradlew :app:detekt --stacktrace
 

@@ -13,8 +13,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import com.example.f1_kotlin.domain.ForceUpdateGate
 import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.ui.navigation.F1App
+import com.example.f1_kotlin.ui.screens.ForceUpdateScreen
 import com.example.f1_kotlin.ui.theme.F1Theme
 import java.util.Locale
 
@@ -24,15 +26,12 @@ import java.util.Locale
  * Слои снаружи внутрь:
  * 1. Локаль — [CompositionLocalProvider] без recreate Activity;
  * 2. [F1Theme] — Material + брендовые цвета;
- * 3. [F1App] — Scaffold, нижние вкладки, NavHost.
- *
- * Важно: локализованный Context — это [ContextWrapper] над Activity, а не
- * голый [Context.createConfigurationContext], иначе Hilt не находит Activity
- * для [androidx.hilt.navigation.compose.hiltViewModel].
+ * 3. Force-update gate или [F1App] — Scaffold / вкладки.
  */
 @Composable
-fun App() {
+fun App(forceUpdateGate: ForceUpdateGate) {
     val language by LocaleController.language.collectAsState()
+    val forceUpdate by forceUpdateGate.required.collectAsState()
     val baseContext = LocalContext.current
     val localizedContext = remember(language, baseContext) {
         baseContext.withAppLocale(language)
@@ -43,7 +42,11 @@ fun App() {
         LocalConfiguration provides localizedContext.resources.configuration,
     ) {
         F1Theme {
-            F1App()
+            if (forceUpdate) {
+                ForceUpdateScreen()
+            } else {
+                F1App()
+            }
         }
     }
 }

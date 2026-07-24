@@ -38,6 +38,8 @@ fun HomeScreen(
     onDriverClick: (Driver) -> Unit,
     onConstructorClick: (Constructor) -> Unit,
 ) {
+    // GoF Behavioral Observer — вид подписывается на StateFlow ViewModel
+    // и перестраивается при изменении standings / ошибок.
     val uiState by viewModel.uiState.collectAsState()
     HomeScreenContent(
         uiState = uiState,

@@ -26,6 +26,9 @@ class LocalePreferences(context: Context) {
 /**
  * Смена языка без пересоздания Activity: Compose слушает [language] и подменяет
  * [androidx.compose.ui.platform.LocalContext] / [androidx.compose.ui.platform.LocalConfiguration].
+ *
+ * GoF Creational Singleton — один общий экземпляр на всё приложение:
+ * Compose и домен читают тот же [language], без повторного создания.
  */
 object LocaleController {
     private val _language = MutableStateFlow("ru")

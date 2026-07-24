@@ -40,6 +40,27 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Configure Firebase (secret or CI stub)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s\n' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          else
+            echo "GOOGLE_SERVICES_JSON secret missing — using CI stub."
+            cp tool/ci/google-services.stub.json app/google-services.json
+          fi
+
+      - name: Configure AppMetrica
+        env:
+          APPMETRICA_API_KEY: ${{ secrets.APPMETRICA_API_KEY }}
+        run: |
+          if [ -n "$APPMETRICA_API_KEY" ]; then
+            echo "appmetrica.apiKey=$APPMETRICA_API_KEY" >> local.properties
+          else
+            echo "APPMETRICA_API_KEY secret missing — AppMetrica will be skipped."
+          fi
+
       - name: Configure Android signing
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -58,6 +79,7 @@ jobs:
           keyAlias=$ANDROID_KEY_ALIAS
           storeFile=upload-keystore.jks
           EOF
+          sed -i 's/^[[:space:]]*//' key.properties
 
       - name: Build release APK
         run: ./gradlew :app:assembleRelease --stacktrace

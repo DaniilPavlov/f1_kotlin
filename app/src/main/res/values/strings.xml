@@ -137,4 +137,7 @@
     <string name="locale_code_ru">RU</string>
     <string name="locale_code_en">EN</string>
     <string name="notification_channel_race_reminders">Напоминания о гонках</string>
+    <string name="force_update_title">Требуется обновление</string>
+    <string name="force_update_subtitle">Эта версия больше не поддерживается. Скачайте свежий релиз на GitHub.</string>
+    <string name="force_update_button">Обновить</string>
 </resources>

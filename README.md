@@ -22,9 +22,10 @@ Same idea, other stacks:
 | DI | Hilt; `IF1Repository` / `IEspnRepository` bound with `@Binds` |
 | Network | Retrofit + OkHttp + Moshi DTOs; mappers DTO → domain |
 | Images | Coil |
-| Cache | Room (offline peek → refresh); ESPN in-memory TTL; `AppDataRefresh.clearAll` |
+| Cache | Room (offline peek → refresh); ESPN in-memory TTL; soft `AppDataRefresh.clearAll` |
 | Time | java.time |
 | Map | OSMDroid + OSMBonusPack (Carto tiles) |
+| Backend | Firebase (Analytics, Crashlytics, Remote Config), AppMetrica |
 
 ### Differences from f1_pet_project (Flutter)
 
@@ -44,7 +45,10 @@ Same idea, other stacks:
 - **Errors** — repositories return `Result`; failures map to `AppError` (`toAppError`) for UI.
 - **Repositories** — `IF1Repository` + `IEspnRepository` interfaces; concrete impls bound in Hilt (`RepositoryModule`).
 - **ViewModels** — one file per screen under `viewmodel/` (no giant shared files).
-- **Refresh** — `AppDataRefresh.clearAll()` resets ESPN TTL + Room cache + in-memory F1 caches; `refreshAll()` on main screens calls it before reload (ErrorBody / pull-to-refresh).
+- **Refresh** — `AppDataRefresh.clearAll()` soft-invalidates ESPN TTL + in-memory F1 caches (Room kept for offline); `refreshAll()` on main screens calls it before reload.
+- **Firebase** — `google-services` plugin + `app/google-services.json` (gitignored); bootstrap in `F1Application`; Analytics/Crashlytics off in debug. Project: `f1-kotlin`.
+- **AppMetrica** — bootstrap from `local.properties` (`appmetrica.apiKey`); empty key → skip.
+- **Remote Config** — `min_app_version` (force update), `local_notifications_enabled` (reminder kill-switch).
 
 ## Structure
 
@@ -56,7 +60,7 @@ f1_kotlin/
 │       │   ├── assets/      # circuit layouts + circuit_stats.json
 │       │   ├── java/        # PendingIntent / BootCompleted helpers
 │       │   └── kotlin/com/example/f1_kotlin/
-│       │       ├── data/    # Jolpica + ESPN API, Room, career, circuits
+│       │       ├── data/    # Jolpica + ESPN API, Room, Firebase, AppMetrica
 │       │       ├── domain/
 │       │       ├── di/
 │       │       ├── ui/
@@ -64,14 +68,38 @@ f1_kotlin/
 │       │       └── util/
 │       ├── test/            # JVM unit tests (MockK + coroutines-test)
 │       └── androidTest/     # Compose UI tests (not in CI)
+├── tool/ci/                 # google-services stub for CI / local without Firebase
 └── .github/workflows/
 ```
 
 ## Requirements
 
-- JDK 11+
+- JDK **17+** (CI uses Temurin **21**; app `jvmTarget` 11)
 - Android Studio / Android SDK
 - minSdk 30, targetSdk 36
+
+## Secrets
+
+Not in git.
+
+### Firebase (`f1-kotlin`)
+
+1. [Firebase Console](https://console.firebase.google.com/project/f1-kotlin/overview) → Project settings → Your apps  
+2. Add Android app with package **`com.example.f1_kotlin`** (if not added yet)  
+3. Download `google-services.json` → put at **`app/google-services.json`** (gitignored)  
+4. Enable **Analytics**, **Crashlytics**, **Remote Config** in the console  
+
+Without a real file, Gradle copies `tool/ci/google-services.stub.json` so CI/local still builds.
+
+Remote Config keys: `local_notifications_enabled` (bool), `min_app_version` (string semver).
+
+### AppMetrica
+
+Optional in `local.properties`:
+
+```properties
+appmetrica.apiKey=...
+```
 
 ## Run
 
@@ -93,8 +121,8 @@ In Android Studio: Run → **app** configuration.
 
 Covered areas include:
 
-- ViewModels: Home, Results (incl. ESPN hide-on-error), Schedule, Race search, H2H drivers, Finish status, Race info, Circuit detail
-- Domain: `ApiCallHandler`
+- ViewModels: Home, Results (incl. ESPN hide-on-error), Schedule, Race search, H2H drivers, Finish status, Race info, Circuit detail, News
+- Domain / util: `ApiCallHandler`, `AppVersion`
 - Data: career loader, Jolpica mappers
 
 **Compose UI (`androidTest`)** — content composables (`HomeScreenContent`, `ResultsScreenContent`) without Hilt. Not run in CI (needs device/emulator):
@@ -109,7 +137,7 @@ Covered areas include:
 
 | Workflow | When | What it does |
 |----------|-------|------------|
-| `ci.yml` | push / PR to `master` | detekt (no baseline), debug APK, unit tests |
+| `ci.yml` | push / PR to `master` | Firebase stub, detekt, debug APK, unit tests |
 | `release.yml` | tag `v*` or manual | Android APK (+ GitHub Release) |
 
 ```bash
@@ -120,24 +148,34 @@ Release:
 
 ```bash
 # version in app/build.gradle.kts must match the tag
-git tag v1.2.0
-git push origin v1.2.0
+git tag v1.5.0
+git push origin v1.5.0
 ```
 
-For release APK signing (optional) — `ANDROID_KEYSTORE_*` secrets in GitHub Actions.
+Release secrets (GitHub → Settings → Secrets):
+
+| Secret | Purpose |
+|--------|---------|
+| `GOOGLE_SERVICES_JSON` | Full `app/google-services.json` body (else CI stub) |
+| `APPMETRICA_API_KEY` | AppMetrica API key (else skipped) |
+| `ANDROID_KEYSTORE_BASE64` | Base64 of `upload-keystore.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Key alias (e.g. `upload`) |
+| `ANDROID_KEY_PASSWORD` | Key password |
+
+Without `ANDROID_KEYSTORE_*`, the release APK is built with **debug** signing.
+
+```bash
+keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+base64 -i upload-keystore.jks | pbcopy   # → ANDROID_KEYSTORE_BASE64
+```
 
 ## Offline
 
 The app reads the local Room cache first (peek), then refreshes from the network.  
 If the network is unavailable but cache exists, the UI keeps the last known data.  
 ESPN news/scoreboard use a short in-memory TTL (no Room); scoreboard network failures hide the block instead of breaking Results.  
-Forced reload (`refreshAll`) clears ESPN + Room + in-memory caches via `AppDataRefresh`.
-
-## Changelog
-
-### 1.4.0
-
-- `AppDataRefresh` facade: ErrorBody / pull-to-refresh on Home, Results, Circuits, News clears caches via `refreshAll()` before reload.
+Forced reload (`refreshAll`) soft-invalidates ESPN + in-memory caches via `AppDataRefresh` (Room kept as offline fallback).
 
 ## Features
 
@@ -148,7 +186,8 @@ Forced reload (`refreshAll`) clears ESPN + Room + in-memory caches via `AppDataR
 - **Circuits** — list and map with pins/clusters, track layouts, length/laps/turns/speed/elevation, Wikipedia, winners history  
 - **Driver / Constructor cards** — ESPN photos/news, career stats with tappable wins / podiums / poles lists  
 - **Localization** — Russian and English, toggle in the app bar without restarting the app  
-- **Reminders** — local notifications 30 minutes before a session (up to 10 upcoming kept in the OS)  
+- **Reminders** — local notifications 30 minutes before a session (up to 10 upcoming; Remote Config can disable)  
+- **Force update** — blocking screen when below Remote Config `min_app_version`  
 - **Offline** — Room cache with instant peek and network refresh  
 - **Share** — career stats and race results as PNG via the system share sheet  
 - **Shimmer skeletons** — loading placeholders for main screens (like Flutter)  

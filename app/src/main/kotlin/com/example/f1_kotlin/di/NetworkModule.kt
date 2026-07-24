@@ -36,17 +36,21 @@ object NetworkModule {
         .build()
 
     /**
-     * OkHttp — HTTP-клиент под капотом Retrofit.
-     * HTTPS без 301-редиректа; таймауты 15/30 с; в debug — лог BASIC (не BODY, чтобы не тормозить).
+     * GoF Creational Factory Method — создание продукта ([OkHttpClient]) делегировано
+     * [provideOkHttpClient] / [provideEspnOkHttpClient], скрывая таймауты и interceptors.
      */
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
+        // GoF Creational Builder — пошаговая сборка (таймауты → interceptors → build).
         val builder = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .callTimeout(45, TimeUnit.SECONDS)
+            // GoF Structural Decorator — заголовки «навешиваются» на OkHttp через interceptor,
+            // не меняя API клиента.
+            // GoF Behavioral Chain of Responsibility — либо модифицируем запрос, либо chain.proceed().
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .addHeader("system", "android")

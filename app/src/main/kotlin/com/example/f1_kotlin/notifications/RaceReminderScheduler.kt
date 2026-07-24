@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.domain.model.RaceSession
 import com.example.f1_kotlin.domain.model.Race
+import com.example.f1_kotlin.data.firebase.RemoteConfigService
 import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.util.DateUtils
@@ -39,12 +40,15 @@ import kotlinx.coroutines.launch
  * Локальные напоминания за 30 минут до сессий.
  *
  * В AlarmManager держим только [MAX_SCHEDULED_REMINDERS] ближайших сессий (rolling window).
- * На каждом sync (старт / resume / смена языка / boot / timezone) окно пересобирается
+ * На каждом sync (старт / resume / смена языка / boot / timezone) окно пересобирается.
+ * Флаг Remote Config [RemoteConfigService.localNotificationsEnabled] запрещает создание
+ * и снимает уже запланированные.
  */
 @Singleton
 class RaceReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: IF1Repository,
+    private val remoteConfig: RemoteConfigService,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lastScheduledIds = AtomicReference<Set<Int>>(emptySet())
@@ -52,6 +56,10 @@ class RaceReminderScheduler @Inject constructor(
     fun sync() {
         scope.launch {
             runCatching {
+                if (!remoteConfig.localNotificationsEnabled) {
+                    cancelIds(lastScheduledIds.getAndSet(emptySet()))
+                    return@runCatching
+                }
                 val races = repository.getCurrentSchedule().getOrNull() ?: return@runCatching
                 val language = LocaleController.language.value
                 val localizedContext = context.withAppLocale(language)

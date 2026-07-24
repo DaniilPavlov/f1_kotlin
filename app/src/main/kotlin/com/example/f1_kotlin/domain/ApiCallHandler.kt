@@ -6,9 +6,8 @@ import java.io.IOException
 /**
  * Единая обёртка для сетевых вызовов в Repository.
  *
- * При [IOException] один повтор через [RETRY_DELAY_MS] — типичный случай «первый запрос упал,
- * повтор сразу прошёл» (холодный DNS/SSL, конкуренция с другими вкладками).
- * Ошибки мапятся через [Throwable.toAppError].
+ * GoF Behavioral Template Method — фиксированный скелет алгоритма
+ * (try → retry при [IOException] → map в [AppError]); вызывающий подставляет только `block`.
  */
 object ApiCallHandler {
 
