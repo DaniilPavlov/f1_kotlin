@@ -28,6 +28,13 @@ object NetworkModule {
     // HTTPS напрямую — HTTP даёт 301 redirect и лишний round-trip на каждый запрос
     private const val BASE_URL = "https://api.jolpi.ca/ergast/f1/"
 
+    /** Имя приложения в User-Agent. */
+    private const val APP_USER_AGENT_NAME = "F1Kotlin"
+
+    /** Jolpica F1 API — формат `AppName/version`. */
+    private val jolpicaUserAgent: String
+        get() = "$APP_USER_AGENT_NAME/${BuildConfig.VERSION_NAME}"
+
     /** Moshi парсит JSON ответов API в data class'ы. */
     @Provides
     @Singleton
@@ -53,10 +60,11 @@ object NetworkModule {
             // GoF Behavioral Chain of Responsibility — либо модифицируем запрос, либо chain.proceed().
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .addHeader("system", "android")
-                    .addHeader("version", "1.0")
-                    .addHeader("build-number", "1")
-                    .addHeader("device-id", "deviceID")
+                    // header() заменяет дефолтный okhttp UA, addHeader() мог бы оставить оба.
+                    .header("User-Agent", jolpicaUserAgent)
+                    .header("system", "android")
+                    .header("version", BuildConfig.VERSION_NAME)
+                    .header("build-number", BuildConfig.VERSION_CODE.toString())
                     .build()
                 chain.proceed(request)
             }
