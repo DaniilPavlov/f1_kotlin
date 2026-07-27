@@ -1,7 +1,5 @@
 package com.example.f1_kotlin.util
 
-import android.content.Intent
-import android.net.Uri
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -61,9 +59,4 @@ object DateUtils {
         }
         return LocalDate.parse(date).atTime(localTime).atZone(ZoneOffset.UTC)
     }
-}
-
-/** Открывает ссылку (например, Wikipedia трассы) во внешнем браузере. */
-fun openUrl(context: android.content.Context, url: String) {
-    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 }

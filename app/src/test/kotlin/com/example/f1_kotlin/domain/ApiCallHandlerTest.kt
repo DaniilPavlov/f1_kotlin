@@ -4,7 +4,6 @@ import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
@@ -47,10 +46,11 @@ class ApiCallHandlerTest {
     }
 
     @Test
-    fun safeCall_genericException_returnsParseError() = runTest {
+    fun safeCall_genericException_returnsUnexpectedErrorWithoutRawMessage() = runTest {
         val result = ApiCallHandler.safeCall { throw IllegalStateException("bad json") }
         val error = result.exceptionOrNull()!!.toAppError()
-        assertTrue(error.title.contains("Ошибка при обработке"))
+        assertEquals(ErrorStrings.unexpectedError, error.title)
+        assertEquals(ErrorStrings.errorRetrySubtitle, error.subtitle)
     }
 
     @Test
@@ -62,6 +62,7 @@ class ApiCallHandlerTest {
         }
         val error = result.exceptionOrNull()!!.toAppError()
         assertEquals(ErrorStrings.tooManyRequests, error.title)
+        assertEquals(ErrorStrings.errorRetrySubtitle, error.subtitle)
         assertEquals(1, attempts)
     }
 

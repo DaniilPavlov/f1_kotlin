@@ -7,6 +7,7 @@ import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.domain.ErrorStrings
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.toAppError
+import com.example.f1_kotlin.util.F1InputValidation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,7 +54,10 @@ class RaceSearchViewModel @Inject constructor(
 
     fun checkFields() {
         _uiState.update {
-            it.copy(fieldsInputted = it.year.length == 4 && it.round.isNotEmpty())
+            it.copy(
+                fieldsInputted = F1InputValidation.isValidYear(it.year) &&
+                    F1InputValidation.isValidRound(it.round),
+            )
         }
     }
 

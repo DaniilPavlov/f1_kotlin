@@ -148,8 +148,8 @@ Release:
 
 ```bash
 # version in app/build.gradle.kts must match the tag
-git tag v1.5.0
-git push origin v1.5.0
+git tag v1.6.0
+git push origin v1.6.0
 ```
 
 Release secrets (GitHub → Settings → Secrets):

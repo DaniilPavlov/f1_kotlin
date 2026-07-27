@@ -44,6 +44,7 @@ import com.example.f1_kotlin.ui.components.CountryFlag
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.util.RegisterShareAction
+import com.example.f1_kotlin.util.TrustedUrl
 import com.example.f1_kotlin.util.openUrl
 import com.example.f1_kotlin.util.rememberShareCareerAction
 import com.example.f1_kotlin.viewmodel.DriverDetailViewModel
@@ -172,7 +173,7 @@ private fun DriverHeaderBlock(
 ) {
     photoUrl?.let { url ->
         Image(
-            painter = rememberAsyncImagePainter(url),
+            painter = rememberAsyncImagePainter(TrustedUrl.preferHttps(url)),
             contentDescription = driver.fullName,
             modifier = Modifier
                 .fillMaxWidth()

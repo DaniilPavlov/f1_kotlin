@@ -48,10 +48,10 @@ fun Throwable.toAppError(): AppError = when (this) {
     )
     is HttpException -> AppError(
         title = if (code() == 429) ErrorStrings.tooManyRequests else ErrorStrings.responseParseError,
-        subtitle = message(),
+        subtitle = ErrorStrings.errorRetrySubtitle,
     )
     else -> AppError(
-        title = ErrorStrings.responseParseError,
-        subtitle = message,
+        title = ErrorStrings.unexpectedError,
+        subtitle = ErrorStrings.errorRetrySubtitle,
     )
 }

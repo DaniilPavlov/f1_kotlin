@@ -55,6 +55,12 @@ object ErrorStrings {
     } else {
         "Ошибка при обработке ответа от сервера"
     }
+    val unexpectedError get() = if (isEnglish) "Unexpected error" else "Неожиданная ошибка"
+    val errorRetrySubtitle get() = if (isEnglish) {
+        "Try refreshing the screen."
+    } else {
+        "Попробуйте обновить экран."
+    }
     val raceNotFound get() = if (isEnglish) {
         "No races found for your query. Check the entered data and try again."
     } else {

@@ -21,6 +21,13 @@ val localProperties = Properties().apply {
 fun prop(name: String, default: String = ""): String =
     localProperties.getProperty(name, System.getProperty(name, default))
 
+// google-services.json is gitignored; use CI stub when missing.
+val googleServicesFile = file("google-services.json")
+val googleServicesStub = rootProject.file("tool/ci/google-services.stub.json")
+val isFirebaseCiStub: Boolean
+    get() = googleServicesFile.exists() &&
+        googleServicesFile.readText().contains("\"project_id\": \"ci-stub\"")
+
 android {
     namespace = "com.example.f1_kotlin"
     compileSdk = 36
@@ -29,8 +36,8 @@ android {
         applicationId = "com.example.f1_kotlin"
         minSdk = 30
         targetSdk = 36
-        versionCode = 202607240
-        versionName = "1.5.0"
+        versionCode = 202607271
+        versionName = "1.6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Empty until set in local.properties / CI — bootstrap skips AppMetrica.
@@ -56,7 +63,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -81,9 +89,6 @@ android {
     }
 }
 
-// google-services.json is gitignored; use CI stub when missing.
-val googleServicesFile = file("google-services.json")
-val googleServicesStub = rootProject.file("tool/ci/google-services.stub.json")
 tasks.register("ensureGoogleServicesJson") {
     doLast {
         if (!googleServicesFile.exists()) {
@@ -162,6 +167,12 @@ apply(plugin = "com.google.gms.google-services")
 apply(plugin = "com.google.firebase.crashlytics")
 
 // CI stub google-services.json — Crashlytics mapping upload would 400 against it.
-if (googleServicesFile.exists() && googleServicesFile.readText().contains("\"project_id\": \"ci-stub\"")) {
+if (isFirebaseCiStub) {
     logger.lifecycle("Firebase google-services.json is CI stub — Crashlytics mapping upload disabled")
+}
+afterEvaluate {
+    if (isFirebaseCiStub) {
+        tasks.matching { it.name.contains("uploadCrashlyticsMappingFile", ignoreCase = true) }
+            .configureEach { enabled = false }
+    }
 }

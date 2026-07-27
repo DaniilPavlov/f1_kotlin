@@ -28,6 +28,7 @@ import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1TextGray
+import com.example.f1_kotlin.util.TrustedUrl
 import com.example.f1_kotlin.util.openUrl
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -42,7 +43,7 @@ fun NewsArticleTile(article: NewsArticle) {
         DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(it)
     }
     val hasMeta = !article.byline.isNullOrEmpty() || published != null
-    val imageUrl = article.imageUrl
+    val imageUrl = article.imageUrl?.let(TrustedUrl::preferHttps)
 
     Column(
         modifier = Modifier

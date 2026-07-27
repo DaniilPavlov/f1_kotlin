@@ -1,7 +1,6 @@
 package com.example.f1_kotlin
 
 import android.app.Application
-import android.util.Log
 import com.example.f1_kotlin.data.appmetrica.AppMetricaBootstrap
 import com.example.f1_kotlin.data.firebase.FirebaseBootstrap
 import com.example.f1_kotlin.data.firebase.RemoteConfigService
@@ -9,6 +8,7 @@ import com.example.f1_kotlin.domain.ForceUpdateGate
 import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.notifications.RaceReminderScheduler
 import com.example.f1_kotlin.ui.map.OsmdroidInitializer
+import com.example.f1_kotlin.util.AppLogger
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -41,12 +41,12 @@ class F1Application : Application() {
 
         // Sync only — Remote Config fetch must not block main (was ANR / failed startup).
         runCatching { FirebaseBootstrap.initializeSync(this) }
-            .onFailure { e -> Log.e(TAG, "Firebase core init failed", e) }
+            .onFailure { e -> AppLogger.e(TAG, "Firebase core init failed", e) }
         AppMetricaBootstrap.bootstrap(this)
 
         applicationScope.launch {
             runCatching { FirebaseBootstrap.fetchRemoteConfig(remoteConfig) }
-                .onFailure { e -> Log.e(TAG, "Remote Config bootstrap failed", e) }
+                .onFailure { e -> AppLogger.e(TAG, "Remote Config bootstrap failed", e) }
             forceUpdateGate.check()
             if (!forceUpdateGate.required.value) {
                 reminderScheduler.sync()
