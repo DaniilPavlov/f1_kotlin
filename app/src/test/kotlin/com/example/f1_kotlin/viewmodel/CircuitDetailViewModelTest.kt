@@ -1,7 +1,7 @@
 package com.example.f1_kotlin.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.navigation.internalToRoute
+import androidx.navigation.toRoute
 import com.example.f1_kotlin.data.circuits.CircuitStats
 import com.example.f1_kotlin.data.circuits.CircuitStatsRepository
 import com.example.f1_kotlin.data.repository.IF1Repository
@@ -43,7 +43,7 @@ class CircuitDetailViewModelTest {
         savedStateHandle = mockk(relaxed = true)
         mockkStatic("androidx.navigation.SavedStateHandleKt")
         every {
-            savedStateHandle.internalToRoute(CircuitDetail::class, any())
+            savedStateHandle.toRoute(CircuitDetail::class, any())
         } returns CircuitDetail(circuitId = "monaco")
         coEvery { repository.peekCircuitsCache() } returns null
         coEvery { circuitStatsRepository.of("monaco") } returns CircuitStats(

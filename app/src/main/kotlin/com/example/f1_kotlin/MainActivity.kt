@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
  * Единственная Activity в приложении.
  *
  * [@AndroidEntryPoint] подключает Activity к Hilt: теперь в Composable можно вызывать
- * [androidx.hilt.navigation.compose.hiltViewModel], а зависимости (Repository, API)
+ * [androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel], а зависимости (Repository, API)
  * создаются автоматически через DI-граф из [F1Application].
  *
  * UI рисуется через Compose внутри [App]; XML-layout'ы не используются.

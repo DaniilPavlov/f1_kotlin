@@ -1,7 +1,7 @@
 package com.example.f1_kotlin.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.navigation.internalToRoute
+import androidx.navigation.toRoute
 import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
@@ -39,10 +39,10 @@ class RaceInfoScreenViewModelTest {
         Dispatchers.setMain(dispatcher)
         repository = mockk()
         savedStateHandle = mockk(relaxed = true)
-        // toRoute is inline → calls Bundle; mock internalToRoute for JVM unit tests
+        // Navigation 2.9: public toRoute(KClass) — mock for JVM unit tests
         mockkStatic("androidx.navigation.SavedStateHandleKt")
         every {
-            savedStateHandle.internalToRoute(RaceInfo::class, any())
+            savedStateHandle.toRoute(RaceInfo::class, any())
         } returns RaceInfo(season = "2026", round = "5")
     }
 
