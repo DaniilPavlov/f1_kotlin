@@ -35,9 +35,7 @@ object TrustedUrl {
 
         val uri = runCatching { URI(trimmed) }.getOrNull() ?: return null
         val host = uri.host?.takeIf { it.isNotEmpty() } ?: return null
-        val scheme = uri.scheme?.lowercase()
-
-        val httpsUri = when (scheme) {
+        val httpsUri = when (uri.scheme?.lowercase()) {
             "https" -> uri
             "http" -> URI(
                 "https",
@@ -48,10 +46,9 @@ object TrustedUrl {
                 uri.query,
                 uri.fragment,
             )
-            else -> return null
+            else -> null
         }
-        if (!isAllowedHost(host)) return null
-        return httpsUri.toString()
+        return httpsUri?.takeIf { isAllowedHost(host) }?.toString()
     }
 
     /** Для загрузки изображений: http → https без проверки allowlist. */

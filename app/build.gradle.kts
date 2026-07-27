@@ -1,5 +1,6 @@
 import java.io.FileInputStream
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -21,21 +22,27 @@ val localProperties = Properties().apply {
 fun prop(name: String, default: String = ""): String =
     localProperties.getProperty(name, System.getProperty(name, default))
 
-// google-services.json is gitignored; use CI stub when missing.
+// google-services.json is gitignored. Copy CI stub at configuration time so bare
+// `./gradlew assemble` (CodeQL default autobuild) works without a pre-step.
 val googleServicesFile = file("google-services.json")
 val googleServicesStub = rootProject.file("tool/ci/google-services.stub.json")
-val isFirebaseCiStub: Boolean
-    get() = googleServicesFile.exists() &&
-        googleServicesFile.readText().contains("\"project_id\": \"ci-stub\"")
-
+if (!googleServicesFile.exists()) {
+    googleServicesStub.copyTo(googleServicesFile)
+    logger.lifecycle("Copied tool/ci/google-services.stub.json → app/google-services.json")
+}
+val isFirebaseCiStub =
+    googleServicesFile.readText().contains("\"project_id\": \"ci-stub\"")
+if (isFirebaseCiStub) {
+    logger.lifecycle("Firebase google-services.json is CI stub — Crashlytics mapping upload disabled")
+}
 android {
     namespace = "com.example.f1_kotlin"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.example.f1_kotlin"
         minSdk = 30
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 202607271
         versionName = "1.6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -77,15 +84,18 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -166,10 +176,7 @@ dependencies {
 apply(plugin = "com.google.gms.google-services")
 apply(plugin = "com.google.firebase.crashlytics")
 
-// CI stub google-services.json — Crashlytics mapping upload would 400 against it.
-if (isFirebaseCiStub) {
-    logger.lifecycle("Firebase google-services.json is CI stub — Crashlytics mapping upload disabled")
-}
+// Stub google-services.json has no real Firebase project — mapping upload would 400.
 afterEvaluate {
     if (isFirebaseCiStub) {
         tasks.matching { it.name.contains("uploadCrashlyticsMappingFile", ignoreCase = true) }
