@@ -1,0 +1,16 @@
+---
+description: F1 Kotlin architecture — layers, networking, DI, secrets
+alwaysApply: true
+---
+
+# Architecture
+
+- **Layers**: Compose screens → `@HiltViewModel` → `I*Repository` → Retrofit / Room. Screens do not call Retrofit, OkHttp, or DAOs directly.
+- **Jolpica**: use `F1ApiService` only inside `F1Repository` via `ApiCallHandler.safeCall` → `Result`.
+- **ESPN / external HTTP**: use `EspnApiService` / `@EspnClient` inside `EspnRepository` — not in UI or ViewModels beyond the repo interface.
+- **DI**: Hilt modules in `di/` (`@Provides` / `@Binds`). Inject interfaces (`IF1Repository`, `IEspnRepository`). Never construct repos in UI.
+- **Cache**: Room key-value JSON (`CacheDao` / `CacheKeys`); repos expose `peek*Cache()` and network `get*()` returning `Result`.
+- **Refresh**: pull-to-refresh / hard retry goes through `AppDataRefresh.clearAll()` (soft invalidate; keep offline cache path intact).
+- **Nav**: type-safe routes in `F1Routes.kt`; wire `composable<Route> { hiltViewModel() }` in `F1NavGraph.kt`.
+- **Secrets**: never commit `local.properties`, `app/google-services.json`, keystores. CI uses stubs under `tool/ci/`.
+- **Scope**: minimal diffs; match existing packages (`data/`, `domain/`, `ui/`, `viewmodel/`, `di/`). No new architecture layers (e.g. use-cases, Koin) unless asked.

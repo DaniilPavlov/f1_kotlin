@@ -1,0 +1,42 @@
+---
+description: Hilt ViewModel and UiState conventions
+globs: app/src/main/kotlin/**/viewmodel/**/*.kt
+alwaysApply: false
+---
+
+# ViewModels
+
+```kotlin
+// ✅ existing pattern
+data class FooUiState(
+    val data: AsyncValue<T> = AsyncValue.Loading,
+    val error: AppError? = null,
+)
+
+@HiltViewModel
+class FooViewModel @Inject constructor(
+    private val repository: IF1Repository,
+) : ViewModel() {
+    private val loadJob = LoadJobHolder()
+    private val _uiState = MutableStateFlow(FooUiState())
+    val uiState: StateFlow<FooUiState> = _uiState.asStateFlow()
+
+    fun load() {
+        loadJob.launch(viewModelScope) {
+            repository.peekFooCache()?.let { cached ->
+                _uiState.update { it.copy(data = AsyncValue.Value(cached)) }
+            }
+            repository.getFoo().applyUnlessCached(
+                current = _uiState.value.data,
+                onSuccess = { v -> _uiState.update { it.copy(data = AsyncValue.Value(v)) } },
+                onFailure = { err -> _uiState.update { it.copy(data = err.toAsyncError(), error = err) } },
+            )
+        }
+    }
+}
+```
+
+- Prefer `AsyncValue` + `LoadJobHolder` + `applyUnlessCached` over ad-hoc loading flags / jobs.
+- Inject repository **interfaces**; nav args via `SavedStateHandle.toRoute<Route>()`.
+- ViewModels orchestrate state; HTTP, parsing, and Room live in repositories / mappers.
+- Pair UI with `FooScreen` + `FooScreenContent(uiState, callbacks)` for testability.

@@ -1,0 +1,15 @@
+---
+description: Unit and Compose UI test conventions
+globs: app/src/**/test*/**/*.kt
+alwaysApply: false
+---
+
+# Testing
+
+- **Layout**: unit tests under `app/src/test/...` mirror main packages; Compose UI under `app/src/androidTest/.../ui/` against `*ScreenContent`.
+- **ViewModels**: JUnit4 + MockK + `StandardTestDispatcher` / `runTest` / `advanceUntilIdle`. Mock `IF1Repository` / `IEspnRepository`, not Retrofit.
+- **Repos**: for route args, `mockkStatic("androidx.navigation.SavedStateHandleKt")` + `toRoute` like existing `*ViewModelTest`s.
+- **Repos**: reuse sample builders / coEvery patterns from sibling tests instead of inventing one-off doubles.
+- **UI**: prefer testing `*ScreenContent` with seeded `*UiState` / `AsyncValue` over full Hilt graphs.
+- **Before claiming done** (when changing behavior): targeted `./gradlew :app:testDebugUnitTest` on touched classes; coverage gate is Kover `minBound(75)` in `app/build.gradle.kts` (same idea as CI).
+- Do not weaken tests or lower the Kover gate to make green CI.
