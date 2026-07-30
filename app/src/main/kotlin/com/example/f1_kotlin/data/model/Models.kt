@@ -43,8 +43,9 @@ data class StandingsListsModel(
 
 @JsonClass(generateAdapter = true)
 data class DriverStandingsModel(
-    val position: String,
-    val positionText: String,
+    // Jolpica иногда не отдаёт position (например Stroll после R1 2026 с positionText="-").
+    val position: String = "",
+    val positionText: String = "",
     val points: String,
     val wins: String,
     @Json(name = "Driver") val driver: DriverModel,
@@ -53,8 +54,8 @@ data class DriverStandingsModel(
 
 @JsonClass(generateAdapter = true)
 data class ConstructorStandingsModel(
-    val position: String,
-    val positionText: String,
+    val position: String = "",
+    val positionText: String = "",
     val points: String,
     val wins: String,
     @Json(name = "Constructor") val constructor: ConstructorModel,

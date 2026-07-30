@@ -119,7 +119,7 @@ detekt {
     config.setFrom("$rootDir/config/detekt/detekt.yml")
 }
 
-// Business-logic coverage gate (~Flutter controller/util/repo unit coverage).
+// Business-logic coverage gate.
 kover {
     reports {
         filters {

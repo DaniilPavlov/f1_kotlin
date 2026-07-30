@@ -8,11 +8,15 @@ import com.example.f1_kotlin.data.model.DriverStandingsModel
 import com.example.f1_kotlin.data.model.RaceModel
 import com.example.f1_kotlin.data.model.RaceResultModel
 import com.example.f1_kotlin.data.model.TimeModel
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class JolpicaMappersTest {
+
+    private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 
     @Test
     fun driverStandingsModel_toDomain_mapsFields() {
@@ -48,6 +52,67 @@ class JolpicaMappersTest {
         assertEquals(1, domain.constructors.size)
         assertEquals("red_bull", domain.constructors.first().constructorId)
         assertEquals("Red Bull", domain.constructors.first().name)
+    }
+
+    @Test
+    fun driverStandingsModel_missingPosition_defaultsEmpty() {
+        // Jolpica R1 2026: Stroll без "position", только positionText="-".
+        val dto = DriverStandingsModel(
+            positionText = "-",
+            points = "0",
+            wins = "0",
+            driver = DriverModel(
+                driverId = "stroll",
+                url = "",
+                givenName = "Lance",
+                familyName = "Stroll",
+                dateOfBirth = "1998-10-29",
+                nationality = "Canadian",
+                code = "STR",
+                permanentNumber = "18",
+            ),
+            constructors = listOf(
+                ConstructorModel("aston_martin", "", "Aston Martin", "British"),
+            ),
+        )
+        val domain = dto.toDomain()
+        assertEquals("", domain.position)
+        assertEquals("-", domain.positionText)
+        assertEquals("stroll", domain.driver.driverId)
+    }
+
+    @Test
+    fun moshi_parsesDriverStandingsWithoutPositionField() {
+        val json = """
+            {
+              "positionText": "-",
+              "points": "0",
+              "wins": "0",
+              "Driver": {
+                "driverId": "stroll",
+                "url": "",
+                "givenName": "Lance",
+                "familyName": "Stroll",
+                "dateOfBirth": "1998-10-29",
+                "nationality": "Canadian",
+                "code": "STR",
+                "permanentNumber": "18"
+              },
+              "Constructors": [
+                {
+                  "constructorId": "aston_martin",
+                  "url": "",
+                  "name": "Aston Martin",
+                  "nationality": "British"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val parsed = moshi.adapter(DriverStandingsModel::class.java).fromJson(json)!!
+        assertEquals("", parsed.position)
+        assertEquals("-", parsed.positionText)
+        assertEquals("stroll", parsed.driver.driverId)
     }
 
     @Test

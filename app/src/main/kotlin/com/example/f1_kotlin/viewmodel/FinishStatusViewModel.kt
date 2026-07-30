@@ -17,6 +17,7 @@ import javax.inject.Inject
 data class FinishStatusUiState(
     val year: String = "",
     val statuses: AsyncValue<List<FinishStatusItem>> = AsyncValue.Loading,
+    val isRefreshing: Boolean = false,
 )
 
 @HiltViewModel
@@ -49,15 +50,42 @@ class FinishStatusViewModel @Inject constructor(
     fun loadAllData() {
         if (_uiState.value.year.length != 4) return
         loadJob.launch(viewModelScope) {
-            _uiState.update { it.copy(statuses = AsyncValue.Loading) }
+            loadInternal(softRefresh = false)
+        }
+    }
+
+    /** Pull-to-refresh: keep Value while reloading. */
+    fun refreshAll() {
+        if (_uiState.value.year.length != 4) return
+        loadJob.launch(viewModelScope) {
+            loadInternal(softRefresh = true)
+        }
+    }
+
+    private suspend fun loadInternal(softRefresh: Boolean) {
+        try {
+            if (softRefresh) {
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = true,
+                        statuses = if (it.statuses is AsyncValue.Value) it.statuses else AsyncValue.Loading,
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(statuses = AsyncValue.Loading) }
+            }
             repository.getSeasonFinishStatuses(_uiState.value.year).fold(
                 onSuccess = { list ->
                     _uiState.update { it.copy(statuses = AsyncValue.Value(list)) }
                 },
                 onFailure = { e ->
-                    _uiState.update { it.copy(statuses = e.toAppError().toAsyncError()) }
+                    if (_uiState.value.statuses !is AsyncValue.Value) {
+                        _uiState.update { it.copy(statuses = e.toAppError().toAsyncError()) }
+                    }
                 },
             )
+        } finally {
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 }

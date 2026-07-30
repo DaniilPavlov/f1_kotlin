@@ -1,7 +1,7 @@
 package com.example.f1_kotlin.data.analytics
 
 /**
- * Typed analytics events — names/params match Flutter `AnalyticsEvent` for cross-app parity.
+ * Typed analytics events — names/params.
  */
 sealed class AnalyticsEvent {
     abstract val name: String

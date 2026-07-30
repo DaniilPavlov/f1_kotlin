@@ -25,6 +25,7 @@ data class CircuitDetailUiState(
     val winners: AsyncValue<List<CircuitRaceWin>> = AsyncValue.Loading,
     val stats: CircuitStats? = null,
     val error: AppError? = null,
+    val isRefreshing: Boolean = false,
 )
 
 @HiltViewModel
@@ -45,18 +46,46 @@ class CircuitDetailViewModel @Inject constructor(
 
     fun loadAllData() {
         loadJob.launch(viewModelScope) {
-            _uiState.update { it.copy(error = null) }
-            loadCircuit()
-            loadStats()
-            loadWinners()
+            loadInternal(softRefresh = false)
         }
     }
 
-    private suspend fun loadCircuit() {
-        repository.peekCircuitsCache()?.find { it.circuitId == circuitId }?.let { cached ->
-            _uiState.update { it.copy(circuit = AsyncValue.Value(cached)) }
-        } ?: run {
-            _uiState.update { it.copy(circuit = AsyncValue.Loading) }
+    /** Pull-to-refresh: keep Values while reloading. */
+    fun refreshAll() {
+        loadJob.launch(viewModelScope) {
+            loadInternal(softRefresh = true)
+        }
+    }
+
+    private suspend fun loadInternal(softRefresh: Boolean) {
+        try {
+            if (softRefresh) {
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = true,
+                        error = null,
+                        circuit = if (it.circuit is AsyncValue.Value) it.circuit else AsyncValue.Loading,
+                        winners = if (it.winners is AsyncValue.Value) it.winners else AsyncValue.Loading,
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(error = null) }
+            }
+            loadCircuit(softRefresh)
+            loadStats()
+            loadWinners(softRefresh)
+        } finally {
+            _uiState.update { it.copy(isRefreshing = false) }
+        }
+    }
+
+    private suspend fun loadCircuit(softRefresh: Boolean) {
+        if (!softRefresh) {
+            repository.peekCircuitsCache()?.find { it.circuitId == circuitId }?.let { cached ->
+                _uiState.update { it.copy(circuit = AsyncValue.Value(cached)) }
+            } ?: run {
+                _uiState.update { it.copy(circuit = AsyncValue.Loading) }
+            }
         }
 
         repository.getCircuitById(circuitId).applyUnlessCached(
@@ -64,12 +93,14 @@ class CircuitDetailViewModel @Inject constructor(
             onSuccess = { found ->
                 if (found != null) {
                     _uiState.update { it.copy(circuit = AsyncValue.Value(found)) }
-                } else {
+                } else if (_uiState.value.circuit !is AsyncValue.Value) {
                     _uiState.update { it.copy(circuit = AsyncValue.Error(ErrorStrings.circuitNotFound)) }
                 }
             },
             onFailure = { err ->
-                _uiState.update { it.copy(circuit = err.toAsyncError()) }
+                if (_uiState.value.circuit !is AsyncValue.Value) {
+                    _uiState.update { it.copy(circuit = err.toAsyncError()) }
+                }
             },
         )
     }
@@ -80,17 +111,21 @@ class CircuitDetailViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadWinners() {
-        _uiState.update { it.copy(winners = AsyncValue.Loading) }
+    private suspend fun loadWinners(softRefresh: Boolean) {
+        if (!softRefresh || _uiState.value.winners !is AsyncValue.Value) {
+            _uiState.update { it.copy(winners = AsyncValue.Loading) }
+        }
         repository.getCircuitWinners(circuitId).applyUnlessCached(
             current = _uiState.value.winners,
             onSuccess = { _uiState.update { state -> state.copy(winners = AsyncValue.Value(it)) } },
             onFailure = { err ->
-                _uiState.update {
-                    it.copy(
-                        winners = err.toAsyncError(),
-                        error = err,
-                    )
+                if (_uiState.value.winners !is AsyncValue.Value) {
+                    _uiState.update {
+                        it.copy(
+                            winners = err.toAsyncError(),
+                            error = err,
+                        )
+                    }
                 }
             },
         )

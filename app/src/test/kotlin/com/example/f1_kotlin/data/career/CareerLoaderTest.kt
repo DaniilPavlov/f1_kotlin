@@ -119,11 +119,11 @@ class CareerLoaderTest {
                         driverTable = DriverTableModel(listOf(related)),
                     ),
                 )
+                path.endsWith("/races") -> emptyPage("42")
                 path.endsWith("/results/1") -> pageWithOptionalRace(total = "2", race = sampleWinRace())
                 path.endsWith("/results/2") -> emptyPage("1")
                 path.endsWith("/results/3") -> emptyPage("1")
                 path.endsWith("/qualifying/1") -> pageWithPole(total = "3")
-                path.endsWith("/results") -> pageWithOptionalRace(total = "1", race = sampleWinRace())
                 else -> emptyPage("0")
             }
         }
@@ -133,7 +133,7 @@ class CareerLoaderTest {
         )
         val career = CareerLoader.loadConstructorCareer(api, "mercedes", current)
 
-        assertEquals(1, career.races)
+        assertEquals(42, career.races)
         assertEquals(2, career.wins)
         assertEquals(1, career.podiums)
         assertEquals(3, career.poles)

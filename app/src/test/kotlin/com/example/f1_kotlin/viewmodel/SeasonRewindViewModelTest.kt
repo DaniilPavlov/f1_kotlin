@@ -49,12 +49,13 @@ class SeasonRewindViewModelTest {
     }
 
     @Test
-    fun init_loadsCompletedRacesAndStandings() = runTest {
-        val past = sampleRace(round = "1", date = LocalDate.now().minusDays(30).toString())
-        val future = sampleRace(round = "2", date = LocalDate.now().plusDays(30).toString())
-        coEvery { repository.getSeasonRaces("2025") } returns Result.success(listOf(past, future))
-        coEvery { repository.getStandingsAfterRound("2025", "1") } returns Result.success(
-            listOf(driverStanding("norris", "Norris", "25")) to
+    fun init_loadsCompletedRacesAndStandings_startsAtLastRound() = runTest {
+        val r1 = sampleRace(round = "1", date = LocalDate.now().minusDays(60).toString())
+        val r2 = sampleRace(round = "2", date = LocalDate.now().minusDays(30).toString())
+        val future = sampleRace(round = "3", date = LocalDate.now().plusDays(30).toString())
+        coEvery { repository.getSeasonRaces("2025") } returns Result.success(listOf(r1, r2, future))
+        coEvery { repository.getStandingsAfterRound("2025", "2") } returns Result.success(
+            listOf(driverStanding("norris", "Norris", "25", "mclaren")) to
                 listOf(constructorStanding("mclaren", "McLaren", "40")),
         )
 
@@ -65,36 +66,63 @@ class SeasonRewindViewModelTest {
         val state = viewModel.uiState.value
         assertEquals("2025", state.year)
         assertTrue(state.races is AsyncValue.Value)
-        assertEquals(1, (state.races as AsyncValue.Value).value.size)
-        assertEquals("1", state.chartRound)
+        assertEquals(2, (state.races as AsyncValue.Value).value.size)
+        assertEquals(1, state.selectedRoundIndex)
+        assertEquals("2", state.chartRound)
+        assertFalse(state.isChartStale)
         assertEquals(1, state.driverBars.size)
-        assertEquals("Norris", state.driverBars[0].label)
+        assertEquals("mclaren", state.driverBars[0].constructorId)
+        assertEquals(25.0, state.driverBars[0].points, 0.0)
         assertEquals(1, state.constructorBars.size)
-        assertTrue(state.canPlay.not())
+        assertTrue(state.canPlay)
     }
 
     @Test
-    fun selectRound_reloadsStandings() = runTest {
+    fun selectRound_reloadsStandings_firstRoundPoints() = runTest {
         val r1 = sampleRace(round = "1", date = LocalDate.now().minusDays(60).toString())
         val r2 = sampleRace(round = "2", date = LocalDate.now().minusDays(30).toString())
         coEvery { repository.getSeasonRaces("2025") } returns Result.success(listOf(r1, r2))
-        coEvery { repository.getStandingsAfterRound("2025", "1") } returns Result.success(
-            emptyList<DriverStanding>() to emptyList(),
-        )
         coEvery { repository.getStandingsAfterRound("2025", "2") } returns Result.success(
-            listOf(driverStanding("verstappen", "Verstappen", "50")) to emptyList(),
+            listOf(driverStanding("verstappen", "Verstappen", "50", "red_bull")) to
+                listOf(constructorStanding("red_bull", "Red Bull", "50")),
+        )
+        coEvery { repository.getStandingsAfterRound("2025", "1") } returns Result.success(
+            listOf(driverStanding("norris", "Norris", "25", "mclaren")) to
+                listOf(constructorStanding("mclaren", "McLaren", "25")),
         )
 
         val viewModel = SeasonRewindViewModel(repository, analytics)
         advanceUntilIdle()
-        assertTrue(viewModel.uiState.value.canPlay)
+        assertEquals(1, viewModel.uiState.value.selectedRoundIndex)
 
-        viewModel.selectRound(1)
+        viewModel.selectRound(0)
+        assertTrue(viewModel.uiState.value.isChartStale)
         advanceUntilIdle()
 
-        assertEquals(1, viewModel.uiState.value.selectedRoundIndex)
-        assertEquals("2", viewModel.uiState.value.chartRound)
-        assertEquals("Verstappen", viewModel.uiState.value.driverBars.first().label)
+        assertEquals(0, viewModel.uiState.value.selectedRoundIndex)
+        assertEquals("1", viewModel.uiState.value.chartRound)
+        assertFalse(viewModel.uiState.value.isChartStale)
+        assertEquals("Norris", viewModel.uiState.value.driverBars.first().label)
+        assertEquals(25.0, viewModel.uiState.value.driverBars.first().points, 0.0)
+    }
+
+    @Test
+    fun onTableChanged_switchesActiveBars() = runTest {
+        val r1 = sampleRace(round = "1", date = LocalDate.now().minusDays(30).toString())
+        coEvery { repository.getSeasonRaces("2025") } returns Result.success(listOf(r1))
+        coEvery { repository.getStandingsAfterRound("2025", "1") } returns Result.success(
+            listOf(driverStanding("norris", "Norris", "25", "mclaren")) to
+                listOf(constructorStanding("mclaren", "McLaren", "40")),
+        )
+
+        val viewModel = SeasonRewindViewModel(repository, analytics)
+        advanceUntilIdle()
+        assertEquals(0, viewModel.uiState.value.activeTable)
+        assertEquals("Norris", viewModel.uiState.value.activeBars.first().label)
+
+        viewModel.onTableChanged(1)
+        assertEquals(1, viewModel.uiState.value.activeTable)
+        assertEquals("McLaren", viewModel.uiState.value.activeBars.first().label)
     }
 
     @Test
@@ -115,22 +143,26 @@ class SeasonRewindViewModelTest {
     }
 
     @Test
-    fun togglePlayback_startsThenStopsWhenRoundsExhausted() = runTest {
+    fun togglePlayback_fromLastRound_restartsAtFirst() = runTest {
         val r1 = sampleRace(round = "1", date = LocalDate.now().minusDays(60).toString())
         val r2 = sampleRace(round = "2", date = LocalDate.now().minusDays(30).toString())
         coEvery { repository.getSeasonRaces("2025") } returns Result.success(listOf(r1, r2))
-        coEvery { repository.getStandingsAfterRound(any(), any()) } returns Result.success(
-            emptyList<DriverStanding>() to emptyList(),
+        coEvery { repository.getStandingsAfterRound("2025", "2") } returns Result.success(
+            listOf(driverStanding("verstappen", "Verstappen", "50", "red_bull")) to
+                listOf(constructorStanding("red_bull", "Red Bull", "50")),
+        )
+        coEvery { repository.getStandingsAfterRound("2025", "1") } returns Result.success(
+            listOf(driverStanding("norris", "Norris", "25", "mclaren")) to
+                listOf(constructorStanding("mclaren", "McLaren", "25")),
         )
 
         val viewModel = SeasonRewindViewModel(repository, analytics)
         advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.selectedRoundIndex)
 
         viewModel.togglePlayback()
-        assertTrue(viewModel.uiState.value.isPlaying)
-
-        // Virtual time runs through play delays until the last round stops playback.
         advanceUntilIdle()
+
         assertFalse(viewModel.uiState.value.isPlaying)
         assertEquals(1, viewModel.uiState.value.selectedRoundIndex)
     }
@@ -150,13 +182,18 @@ class SeasonRewindViewModelTest {
         results = emptyList(),
     )
 
-    private fun driverStanding(id: String, family: String, points: String) = DriverStanding(
+    private fun driverStanding(
+        id: String,
+        family: String,
+        points: String,
+        constructorId: String,
+    ) = DriverStanding(
         position = "1",
         positionText = "1",
         points = points,
         wins = "1",
         driver = Driver(id, "", "X", family, "1990-01-01", "British", code = family.take(3).uppercase()),
-        constructors = emptyList(),
+        constructors = listOf(Constructor(constructorId, "", constructorId, "British")),
     )
 
     private fun constructorStanding(id: String, name: String, points: String) = ConstructorStanding(

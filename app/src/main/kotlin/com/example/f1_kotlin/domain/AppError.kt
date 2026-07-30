@@ -50,6 +50,10 @@ fun Throwable.toAppError(): AppError = when (this) {
         title = if (code() == 429) ErrorStrings.tooManyRequests else ErrorStrings.responseParseError,
         subtitle = ErrorStrings.errorRetrySubtitle,
     )
+    is com.squareup.moshi.JsonDataException -> AppError(
+        title = ErrorStrings.responseParseError,
+        subtitle = ErrorStrings.errorRetrySubtitle,
+    )
     else -> AppError(
         title = ErrorStrings.unexpectedError,
         subtitle = ErrorStrings.errorRetrySubtitle,

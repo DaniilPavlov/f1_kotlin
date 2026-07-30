@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,6 +32,7 @@ import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.viewmodel.HallOfFameViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HallOfFameScreen(
     viewModel: HallOfFameViewModel,
@@ -41,52 +44,58 @@ fun HallOfFameScreen(
     val constructors = uiState.constructors
 
     when {
-        drivers.isLoading || constructors.isLoading -> TournamentTablesShimmer(
+        !uiState.isRefreshing && (drivers.isLoading || constructors.isLoading) -> TournamentTablesShimmer(
             showHeader = false,
             modifier = Modifier.fillMaxSize(),
         )
-        uiState.error != null -> ErrorBody(
+        uiState.error != null && drivers !is AsyncValue.Value -> ErrorBody(
             uiState.error?.title,
             uiState.error?.subtitle,
             onRetry = viewModel::loadAllData,
             modifier = Modifier.fillMaxSize(),
         )
         drivers is AsyncValue.Value && constructors is AsyncValue.Value -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = AppDimens.verticalPadding.dp),
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refreshAll,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
-                    Text(stringResource(R.string.hall_of_fame_title), style = AppStyles.h1)
-                    Spacer(Modifier.height(16.dp))
-                    Row {
-                        Column(modifier = Modifier.width(240.dp)) {
-                            SeasonPickerField(
-                                value = uiState.year,
-                                label = stringResource(R.string.season),
-                                hint = stringResource(R.string.select_season),
-                                onSeasonSelected = viewModel::onYearChanged,
-                                loadSeasons = viewModel::loadSeasonYears,
-                            )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = AppDimens.verticalPadding.dp),
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
+                        Text(stringResource(R.string.hall_of_fame_title), style = AppStyles.h1)
+                        Spacer(Modifier.height(16.dp))
+                        Row {
+                            Column(modifier = Modifier.width(240.dp)) {
+                                SeasonPickerField(
+                                    value = uiState.year,
+                                    label = stringResource(R.string.season),
+                                    hint = stringResource(R.string.select_season),
+                                    onSeasonSelected = viewModel::onYearChanged,
+                                    loadSeasons = viewModel::loadSeasonYears,
+                                )
+                            }
                         }
                     }
+                    Spacer(Modifier.height(24.dp))
+                    CustomSwitcher(
+                        stringResource(R.string.drivers),
+                        stringResource(R.string.constructors),
+                        uiState.activeTable,
+                        viewModel::changeActiveTable,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    if (uiState.activeTable == 0) {
+                        TournamentDriversTable(drivers.value, onDriverClick = onDriverClick)
+                    } else {
+                        TournamentConstructorsTable(constructors.value, onConstructorClick = onConstructorClick)
+                    }
+                    Spacer(Modifier.height(32.dp))
                 }
-                Spacer(Modifier.height(24.dp))
-                CustomSwitcher(
-                    stringResource(R.string.drivers),
-                    stringResource(R.string.constructors),
-                    uiState.activeTable,
-                    viewModel::changeActiveTable,
-                )
-                Spacer(Modifier.height(8.dp))
-                if (uiState.activeTable == 0) {
-                    TournamentDriversTable(drivers.value, onDriverClick = onDriverClick)
-                } else {
-                    TournamentConstructorsTable(constructors.value, onConstructorClick = onConstructorClick)
-                }
-                Spacer(Modifier.height(32.dp))
             }
         }
         else -> TournamentTablesShimmer(showHeader = false, modifier = Modifier.fillMaxSize())

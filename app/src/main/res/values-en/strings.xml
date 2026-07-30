@@ -24,10 +24,12 @@
     <string name="driver">Driver</string>
     <string name="constructor">Constructor</string>
     <string name="nationality">Nationality</string>
+    <string name="nationality_short">Nat.</string>
     <string name="points">Points</string>
     <string name="wins">Wins</string>
     <string name="wins_short">W</string>
     <string name="country">Country</string>
+    <string name="time">Time</string>
     <string name="time_status">Time /\nStatus</string>
     <string name="best_lap">Best\nlap</string>
     <string name="none_short">n/a</string>
@@ -144,8 +146,12 @@
     <string name="live_session_banner">Session live</string>
     <string name="live_session_banner_with_session">Live session: %1$s</string>
     <string name="season_rewind_title">Season rewind</string>
-    <string name="season_rewind_subtitle">Scrub standings round by round</string>
+    <string name="season_rewind_subtitle">Bar-chart race through championship standings</string>
     <string name="season_rewind_empty">No completed rounds for this season</string>
+    <string name="season_rewind_race_of">%1$d / %2$d</string>
+    <string name="season_rewind_chart_hint">Full standings by points — scrub or hit Play</string>
+    <string name="season_rewind_load_error">Could not load standings for this round</string>
+    <string name="season_rewind_retry_subtitle">Try again — the API sometimes rate-limits rapid scrubbing.</string>
     <string name="h2h_points_chart_title">Cumulative points</string>
     <string name="share_weekend_podium">Podium</string>
     <string name="widget_next_gp_title">Next GP</string>

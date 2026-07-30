@@ -54,16 +54,27 @@ class ApiCallHandlerTest {
     }
 
     @Test
-    fun safeCall_rateLimit_returnsLocalizedRateLimitMessageWithoutRetry() = runTest {
+    fun safeCall_rateLimit_retriesThenReturnsLocalizedMessage() = runTest {
         var attempts = 0
-        val result = ApiCallHandler.safeCall {
+        val result = ApiCallHandler.safeCall(retries = 1) {
             attempts++
             throw HttpException(Response.error<Any>(429, "{}".toResponseBody("application/json".toMediaType())))
         }
         val error = result.exceptionOrNull()!!.toAppError()
         assertEquals(ErrorStrings.tooManyRequests, error.title)
         assertEquals(ErrorStrings.errorRetrySubtitle, error.subtitle)
-        assertEquals(1, attempts)
+        assertEquals(2, attempts)
+    }
+
+    @Test
+    fun safeCall_rateLimit_respectsMaxRetries() = runTest {
+        var attempts = 0
+        val result = ApiCallHandler.safeCall(retries = 3) {
+            attempts++
+            throw HttpException(Response.error<Any>(429, "{}".toResponseBody("application/json".toMediaType())))
+        }
+        assertEquals(ErrorStrings.tooManyRequests, result.exceptionOrNull()!!.toAppError().title)
+        assertEquals(4, attempts)
     }
 
     @Test

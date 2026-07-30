@@ -26,7 +26,7 @@ import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.H2hCompareTable
 import com.example.f1_kotlin.ui.components.H2hFilterToggle
 import com.example.f1_kotlin.ui.components.SeasonPickerField
-import com.example.f1_kotlin.ui.components.shimmer.ListRowsShimmer
+import com.example.f1_kotlin.ui.components.shimmer.H2hCompareShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
@@ -83,7 +83,7 @@ fun H2hDriversScreen(viewModel: H2hDriversViewModel) {
         )
         Spacer(Modifier.height(24.dp))
         when (val state = uiState.comparison) {
-            is AsyncValue.Loading -> ListRowsShimmer(rowCount = 4)
+            is AsyncValue.Loading -> H2hCompareShimmer()
             is AsyncValue.Error -> ErrorBody(
                 state.message,
                 state.subtitle,
@@ -160,7 +160,7 @@ fun H2hConstructorsScreen(viewModel: H2hConstructorsViewModel) {
         )
         Spacer(Modifier.height(24.dp))
         when (val state = uiState.comparison) {
-            is AsyncValue.Loading -> ListRowsShimmer(rowCount = 4)
+            is AsyncValue.Loading -> H2hCompareShimmer()
             is AsyncValue.Error -> ErrorBody(
                 state.message,
                 state.subtitle,

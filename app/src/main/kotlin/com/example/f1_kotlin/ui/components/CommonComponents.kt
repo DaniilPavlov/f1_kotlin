@@ -352,7 +352,6 @@ fun TableHeaderRow(
 sealed interface TableCell {
     data class Text(val value: String, val color: Color? = null) : TableCell
     data class Flag(val countryOrNationality: String) : TableCell
-    /** Как во Flutter: место слева + имя (часто с `\n`) по центру. */
     data class PlaceAndName(
         val place: String,
         val name: String,
@@ -424,7 +423,6 @@ fun TableDataRow(
 @Composable
 private fun PlaceAndNameContent(cell: TableCell.PlaceAndName) {
     val colors = appColors()
-    // Как Flutter: место слева, имя по центру оставшейся ширины той же колонки.
     Row(
         modifier = Modifier
             .fillMaxWidth()

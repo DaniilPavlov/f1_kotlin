@@ -99,4 +99,20 @@ class ConstructorDetailViewModelTest {
 
         assertTrue(viewModel.uiState.value.constructor is AsyncValue.Error)
     }
+
+    @Test
+    fun careerStats_failure_setsErrorWhileConstructorLoaded() = runTest {
+        val ctor = Constructor("mclaren", "", "McLaren", "British")
+        coEvery { repository.getConstructor("mclaren") } returns Result.success(ctor)
+        coEvery { repository.getConstructorCareerStats("mclaren", any()) } returns Result.failure(
+            AppError("Слишком много запросов", "Попробуйте обновить экран.").asException(),
+        )
+
+        val viewModel = ConstructorDetailViewModel(savedStateHandle, repository, espnRepository)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.constructor is AsyncValue.Value)
+        assertTrue(viewModel.uiState.value.careerStats is AsyncValue.Error)
+        assertEquals("Слишком много запросов", viewModel.uiState.value.error?.title)
+    }
 }

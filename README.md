@@ -123,7 +123,7 @@ In Android Studio: Run → **app** configuration.
 
 CI runs `koverXmlReportDebug` + `koverHtmlReportDebug` + `koverVerifyDebug`.
 
-UI / widgets / DI / Firebase / DTOs / `@Composable` are excluded from the gate (logic-focused, like Flutter controller coverage).
+UI / widgets / DI / Firebase / DTOs / `@Composable` are excluded from the gate (logic-focused)
 
 
 Covered areas include:
@@ -197,5 +197,5 @@ Forced reload (`refreshAll`) soft-invalidates ESPN + in-memory caches via `AppDa
 - **Force update** — blocking screen when below Remote Config `min_app_version`  
 - **Offline** — Room cache with instant peek and network refresh  
 - **Share** — career stats and race results as PNG via the system share sheet  
-- **Shimmer skeletons** — loading placeholders for main screens (like Flutter)  
+- **Shimmer skeletons** — loading placeholders for main screens 
 - **Country flags** — nationality / country as emoji in tables, career cards, circuits, scoreboard  

@@ -28,6 +28,7 @@ data class DriverDetailUiState(
         > = AsyncValue.Loading,
     val espnCard: EspnDriverCardData = EspnDriverCardData(),
     val error: AppError? = null,
+    val isRefreshing: Boolean = false,
 )
 
 @HiltViewModel
@@ -48,31 +49,63 @@ class DriverDetailViewModel @Inject constructor(
 
     fun loadAllData() {
         loadJob.launch(viewModelScope) {
-            _uiState.update {
-                it.copy(
-                    error = null,
-                    driver = AsyncValue.Loading,
-                    careerStats = AsyncValue.Loading,
-                    espnCard = EspnDriverCardData(),
-                )
+            loadInternal(softRefresh = false)
+        }
+    }
+
+    /** Pull-to-refresh: keep Values while reloading. */
+    fun refreshAll() {
+        loadJob.launch(viewModelScope) {
+            loadInternal(softRefresh = true)
+        }
+    }
+
+    private suspend fun loadInternal(softRefresh: Boolean) {
+        try {
+            if (softRefresh) {
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = true,
+                        error = null,
+                        driver = if (it.driver is AsyncValue.Value) it.driver else AsyncValue.Loading,
+                        careerStats = if (it.careerStats is AsyncValue.Value) {
+                            it.careerStats
+                        } else {
+                            AsyncValue.Loading
+                        },
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        error = null,
+                        driver = AsyncValue.Loading,
+                        careerStats = AsyncValue.Loading,
+                        espnCard = EspnDriverCardData(),
+                    )
+                }
             }
 
             val currentConstructors = repository.currentConstructorsForDriver(driverId)
             val driverResult = repository.getDriver(driverId)
             driverResult.onFailure { ex ->
                 val err = ex.toAppError()
-                _uiState.update {
-                    it.copy(
-                        driver = err.toAsyncError(),
-                        error = err,
-                    )
+                if (_uiState.value.driver !is AsyncValue.Value) {
+                    _uiState.update {
+                        it.copy(
+                            driver = err.toAsyncError(),
+                            error = err,
+                        )
+                    }
                 }
-                return@launch
+                return
             }
             val loadedDriver = driverResult.getOrNull()
             if (loadedDriver == null) {
-                _uiState.update { it.copy(driver = AsyncValue.Error(ErrorStrings.driverNotFound)) }
-                return@launch
+                if (_uiState.value.driver !is AsyncValue.Value) {
+                    _uiState.update { it.copy(driver = AsyncValue.Error(ErrorStrings.driverNotFound)) }
+                }
+                return
             }
             _uiState.update { it.copy(driver = AsyncValue.Value(loadedDriver)) }
 
@@ -100,6 +133,8 @@ class DriverDetailViewModel @Inject constructor(
                 )
                 _uiState.update { it.copy(espnCard = espnDeferred.await()) }
             }
+        } finally {
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 }

@@ -42,7 +42,7 @@ object DateUtils {
     }
 
     /**
-     * Парсит UTC-дату/время сессии. Пустое [time] → полночь UTC (как в Flutter [RaceDateTimeHelper]).
+     * Парсит UTC-дату/время сессии. Пустое [time] → полночь UTC.
      */
     fun parseUtcSession(date: String, time: String?): ZonedDateTime {
         val raw = time?.trim().orEmpty().removeSuffix("Z")

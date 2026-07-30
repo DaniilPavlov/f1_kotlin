@@ -1,5 +1,7 @@
 package com.example.f1_kotlin.ui.screens.results
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -36,11 +39,14 @@ import com.example.f1_kotlin.ui.components.RacePickerField
 import com.example.f1_kotlin.ui.components.RaceResultsTable
 import com.example.f1_kotlin.ui.components.SeasonPickerField
 import com.example.f1_kotlin.ui.components.SectionHeader
+import com.example.f1_kotlin.ui.components.TableHeaderRow
 import com.example.f1_kotlin.ui.components.shimmer.LastRaceSectionShimmer
+import com.example.f1_kotlin.ui.components.shimmer.ListRowsShimmer
 import com.example.f1_kotlin.ui.components.shimmer.RaceInfoShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.util.RegisterShareAction
 import com.example.f1_kotlin.util.rememberShareRaceAction
 import com.example.f1_kotlin.viewmodel.RaceInfoScreenViewModel
@@ -221,6 +227,7 @@ fun RaceSearchScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun RaceInfoScreen(
     viewModel: RaceInfoScreenViewModel,
@@ -244,46 +251,138 @@ fun RaceInfoScreen(
         race is AsyncValue.Value -> {
             val raceData = race.value
             RegisterShareAction(rememberShareRaceAction(raceData))
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = AppDimens.horizontalPadding.dp),
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refreshAll,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                Text(raceData.raceName, style = AppStyles.h2)
-                RowInfo(
-                    stringResource(R.string.season_label, raceData.season),
-                    stringResource(R.string.round_label, raceData.round),
-                )
-                SectionHeader(stringResource(R.string.race))
-                RaceResultsTable(race = raceData, showHeader = false, onDriverClick = onDriverClick)
-                Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                if (sprint is AsyncValue.Value && sprint.value.isNotEmpty()) {
-                    SectionHeader(stringResource(R.string.sprint))
-                    RaceResultsTable(
-                        race = raceData.copy(results = sprint.value),
-                        showHeader = false,
-                        onDriverClick = onDriverClick,
-                    )
-                    Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                // pinned section app bars
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = AppDimens.horizontalPadding.dp),
+                ) {
+                    item {
+                        Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                        Text(raceData.raceName, style = AppStyles.h2)
+                        RowInfo(
+                            stringResource(R.string.season_label, raceData.season),
+                            stringResource(R.string.round_label, raceData.round),
+                        )
+                    }
+                    stickyHeader {
+                        RaceInfoPinnedHeader(
+                            title = stringResource(R.string.race),
+                            headerCells = listOf(
+                                stringResource(R.string.driver),
+                                stringResource(R.string.constructor),
+                                stringResource(R.string.time),
+                                stringResource(R.string.points),
+                                stringResource(R.string.best_lap),
+                            ),
+                            weights = RaceResultsStickyWeights,
+                        )
+                    }
+                    item {
+                        RaceResultsTable(
+                            race = raceData,
+                            showHeader = false,
+                            timeHeaderRes = R.string.time,
+                            onDriverClick = onDriverClick,
+                        )
+                        Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                    }
+                    if (sprint is AsyncValue.Value && sprint.value.isNotEmpty()) {
+                        stickyHeader {
+                            RaceInfoPinnedHeader(
+                                title = stringResource(R.string.sprint),
+                                headerCells = listOf(
+                                    stringResource(R.string.driver),
+                                    stringResource(R.string.constructor),
+                                    stringResource(R.string.time),
+                                    stringResource(R.string.points),
+                                    stringResource(R.string.best_lap),
+                                ),
+                                weights = RaceResultsStickyWeights,
+                            )
+                        }
+                        item {
+                            RaceResultsTable(
+                                race = raceData.copy(results = sprint.value),
+                                showHeader = false,
+                                timeHeaderRes = R.string.time,
+                                onDriverClick = onDriverClick,
+                            )
+                            Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                        }
+                    }
+                    stickyHeader {
+                        RaceInfoPinnedHeader(
+                            title = stringResource(R.string.qualifying),
+                            headerCells = listOf(
+                                stringResource(R.string.driver),
+                                stringResource(R.string.constructor),
+                                "Q1",
+                                "Q2",
+                                "Q3",
+                            ),
+                        )
+                    }
+                    item {
+                        when (val q = qualifying) {
+                            is AsyncValue.Loading -> ListRowsShimmer(rowCount = 8)
+                            is AsyncValue.Error -> Text(q.message, style = AppStyles.body)
+                            is AsyncValue.Value -> QualifyingTable(
+                                results = q.value,
+                                showHeader = false,
+                                onDriverClick = onDriverClick,
+                            )
+                        }
+                        Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                    }
+                    stickyHeader {
+                        RaceInfoPinnedHeader(
+                            title = stringResource(R.string.pit_stops),
+                            headerCells = listOf(
+                                stringResource(R.string.driver),
+                                stringResource(R.string.lap),
+                                stringResource(R.string.stop_number),
+                                stringResource(R.string.stop_time),
+                                stringResource(R.string.race_time),
+                            ),
+                        )
+                    }
+                    item {
+                        when (val p = pitStops) {
+                            is AsyncValue.Loading -> ListRowsShimmer(rowCount = 6)
+                            is AsyncValue.Error -> Text(p.message, style = AppStyles.body)
+                            is AsyncValue.Value -> PitStopsTable(stops = p.value, showHeader = false)
+                        }
+                        Spacer(Modifier.height(32.dp))
+                    }
                 }
-                SectionHeader(stringResource(R.string.qualifying))
-                when (val q = qualifying) {
-                    is AsyncValue.Loading -> LoadingIndicator(Modifier.padding(vertical = 16.dp))
-                    is AsyncValue.Error -> Text(q.message, style = AppStyles.body)
-                    is AsyncValue.Value -> QualifyingTable(q.value, onDriverClick = onDriverClick)
-                }
-                Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                SectionHeader(stringResource(R.string.pit_stops))
-                when (val p = pitStops) {
-                    is AsyncValue.Loading -> LoadingIndicator(Modifier.padding(vertical = 16.dp))
-                    is AsyncValue.Error -> Text(p.message, style = AppStyles.body)
-                    is AsyncValue.Value -> PitStopsTable(p.value)
-                }
-                Spacer(Modifier.height(32.dp))
             }
         }
+    }
+}
+
+/** Flex weights. */
+private val RaceResultsStickyWeights = listOf(1.15f, 1.35f, 1.1f, 0.55f, 0.9f)
+
+/** Section title + column headers — sticks while that section is scrolling. */
+@Composable
+private fun RaceInfoPinnedHeader(
+    title: String,
+    headerCells: List<String>,
+    weights: List<Float>? = null,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(appColors().white),
+    ) {
+        SectionHeader(title)
+        TableHeaderRow(cells = headerCells, weights = weights)
     }
 }
 

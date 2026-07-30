@@ -36,7 +36,7 @@ class F1TableHeaderView @JvmOverloads constructor(
 
     /**
      * @param columnWeights относительные ширины; пусто / другой размер — равные колонки.
-     * Заголовки могут содержать `\n` (как во Flutter).
+     * Заголовки могут содержать `\n`
      */
     fun setColumns(values: List<String>, columnWeights: List<Float>? = null) {
         columns = values
