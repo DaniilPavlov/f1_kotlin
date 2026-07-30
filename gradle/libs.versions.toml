@@ -1,6 +1,6 @@
 [versions]
 agp = "9.3.1"
-kotlin = "2.3.21"
+kotlin = "2.4.10"
 # KSP 2.3.x is versioned independently of the Kotlin compiler.
 ksp = "2.3.10"
 detekt = "1.23.8"
@@ -27,7 +27,7 @@ kotlinxSerialization = "1.11.0"
 mockk = "1.13.12"
 robolectric = "4.14.1"
 coil = "2.7.0"
-appmetrica = "8.4.0"
+appmetrica = "8.4.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
