@@ -6,6 +6,7 @@ import com.example.f1_kotlin.data.model.CircuitModel
 import com.example.f1_kotlin.data.model.ConstructorModel
 import com.example.f1_kotlin.data.model.ConstructorTableModel
 import com.example.f1_kotlin.data.model.DriverModel
+import com.example.f1_kotlin.data.model.DriverTableModel
 import com.example.f1_kotlin.data.model.MrDataResponse
 import com.example.f1_kotlin.data.model.MrDataTotalModel
 import com.example.f1_kotlin.data.model.QualifyingResultModel
@@ -13,6 +14,7 @@ import com.example.f1_kotlin.data.model.RaceModel
 import com.example.f1_kotlin.data.model.RaceResultModel
 import com.example.f1_kotlin.data.model.RaceTableModel
 import com.example.f1_kotlin.domain.model.Constructor
+import com.example.f1_kotlin.domain.model.Driver
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -103,6 +105,86 @@ class CareerLoaderTest {
         assertEquals(1, career.winRaces.size)
         assertEquals("Bahrain Grand Prix", career.winRaces.first().raceName)
         assertTrue(career.poleRaces.isNotEmpty())
+    }
+
+    @Test
+    fun loadConstructorCareer_usesPagesAndRelatedDrivers() = runTest {
+        val related = sampleDriver()
+        coEvery { api.getMrDataTotal(any(), any(), any()) } answers {
+            val path = firstArg<String>()
+            when {
+                path.endsWith("/drivers") -> MrDataResponse(
+                    MrDataTotalModel(
+                        total = "1",
+                        driverTable = DriverTableModel(listOf(related)),
+                    ),
+                )
+                path.endsWith("/results/1") -> pageWithOptionalRace(total = "2", race = sampleWinRace())
+                path.endsWith("/results/2") -> emptyPage("1")
+                path.endsWith("/results/3") -> emptyPage("1")
+                path.endsWith("/qualifying/1") -> pageWithPole(total = "3")
+                path.endsWith("/results") -> pageWithOptionalRace(total = "1", race = sampleWinRace())
+                else -> emptyPage("0")
+            }
+        }
+
+        val current = listOf(
+            Driver("hamilton", "", "Lewis", "Hamilton", "1985-01-07", "British"),
+        )
+        val career = CareerLoader.loadConstructorCareer(api, "mercedes", current)
+
+        assertEquals(1, career.races)
+        assertEquals(2, career.wins)
+        assertEquals(1, career.podiums)
+        assertEquals(3, career.poles)
+        assertEquals(current, career.current)
+        assertEquals(listOf("hamilton"), career.related.map { it.driverId })
+        assertEquals(1, career.winRaces.size)
+        assertTrue(career.poleRaces.isNotEmpty())
+    }
+
+    @Test
+    fun loadH2hRoundScores_mergesRaceAndSprintPoints() = runTest {
+        coEvery { api.getMrDataTotal(any(), any(), any()) } answers {
+            val path = firstArg<String>()
+            when {
+                path.endsWith("/sprint") -> MrDataResponse(
+                    MrDataTotalModel(
+                        total = "1",
+                        raceTable = RaceTableModel(
+                            races = listOf(
+                                sampleWinRace().copy(
+                                    results = null,
+                                    sprintResults = listOf(
+                                        RaceResultModel(
+                                            number = "44",
+                                            position = "2",
+                                            positionText = "2",
+                                            points = "7",
+                                            driver = sampleDriver(),
+                                            constructor = ConstructorModel("mercedes", "", "Mercedes", "German"),
+                                            grid = "2",
+                                            laps = "19",
+                                            status = "Finished",
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                path.endsWith("/results") -> pageWithOptionalRace(total = "1", race = sampleWinRace())
+                else -> emptyPage("0")
+            }
+        }
+
+        val scores = CareerLoader.loadH2hRoundScores(api, "drivers/hamilton")
+
+        assertEquals(1, scores.size)
+        assertEquals("2024", scores.single().season)
+        assertEquals("1", scores.single().round)
+        assertEquals("Bahrain Grand Prix", scores.single().raceName)
+        assertEquals(32.0, scores.single().points, 0.0) // 25 race + 7 sprint
     }
 
     private fun stubTotalsByPathSuffix(

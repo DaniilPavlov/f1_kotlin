@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kover)
 }
 
 val localProperties = Properties().apply {
@@ -118,6 +119,78 @@ detekt {
     config.setFrom("$rootDir/config/detekt/detekt.yml")
 }
 
+// Business-logic coverage gate (~Flutter controller/util/repo unit coverage).
+kover {
+    reports {
+        filters {
+            excludes {
+                classes(
+                    "*.BuildConfig",
+                    "*.R",
+                    "*.R$*",
+                    "*ComposableSingletons*",
+                    "*_Factory*",
+                    "*_HiltModules*",
+                    "*_MembersInjector*",
+                    "*_Impl*",
+                    "com.example.f1_kotlin.F1Application*",
+                    "com.example.f1_kotlin.MainActivity*",
+                    "com.example.f1_kotlin.Hilt_MainActivity*",
+                    "com.example.f1_kotlin.AppKt*",
+                    "com.example.f1_kotlin.util.ShareHelper*",
+                    "com.example.f1_kotlin.util.AppLogger*",
+                    "com.example.f1_kotlin.util.TrustedUrlKt*",
+                    "com.example.f1_kotlin.data.analytics.AppAnalyticsGateway*",
+                    "com.example.f1_kotlin.data.circuits.CircuitLayoutAssets*",
+                    "com.example.f1_kotlin.data.circuits.CircuitStats*",
+                    "com.example.f1_kotlin.data.circuits.CircuitStatsRepository*",
+                    "com.example.f1_kotlin.data.repository.IF1Repository*",
+                    "com.example.f1_kotlin.data.repository.IEspnRepository*",
+                    "com.example.f1_kotlin.domain.ThemePreferences*",
+                    "com.example.f1_kotlin.domain.LocalePreferences*",
+                    "com.example.f1_kotlin.ui.views.*",
+                    "com.example.f1_kotlin.ui.map.*",
+                )
+                annotatedBy(
+                    "androidx.compose.runtime.Composable",
+                    "androidx.compose.ui.tooling.preview.Preview",
+                    "dagger.Module",
+                    "dagger.internal.DaggerGenerated",
+                )
+                packages(
+                    "dagger.hilt.internal.aggregatedroot.codegen",
+                    "dagger.hilt.internal.aggregatedroot.codegen.*",
+                    "hilt_aggregated_deps",
+                    "hilt_aggregated_deps.*",
+                    "com.example.f1_kotlin.ui",
+                    "com.example.f1_kotlin.ui.*",
+                    "com.example.f1_kotlin.widgets",
+                    "com.example.f1_kotlin.widgets.*",
+                    "com.example.f1_kotlin.di",
+                    "com.example.f1_kotlin.di.*",
+                    "com.example.f1_kotlin.notifications",
+                    "com.example.f1_kotlin.notifications.*",
+                    "com.example.f1_kotlin.data.firebase",
+                    "com.example.f1_kotlin.data.firebase.*",
+                    "com.example.f1_kotlin.data.appmetrica",
+                    "com.example.f1_kotlin.data.appmetrica.*",
+                    "com.example.f1_kotlin.data.model",
+                    "com.example.f1_kotlin.data.model.*",
+                    "com.example.f1_kotlin.data.api",
+                    "com.example.f1_kotlin.data.api.*",
+                    "com.example.f1_kotlin.data.local",
+                    "com.example.f1_kotlin.data.local.*",
+                )
+            }
+        }
+        verify {
+            rule {
+                minBound(75)
+            }
+        }
+    }
+}
+
 configurations.configureEach {
     resolutionStrategy {
         // Avoid androidx.fragment:1.5.4 which Google Maven intermittently 404s.
@@ -164,6 +237,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.ext.junit)

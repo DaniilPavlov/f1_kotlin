@@ -33,6 +33,7 @@ class H2hDriversViewModelTest {
         Dispatchers.setMain(dispatcher)
         repository = mockk()
         coEvery { repository.getSeasonYears() } returns Result.success(listOf("2026", "2025"))
+        coEvery { repository.getDriverH2hRoundScores(any(), any()) } returns Result.success(emptyList())
     }
 
     @After

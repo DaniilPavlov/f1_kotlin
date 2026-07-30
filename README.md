@@ -113,11 +113,18 @@ In Android Studio: Run → **app** configuration.
 
 ## Tests
 
-**Unit (JVM)** — MockK + `kotlinx-coroutines-test`; run on CI:
+**Unit (JVM)** — MockK + `kotlinx-coroutines-test` (+ Robolectric for Android APIs); coverage via **Kover** (gate **75%** on filtered business logic, same idea as `f1_kmp`):
 
 ```bash
 ./gradlew :app:testDebugUnitTest
+./gradlew :app:koverHtmlReportDebug       # HTML → app/build/reports/kover/htmlDebug/
+./gradlew :app:koverVerifyDebug           # fails if coverage < 75%
 ```
+
+CI runs `koverXmlReportDebug` + `koverHtmlReportDebug` + `koverVerifyDebug`.
+
+UI / widgets / DI / Firebase / DTOs / `@Composable` are excluded from the gate (logic-focused, like Flutter controller coverage).
+
 
 Covered areas include:
 
