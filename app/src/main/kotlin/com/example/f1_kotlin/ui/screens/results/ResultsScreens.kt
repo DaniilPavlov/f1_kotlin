@@ -53,6 +53,7 @@ fun ResultsScreen(
     viewModel: ResultsViewModel,
     onSearchRace: () -> Unit,
     onHallOfFame: () -> Unit,
+    onSeasonRewind: () -> Unit = {},
     onH2hDrivers: () -> Unit,
     onH2hConstructors: () -> Unit,
     onFinishStatus: () -> Unit,
@@ -66,6 +67,7 @@ fun ResultsScreen(
         onRefresh = viewModel::refreshAll,
         onSearchRace = onSearchRace,
         onHallOfFame = onHallOfFame,
+        onSeasonRewind = onSeasonRewind,
         onH2hDrivers = onH2hDrivers,
         onH2hConstructors = onH2hConstructors,
         onFinishStatus = onFinishStatus,
@@ -84,6 +86,7 @@ fun ResultsScreenContent(
     onRefresh: () -> Unit = {},
     onSearchRace: () -> Unit = {},
     onHallOfFame: () -> Unit = {},
+    onSeasonRewind: () -> Unit = {},
     onH2hDrivers: () -> Unit = {},
     onH2hConstructors: () -> Unit = {},
     onFinishStatus: () -> Unit = {},
@@ -142,6 +145,8 @@ fun ResultsScreenContent(
             BoxedAction(title = stringResource(R.string.choose_specific_race), onClick = onSearchRace)
             Spacer(Modifier.height(12.dp))
             BoxedAction(title = stringResource(R.string.hall_of_fame_title), onClick = onHallOfFame)
+            Spacer(Modifier.height(12.dp))
+            BoxedAction(title = stringResource(R.string.season_rewind_title), onClick = onSeasonRewind)
             Spacer(Modifier.height(12.dp))
             BoxedAction(title = stringResource(R.string.h2h_title), onClick = onH2hDrivers)
             Spacer(Modifier.height(12.dp))

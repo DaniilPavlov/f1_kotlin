@@ -1,5 +1,6 @@
 package com.example.f1_kotlin.ui.navigation
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -36,9 +39,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.f1_kotlin.data.analytics.AnalyticsEvent
+import com.example.f1_kotlin.data.deeplink.DeepLinkTarget
+import com.example.f1_kotlin.di.AppEntryPoint
 import com.example.f1_kotlin.domain.model.Constructor
 import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.ui.components.F1AppBar
+import com.example.f1_kotlin.ui.components.LiveSessionBanner
 import com.example.f1_kotlin.ui.screens.circuits.CircuitDetailScreen
 import com.example.f1_kotlin.ui.screens.circuits.CircuitsScreen
 import com.example.f1_kotlin.ui.screens.constructor.ConstructorDetailScreen
@@ -52,49 +59,59 @@ import com.example.f1_kotlin.ui.screens.news.NewsScreen
 import com.example.f1_kotlin.ui.screens.results.RaceInfoScreen
 import com.example.f1_kotlin.ui.screens.results.RaceSearchScreen
 import com.example.f1_kotlin.ui.screens.results.ResultsScreen
+import com.example.f1_kotlin.ui.screens.rewind.SeasonRewindScreen
 import com.example.f1_kotlin.ui.screens.schedule.ScheduleScreen
 import com.example.f1_kotlin.ui.theme.AppStyles
-import com.example.f1_kotlin.ui.theme.F1Black
+import com.example.f1_kotlin.ui.theme.F1Chrome
+import com.example.f1_kotlin.ui.theme.F1OnChrome
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1White
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.util.LocalShareActionSetter
+import dagger.hilt.android.EntryPointAccessors
 import kotlin.reflect.KClass
+import kotlinx.coroutines.flow.collectLatest
 
 sealed class BottomTab(
     val route: Any,
     val routeClass: KClass<out Any>,
     val labelRes: Int,
     val iconRes: Int,
+    val analyticsTab: String,
 ) {
     data object Home : BottomTab(
         route = com.example.f1_kotlin.ui.navigation.Home,
         routeClass = com.example.f1_kotlin.ui.navigation.Home::class,
         labelRes = com.example.f1_kotlin.R.string.nav_home,
         iconRes = com.example.f1_kotlin.R.drawable.nav_home,
+        analyticsTab = "home",
     )
     data object Results : BottomTab(
         route = com.example.f1_kotlin.ui.navigation.Results,
         routeClass = com.example.f1_kotlin.ui.navigation.Results::class,
         labelRes = com.example.f1_kotlin.R.string.nav_results,
         iconRes = com.example.f1_kotlin.R.drawable.nav_racing_car,
+        analyticsTab = "results",
     )
     data object Schedule : BottomTab(
         route = com.example.f1_kotlin.ui.navigation.Schedule,
         routeClass = com.example.f1_kotlin.ui.navigation.Schedule::class,
         labelRes = com.example.f1_kotlin.R.string.nav_calendar,
         iconRes = com.example.f1_kotlin.R.drawable.nav_lights,
+        analyticsTab = "schedule",
     )
     data object News : BottomTab(
         route = com.example.f1_kotlin.ui.navigation.News,
         routeClass = com.example.f1_kotlin.ui.navigation.News::class,
         labelRes = com.example.f1_kotlin.R.string.nav_news,
         iconRes = com.example.f1_kotlin.R.drawable.nav_trophy,
+        analyticsTab = "news",
     )
     data object Circuits : BottomTab(
         route = com.example.f1_kotlin.ui.navigation.Circuits,
         routeClass = com.example.f1_kotlin.ui.navigation.Circuits::class,
         labelRes = com.example.f1_kotlin.R.string.nav_circuits,
         iconRes = com.example.f1_kotlin.R.drawable.nav_circuit,
+        analyticsTab = "circuits",
     )
 }
 
@@ -108,25 +125,40 @@ private val tabs = listOf(
 
 @Composable
 fun F1App() {
+    val context = LocalContext.current
+    val entryPoint = rememberAppEntryPoint(context)
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
     val showBottomBar = tabs.any { destination?.hasRoute(it.routeClass) == true }
     val popBack: () -> Unit = { navController.popBackStack() }
     var shareAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val liveController = remember { entryPoint.liveWeekendController() }
+    val analytics = remember { entryPoint.analyticsGateway() }
+
+    LaunchedEffect(Unit) {
+        liveController.loadScoreboard()
+        entryPoint.deepLinkBus().targets.collectLatest { target ->
+            navigateDeepLink(navController, target, liveController.isLive)
+        }
+    }
 
     val onDriverClick: (Driver) -> Unit = { driver ->
+        analytics.log(AnalyticsEvent.DriverOpened(driver.driverId, driver.fullName))
         navController.navigate(DriverDetail(driver.driverId))
     }
     val onConstructorClick: (Constructor) -> Unit = { constructor ->
+        analytics.log(AnalyticsEvent.ConstructorOpened(constructor.constructorId, constructor.name))
         navController.navigate(ConstructorDetail(constructor.constructorId))
     }
     val onCircuitClick: (com.example.f1_kotlin.domain.model.Circuit) -> Unit = { circuit ->
+        analytics.log(AnalyticsEvent.CircuitOpened(circuit.circuitId, circuit.circuitName))
         navController.navigate(CircuitDetail(circuit.circuitId))
     }
 
     CompositionLocalProvider(LocalShareActionSetter provides { shareAction = it }) {
         Scaffold(
+            containerColor = appColors().white,
             topBar = {
                 F1TopBar(
                     destination = destination,
@@ -137,16 +169,29 @@ fun F1App() {
             },
             bottomBar = {
                 if (showBottomBar) {
-                    F1BottomBar(
-                        currentDestination = destination,
-                        onTabSelected = { tab ->
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                    )
+                    Column {
+                        LiveSessionBanner(
+                            controller = liveController,
+                            onTap = {
+                                navController.navigate(Results) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                        )
+                        F1BottomBar(
+                            currentDestination = destination,
+                            onTabSelected = { tab ->
+                                analytics.log(AnalyticsEvent.TabSwitched(tab.analyticsTab))
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                        )
+                    }
                 }
             },
         ) { padding ->
@@ -159,6 +204,39 @@ fun F1App() {
                     .fillMaxSize()
                     .padding(padding),
             )
+        }
+    }
+}
+
+@Composable
+private fun rememberAppEntryPoint(context: Context): AppEntryPoint {
+    val app = context.applicationContext
+    return remember(app) {
+        EntryPointAccessors.fromApplication(app, AppEntryPoint::class.java)
+    }
+}
+
+private fun navigateDeepLink(
+    navController: NavHostController,
+    target: DeepLinkTarget,
+    isLive: Boolean,
+) {
+    when (target) {
+        is DeepLinkTarget.Driver -> navController.navigate(DriverDetail(target.driverId))
+        is DeepLinkTarget.Constructor -> navController.navigate(ConstructorDetail(target.constructorId))
+        is DeepLinkTarget.Circuit -> navController.navigate(CircuitDetail(target.circuitId))
+        DeepLinkTarget.RaceLive -> navController.navigate(Results) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+        is DeepLinkTarget.Race -> {
+            val route = if (isLive) Results else Schedule
+            navController.navigate(route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
         }
     }
 }
@@ -178,6 +256,10 @@ private fun F1TopBar(
         )
         destination?.hasRoute<HallOfFame>() == true -> F1AppBar(
             title = stringResource(com.example.f1_kotlin.R.string.hall_of_fame_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<SeasonRewind>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.season_rewind_title),
             onBack = popBack,
         )
         destination?.hasRoute<H2hDrivers>() == true -> F1AppBar(
@@ -200,6 +282,7 @@ private fun F1TopBar(
         destination?.hasRoute<CircuitDetail>() == true -> F1AppBar(
             title = stringResource(com.example.f1_kotlin.R.string.circuit_info_title),
             onBack = popBack,
+            onShare = shareAction,
         )
         destination?.hasRoute<DriverDetail>() == true -> F1AppBar(
             title = stringResource(com.example.f1_kotlin.R.string.driver),
@@ -239,6 +322,7 @@ private fun F1NavHost(
                 viewModel = hiltViewModel(),
                 onSearchRace = { navController.navigate(RaceSearch) },
                 onHallOfFame = { navController.navigate(HallOfFame) },
+                onSeasonRewind = { navController.navigate(SeasonRewind) },
                 onH2hDrivers = { navController.navigate(H2hDrivers) },
                 onH2hConstructors = { navController.navigate(H2hConstructors) },
                 onFinishStatus = { navController.navigate(FinishStatus) },
@@ -263,6 +347,9 @@ private fun F1NavHost(
                 onDriverClick = onDriverClick,
                 onConstructorClick = onConstructorClick,
             )
+        }
+        composable<SeasonRewind> {
+            SeasonRewindScreen(viewModel = hiltViewModel())
         }
         composable<H2hDrivers> {
             H2hDriversScreen(viewModel = hiltViewModel())
@@ -324,7 +411,7 @@ private fun F1BottomBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(F1Black)
+                .background(F1Chrome)
                 .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 5.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -332,7 +419,7 @@ private fun F1BottomBar(
             tabs.forEach { tab ->
                 val label = stringResource(tab.labelRes)
                 val selected = currentDestination?.hasRoute(tab.routeClass) == true
-                val contentColor = if (selected) F1Red else F1White
+                val contentColor = if (selected) F1Red else F1OnChrome
                 Column(
                     modifier = Modifier
                         .clickable { onTabSelected(tab) }

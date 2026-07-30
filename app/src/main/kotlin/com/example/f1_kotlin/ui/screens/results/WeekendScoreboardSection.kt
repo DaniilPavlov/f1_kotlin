@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,6 +52,7 @@ import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1StrokeGray
 import com.example.f1_kotlin.ui.theme.F1TextGray
 import com.example.f1_kotlin.ui.theme.F1White
+import com.example.f1_kotlin.util.rememberShareWeekendAction
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -96,7 +98,7 @@ private fun ScoreboardCard(event: EspnScoreboardEvent) {
             .border(1.dp, F1Red, RoundedCornerShape(20.dp))
             .padding(16.dp),
     ) {
-        ScoreboardHeader(event = event, highlighted = highlighted)
+        ScoreboardHeader(event = event, highlighted = highlighted, onShare = rememberShareWeekendAction(event))
         if (highlighted != null) {
             Spacer(Modifier.height(14.dp))
             HighlightedSessionBlock(
@@ -128,6 +130,7 @@ private fun ScoreboardCard(event: EspnScoreboardEvent) {
 private fun ScoreboardHeader(
     event: EspnScoreboardEvent,
     highlighted: EspnScoreboardSession?,
+    onShare: (() -> Unit)? = null,
 ) {
     val locationParts = listOfNotNull(
         event.circuitCity?.takeIf { it.isNotEmpty() },
@@ -140,9 +143,21 @@ private fun ScoreboardHeader(
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(8.dp))
+        if (onShare != null) {
+            Icon(
+                imageVector = Icons.Filled.Share,
+                contentDescription = stringResource(R.string.share),
+                tint = F1Red,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable(onClick = onShare)
+                    .padding(2.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         StatusChip(event, highlighted)
     }
-    if (!event.circuitName.isNullOrEmpty()) {
+if (!event.circuitName.isNullOrEmpty()) {
         Spacer(Modifier.height(8.dp))
         Text(event.circuitName, style = AppStyles.body)
     }

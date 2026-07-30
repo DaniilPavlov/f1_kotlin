@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object H2hDrivers
 @Serializable data object H2hConstructors
 @Serializable data object FinishStatus
+@Serializable data object SeasonRewind
 @Serializable data class RaceInfo(val season: String, val round: String)
 @Serializable data class CircuitDetail(val circuitId: String)
 @Serializable data class DriverDetail(val driverId: String)

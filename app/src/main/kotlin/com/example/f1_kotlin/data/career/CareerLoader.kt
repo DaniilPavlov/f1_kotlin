@@ -136,6 +136,39 @@ object CareerLoader {
         )
     }
 
+    /** Round-by-round points (race + sprint) for H2H cumulative chart. */
+    suspend fun loadH2hRoundScores(
+        api: F1ApiService,
+        entityPath: String,
+        season: String? = null,
+    ): List<com.example.f1_kotlin.viewmodel.H2hRoundScore> {
+        val prefix = seasonPrefix(season)
+        val racePages = fetchAllPages(api, "$prefix$entityPath/results")
+        val sprintPages = fetchAllPages(api, "$prefix$entityPath/sprint")
+        val byKey = linkedMapOf<String, com.example.f1_kotlin.viewmodel.H2hRoundScore>()
+
+        fun merge(pages: List<MrDataTotalModel>, sprint: Boolean) {
+            pages.forEach { page ->
+                page.raceTable?.races.orEmpty().forEach { race ->
+                    val entries = if (sprint) race.sprintResults else race.results
+                    if (entries.isNullOrEmpty()) return@forEach
+                    val key = raceKey(race.season, race.round)
+                    val points = entries.sumOf { it.points.toDoubleOrNull() ?: 0.0 }
+                    val prev = byKey[key]
+                    byKey[key] = com.example.f1_kotlin.viewmodel.H2hRoundScore(
+                        season = race.season,
+                        round = race.round,
+                        raceName = race.raceName,
+                        points = (prev?.points ?: 0.0) + points,
+                    )
+                }
+            }
+        }
+        merge(racePages, sprint = false)
+        merge(sprintPages, sprint = true)
+        return byKey.values.toList()
+    }
+
     private fun seasonPrefix(season: String?): String {
         val trimmed = season?.trim().orEmpty()
         return if (trimmed.isEmpty()) "" else "$trimmed/"

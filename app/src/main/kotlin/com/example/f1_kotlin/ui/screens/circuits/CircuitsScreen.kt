@@ -59,7 +59,9 @@ import com.example.f1_kotlin.ui.map.configureCircuitsMapView
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
+import com.example.f1_kotlin.util.RegisterShareAction
 import com.example.f1_kotlin.util.openUrl
+import com.example.f1_kotlin.util.rememberShareCircuitDeepLinkAction
 import com.example.f1_kotlin.viewmodel.CircuitDetailViewModel
 import com.example.f1_kotlin.viewmodel.CircuitsViewModel
 import org.osmdroid.util.GeoPoint
@@ -233,6 +235,13 @@ fun CircuitDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val circuit = (uiState.circuit as? AsyncValue.Value)?.value
+    val shareAction = if (circuit != null) {
+        rememberShareCircuitDeepLinkAction(circuit.circuitId, circuit.circuitName)
+    } else {
+        null
+    }
+    RegisterShareAction(shareAction)
 
     when (val state = uiState.circuit) {
         is AsyncValue.Loading -> CareerScreenShimmer(modifier = Modifier.fillMaxSize())

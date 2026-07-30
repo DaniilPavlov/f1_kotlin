@@ -6,6 +6,7 @@ import com.example.f1_kotlin.data.firebase.FirebaseBootstrap
 import com.example.f1_kotlin.data.firebase.RemoteConfigService
 import com.example.f1_kotlin.domain.ForceUpdateGate
 import com.example.f1_kotlin.domain.LocaleController
+import com.example.f1_kotlin.domain.ThemeController
 import com.example.f1_kotlin.notifications.RaceReminderScheduler
 import com.example.f1_kotlin.ui.map.OsmdroidInitializer
 import com.example.f1_kotlin.util.AppLogger
@@ -37,6 +38,7 @@ class F1Application : Application() {
     override fun onCreate() {
         super.onCreate()
         LocaleController.init(this)
+        ThemeController.init(this)
         OsmdroidInitializer.ensureInitialized(this)
 
         // Sync only — Remote Config fetch must not block main (was ANR / failed startup).
@@ -54,11 +56,12 @@ class F1Application : Application() {
         }
     }
 
-    fun toggleLocale() {
-        LocaleController.toggle(this)
+    fun toggleLocale(): String {
+        val next = LocaleController.toggle(this)
         if (!forceUpdateGate.required.value) {
             reminderScheduler.sync()
         }
+        return next
     }
 
     private companion object {

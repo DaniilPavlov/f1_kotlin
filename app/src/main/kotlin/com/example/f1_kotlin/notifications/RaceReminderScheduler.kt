@@ -95,6 +95,7 @@ class RaceReminderScheduler @Inject constructor(
                             triggerAt = trigger,
                             title = localizedContext.getString(titleRes),
                             body = "${race.raceName} · ${DateUtils.formatHourMinute(local)}",
+                            deepLinkUri = "f1pet://race/${race.season}/${race.round}",
                         ),
                     )
                 }
@@ -113,6 +114,7 @@ class RaceReminderScheduler @Inject constructor(
                     reminder.id,
                     reminder.title,
                     reminder.body,
+                    reminder.deepLinkUri,
                 ),
             )
         }
@@ -123,7 +125,7 @@ class RaceReminderScheduler @Inject constructor(
         ids.forEach { id ->
             ExplicitPendingIntents.cancel(
                 context,
-                ExplicitPendingIntents.raceReminder(context, id, "", ""),
+                ExplicitPendingIntents.raceReminder(context, id, "", "", ""),
             )
         }
     }
@@ -149,6 +151,7 @@ class RaceReminderScheduler @Inject constructor(
         val triggerAt: Long,
         val title: String,
         val body: String,
+        val deepLinkUri: String,
     )
 
     companion object {
@@ -156,6 +159,7 @@ class RaceReminderScheduler @Inject constructor(
         const val EXTRA_ID = "id"
         const val EXTRA_TITLE = "title"
         const val EXTRA_BODY = "body"
+        const val EXTRA_DEEP_LINK = "deep_link"
 
         /** Сколько ближайших держим в ОС. */
         private const val MAX_SCHEDULED_REMINDERS = 10
@@ -173,9 +177,10 @@ class RaceReminderReceiver : BroadcastReceiver() {
         }
         val title = intent.getStringExtra(RaceReminderScheduler.EXTRA_TITLE).orEmpty()
         val body = intent.getStringExtra(RaceReminderScheduler.EXTRA_BODY).orEmpty()
+        val deepLink = intent.getStringExtra(RaceReminderScheduler.EXTRA_DEEP_LINK)
         val notificationId = intent.getIntExtra(RaceReminderScheduler.EXTRA_ID, 0)
 
-        val openApp = ExplicitPendingIntents.openMainActivity(context, notificationId)
+        val openApp = ExplicitPendingIntents.openMainActivity(context, notificationId, deepLink)
         val notification = NotificationCompat.Builder(context, RaceReminderScheduler.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)

@@ -140,4 +140,21 @@
     <string name="force_update_title">App update required</string>
     <string name="force_update_subtitle">This version is no longer supported. Download the latest release from GitHub.</string>
     <string name="force_update_button">Update</string>
+    <string name="theme_toggle">Theme</string>
+    <string name="live_session_banner">Session live</string>
+    <string name="live_session_banner_with_session">Live session: %1$s</string>
+    <string name="season_rewind_title">Season rewind</string>
+    <string name="season_rewind_subtitle">Scrub standings round by round</string>
+    <string name="season_rewind_empty">No completed rounds for this season</string>
+    <string name="h2h_points_chart_title">Cumulative points</string>
+    <string name="share_weekend_podium">Podium</string>
+    <string name="widget_next_gp_title">Next GP</string>
+    <string name="widget_next_gp_description">Countdown to the next Grand Prix</string>
+    <string name="widget_next_gp_days_label">days</string>
+    <string name="widget_next_gp_time_label">h:m:s</string>
+    <string name="widget_next_gp_started">Started</string>
+    <string name="widget_standings_title">Drivers top 3</string>
+    <string name="widget_standings_description">Championship leaders</string>
+    <string name="widget_standings_subtitle">%1$s · R%2$s</string>
+    <string name="widget_open_app">Open the app</string>
 </resources>

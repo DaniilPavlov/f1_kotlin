@@ -19,6 +19,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -34,6 +37,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,16 +46,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.f1_kotlin.F1Application
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.data.analytics.AnalyticsEvent
+import com.example.f1_kotlin.di.AppEntryPoint
+import com.example.f1_kotlin.domain.AppThemePreference
 import com.example.f1_kotlin.domain.LocaleController
+import com.example.f1_kotlin.domain.ThemeController
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
-import com.example.f1_kotlin.ui.theme.F1Black
-import com.example.f1_kotlin.ui.theme.F1GrayBg
+import com.example.f1_kotlin.ui.theme.F1Chrome
+import com.example.f1_kotlin.ui.theme.F1OnChrome
 import com.example.f1_kotlin.ui.theme.F1Pink
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
-import com.example.f1_kotlin.ui.theme.F1White
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.ui.views.F1TableHeaderView
+import dagger.hilt.android.EntryPointAccessors
 
 /**
  * Верхняя панель приложения.
@@ -65,10 +74,11 @@ fun F1AppBar(
 ) {
     val context = LocalContext.current
     val language by LocaleController.language.collectAsState()
+    val themePreference by ThemeController.preference.collectAsState()
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(F1Black)
+            .background(F1Chrome)
             .statusBarsPadding()
             .padding(horizontal = AppDimens.horizontalPadding.dp)
             .padding(top = 8.dp, bottom = 14.dp)
@@ -87,7 +97,7 @@ fun F1AppBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = null,
-                    tint = F1White,
+                    tint = F1OnChrome,
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -95,7 +105,7 @@ fun F1AppBar(
         if (title != null) {
             Text(
                 text = title,
-                style = AppStyles.body.copy(color = F1White),
+                style = AppStyles.body.copy(color = F1OnChrome),
                 modifier = Modifier.align(Alignment.Center),
             )
             if (onShare != null) {
@@ -111,7 +121,7 @@ fun F1AppBar(
                     Icon(
                         imageVector = Icons.Filled.Share,
                         contentDescription = stringResource(R.string.share),
-                        tint = F1White,
+                        tint = F1OnChrome,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -125,20 +135,61 @@ fun F1AppBar(
                     .align(Alignment.Center),
                 contentScale = ContentScale.Fit,
             )
-            Text(
-                text = stringResource(
-                    if (language == "en") R.string.locale_code_en else R.string.locale_code_ru,
-                ),
-                style = AppStyles.body.copy(color = F1White),
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .clip(CircleShape)
-                    .clickable {
-                        (context.applicationContext as? F1Application)?.toggleLocale()
-                            ?: LocaleController.toggle(context)
-                    }
-                    .padding(8.dp),
-            )
+            Row(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(
+                    imageVector = when (themePreference) {
+                        AppThemePreference.System -> Icons.Filled.BrightnessAuto
+                        AppThemePreference.Light -> Icons.Filled.LightMode
+                        AppThemePreference.Dark -> Icons.Filled.DarkMode
+                    },
+                    contentDescription = stringResource(R.string.theme_toggle),
+                    tint = F1OnChrome,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            val next = ThemeController.cycle(context)
+                            runCatching {
+                                EntryPointAccessors.fromApplication(
+                                    context.applicationContext,
+                                    AppEntryPoint::class.java,
+                                ).analyticsGateway().log(
+                                    AnalyticsEvent.ThemeChanged(
+                                        when (next) {
+                                            AppThemePreference.System -> "system"
+                                            AppThemePreference.Light -> "light"
+                                            AppThemePreference.Dark -> "dark"
+                                        },
+                                    ),
+                                )
+                            }
+                        }
+                        .padding(6.dp),
+                )
+                Text(
+                    text = stringResource(
+                        if (language == "en") R.string.locale_code_en else R.string.locale_code_ru,
+                    ),
+                    style = AppStyles.body.copy(color = F1OnChrome),
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable {
+                            val next = (context.applicationContext as? F1Application)?.toggleLocale()
+                                ?: LocaleController.toggle(context)
+                            runCatching {
+                                EntryPointAccessors.fromApplication(
+                                    context.applicationContext,
+                                    AppEntryPoint::class.java,
+                                ).analyticsGateway().log(AnalyticsEvent.LocaleChanged(next))
+                            }
+                        }
+                        .padding(8.dp),
+                )
+            }
         }
     }
 }
@@ -181,7 +232,7 @@ fun ErrorBody(
         )
         Text(
             text = title ?: stringResource(R.string.no_connection),
-            style = AppStyles.h2,
+            style = AppStyles.h2.copy(color = appColors().black),
             textAlign = TextAlign.Center,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -189,7 +240,7 @@ fun ErrorBody(
         )
         Text(
             text = subtitle ?: stringResource(R.string.no_connection_subtitle),
-            style = AppStyles.h3,
+            style = AppStyles.h3.copy(color = appColors().black),
             textAlign = TextAlign.Center,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -211,16 +262,17 @@ fun BlackButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val colors = appColors()
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(if (enabled) F1Black else F1StrokeGray)
+            .background(if (enabled) colors.black else colors.strokeGray)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, style = AppStyles.body.copy(color = F1White))
+        Text(text = text, style = AppStyles.body.copy(color = colors.white))
     }
 }
 
@@ -308,10 +360,19 @@ fun TableDataRow(
     weights: List<Float>? = null,
     onClick: (() -> Unit)? = null,
 ) {
+    val colors = appColors()
+    val rowDescription = cells.joinToString(separator = ", ") { cell ->
+        when (cell) {
+            is TableCell.Text -> cell.value
+            is TableCell.Flag -> cell.countryOrNationality
+            is TableCell.PlaceAndName -> "${cell.place} ${cell.name.replace('\n', ' ')}"
+        }
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(if (index % 2 == 1) F1GrayBg else Color.Transparent)
+            .background(if (index % 2 == 1) colors.grayBg else Color.Transparent)
+            .semantics { contentDescription = rowDescription }
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -328,7 +389,7 @@ fun TableDataRow(
                         style = if (cell.color != null) {
                             AppStyles.caption.copy(color = cell.color)
                         } else {
-                            AppStyles.caption
+                            AppStyles.caption.copy(color = colors.black)
                         },
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -344,12 +405,13 @@ fun TableDataRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(F1StrokeGray),
+            .background(colors.strokeGray),
     )
 }
 
 @Composable
 private fun PlaceAndNameContent(cell: TableCell.PlaceAndName) {
+    val colors = appColors()
     // Как Flutter: место слева, имя по центру оставшейся ширины той же колонки.
     Row(
         modifier = Modifier
@@ -362,12 +424,12 @@ private fun PlaceAndNameContent(cell: TableCell.PlaceAndName) {
             style = if (cell.placeColor != null) {
                 AppStyles.caption.copy(color = cell.placeColor)
             } else {
-                AppStyles.caption
+                AppStyles.caption.copy(color = colors.black)
             },
         )
         Text(
             text = cell.name,
-            style = AppStyles.caption,
+            style = AppStyles.caption.copy(color = colors.black),
             modifier = Modifier
                 .weight(1f)
                 .padding(start = 4.dp),
