@@ -59,7 +59,9 @@ class HallOfFameViewModelTest {
 
     @Test
     fun onYearChanged_shortYear_doesNotLoad() = runTest {
-        coEvery { repository.getHistoricalStandings(any()) } returns Result.success(emptyList<DriverStanding>() to emptyList())
+        coEvery { repository.getHistoricalStandings(any()) } returns Result.success(
+            emptyList<DriverStanding>() to emptyList(),
+        )
         val viewModel = HallOfFameViewModel(repository)
         advanceUntilIdle()
 
@@ -71,7 +73,9 @@ class HallOfFameViewModelTest {
 
     @Test
     fun changeActiveTable_updatesIndex() = runTest {
-        coEvery { repository.getHistoricalStandings(any()) } returns Result.success(emptyList<DriverStanding>() to emptyList())
+        coEvery { repository.getHistoricalStandings(any()) } returns Result.success(
+            emptyList<DriverStanding>() to emptyList(),
+        )
         val viewModel = HallOfFameViewModel(repository)
         advanceUntilIdle()
 

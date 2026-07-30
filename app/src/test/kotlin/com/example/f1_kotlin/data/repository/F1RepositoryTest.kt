@@ -139,7 +139,12 @@ class F1RepositoryTest {
             listOf(
                 sampleRace().copy(
                     qualifyingResults = listOf(
-                        QualifyingResultModel(number = "1", position = "1", driver = sampleDriver(), constructor = sampleConstructor()),
+                        QualifyingResultModel(
+                            number = "1",
+                            position = "1",
+                            driver = sampleDriver(),
+                            constructor = sampleConstructor(),
+                        ),
                     ),
                 ),
             ),
@@ -147,7 +152,15 @@ class F1RepositoryTest {
         coEvery { api.getPitStops("2026", "1", any()) } returns scheduleResponse(
             listOf(
                 sampleRace().copy(
-                    pitStops = listOf(PitStopModel(driverId = "verstappen", lap = "10", stop = "1", time = "12:00:00", duration = "2.3")),
+                    pitStops = listOf(
+                        PitStopModel(
+                            driverId = "verstappen",
+                            lap = "10",
+                            stop = "1",
+                            time = "12:00:00",
+                            duration = "2.3",
+                        ),
+                    ),
                 ),
             ),
         )
@@ -203,7 +216,10 @@ class F1RepositoryTest {
             DriverFetchingModel(total = "1", driverTable = DriverTableModel(listOf(sampleDriver()))),
         )
         coEvery { api.getAllConstructors(any(), any()) } returns MrDataResponse(
-            ConstructorFetchingModel(total = "1", constructorTable = ConstructorTableModel(listOf(sampleConstructor()))),
+            ConstructorFetchingModel(
+                total = "1",
+                constructorTable = ConstructorTableModel(listOf(sampleConstructor())),
+            ),
         )
         coEvery { api.getCircuitWinners("bahrain", any()) } returns scheduleResponse(listOf(sampleRace()))
 

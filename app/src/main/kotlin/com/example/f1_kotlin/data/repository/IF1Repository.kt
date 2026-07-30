@@ -14,6 +14,7 @@ import com.example.f1_kotlin.domain.model.QualifyingResult
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.model.RaceResult
 import com.example.f1_kotlin.domain.model.StandingsMeta
+import com.example.f1_kotlin.viewmodel.H2hRoundScore
 
 interface IF1Repository {
     suspend fun peekCurrentDriversCache(): Pair<List<DriverStanding>, StandingsMeta>?
@@ -83,9 +84,15 @@ interface IF1Repository {
         round: String,
     ): Result<Pair<List<DriverStanding>, List<ConstructorStanding>>>
 
-    suspend fun getDriverH2hRoundScores(driverId: String, season: String? = null): Result<List<com.example.f1_kotlin.viewmodel.H2hRoundScore>>
+    suspend fun getDriverH2hRoundScores(
+        driverId: String,
+        season: String? = null,
+    ): Result<List<H2hRoundScore>>
 
-    suspend fun getConstructorH2hRoundScores(constructorId: String, season: String? = null): Result<List<com.example.f1_kotlin.viewmodel.H2hRoundScore>>
+    suspend fun getConstructorH2hRoundScores(
+        constructorId: String,
+        season: String? = null,
+    ): Result<List<H2hRoundScore>>
 
     suspend fun getCurrentDrivers(): Result<List<Driver>>
 

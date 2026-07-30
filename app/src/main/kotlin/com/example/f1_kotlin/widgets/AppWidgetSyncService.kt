@@ -66,7 +66,9 @@ class AppWidgetSyncService @Inject constructor(
         )
         for (i in 1..3) {
             val entry = list.getOrNull(i - 1)
-            data[WidgetDataStore.driverCode(i)] = entry?.let { driverLabel(it.driver.code, it.driver.familyName) }.orEmpty()
+            data[WidgetDataStore.driverCode(i)] = entry
+                ?.let { driverLabel(it.driver.code, it.driver.familyName) }
+                .orEmpty()
             data[WidgetDataStore.driverPoints(i)] = entry?.points.orEmpty()
         }
         return data

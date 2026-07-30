@@ -81,7 +81,8 @@ class EspnRepositoryTest {
 
     @Test
     fun driverCardData_noEspnId_returnsEmptyCached() = runTest {
-        coEvery { api.searchPlayers(any(), any(), any(), any(), any()) } returns EspnSearchResponseDto(items = emptyList())
+        coEvery { api.searchPlayers(any(), any(), any(), any(), any()) } returns
+            EspnSearchResponseDto(items = emptyList())
 
         val card = repository.driverCardData("Max", "Verstappen")
         assertNull(card.photoUrl)

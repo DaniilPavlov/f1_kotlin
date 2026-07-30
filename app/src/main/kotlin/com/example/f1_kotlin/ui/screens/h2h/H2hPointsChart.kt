@@ -11,12 +11,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
-import kotlin.math.ceil
-import kotlin.math.max
-import kotlin.math.pow
 import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.viewmodel.H2hPointsTimeline
 import com.example.f1_kotlin.viewmodel.H2hTimelinePoint
+import java.util.Locale
+import kotlin.math.ceil
+import kotlin.math.max
+import kotlin.math.pow
 
 @Composable
 fun H2hPointsChart(
@@ -133,5 +134,5 @@ private fun niceCeil(value: Double): Double {
 private fun formatPoints(value: Float): String {
     return if (value >= 100) ceil(value.toDouble()).toInt().toString()
     else if (value == value.toInt().toFloat()) value.toInt().toString()
-    else String.format("%.0f", value)
+    else String.format(Locale.US, "%.0f", value)
 }

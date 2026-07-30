@@ -72,9 +72,6 @@ fun F1AppBar(
     onBack: (() -> Unit)? = null,
     onShare: (() -> Unit)? = null,
 ) {
-    val context = LocalContext.current
-    val language by LocaleController.language.collectAsState()
-    val themePreference by ThemeController.preference.collectAsState()
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -85,14 +82,9 @@ fun F1AppBar(
             .heightIn(min = 48.dp),
     ) {
         if (onBack != null) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.15f))
-                    .clickable(onClick = onBack)
-                    .align(Alignment.CenterStart),
-                contentAlignment = Alignment.Center,
+            F1AppBarIconButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterStart),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -109,14 +101,9 @@ fun F1AppBar(
                 modifier = Modifier.align(Alignment.Center),
             )
             if (onShare != null) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.15f))
-                        .clickable(onClick = onShare)
-                        .align(Alignment.CenterEnd),
-                    contentAlignment = Alignment.Center,
+                F1AppBarIconButton(
+                    onClick = onShare,
+                    modifier = Modifier.align(Alignment.CenterEnd),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Share,
@@ -135,62 +122,87 @@ fun F1AppBar(
                     .align(Alignment.Center),
                 contentScale = ContentScale.Fit,
             )
-            Row(
-                modifier = Modifier.align(Alignment.CenterEnd),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    imageVector = when (themePreference) {
-                        AppThemePreference.System -> Icons.Filled.BrightnessAuto
-                        AppThemePreference.Light -> Icons.Filled.LightMode
-                        AppThemePreference.Dark -> Icons.Filled.DarkMode
-                    },
-                    contentDescription = stringResource(R.string.theme_toggle),
-                    tint = F1OnChrome,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .clickable {
-                            val next = ThemeController.cycle(context)
-                            runCatching {
-                                EntryPointAccessors.fromApplication(
-                                    context.applicationContext,
-                                    AppEntryPoint::class.java,
-                                ).analyticsGateway().log(
-                                    AnalyticsEvent.ThemeChanged(
-                                        when (next) {
-                                            AppThemePreference.System -> "system"
-                                            AppThemePreference.Light -> "light"
-                                            AppThemePreference.Dark -> "dark"
-                                        },
-                                    ),
-                                )
-                            }
-                        }
-                        .padding(6.dp),
-                )
-                Text(
-                    text = stringResource(
-                        if (language == "en") R.string.locale_code_en else R.string.locale_code_ru,
-                    ),
-                    style = AppStyles.body.copy(color = F1OnChrome),
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable {
-                            val next = (context.applicationContext as? F1Application)?.toggleLocale()
-                                ?: LocaleController.toggle(context)
-                            runCatching {
-                                EntryPointAccessors.fromApplication(
-                                    context.applicationContext,
-                                    AppEntryPoint::class.java,
-                                ).analyticsGateway().log(AnalyticsEvent.LocaleChanged(next))
-                            }
-                        }
-                        .padding(8.dp),
-                )
-            }
+            F1AppBarHomeActions(modifier = Modifier.align(Alignment.CenterEnd))
         }
+    }
+}
+
+@Composable
+private fun F1AppBarIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.15f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+        content = { content() },
+    )
+}
+
+@Composable
+private fun F1AppBarHomeActions(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val language by LocaleController.language.collectAsState()
+    val themePreference by ThemeController.preference.collectAsState()
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            imageVector = when (themePreference) {
+                AppThemePreference.System -> Icons.Filled.BrightnessAuto
+                AppThemePreference.Light -> Icons.Filled.LightMode
+                AppThemePreference.Dark -> Icons.Filled.DarkMode
+            },
+            contentDescription = stringResource(R.string.theme_toggle),
+            tint = F1OnChrome,
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .clickable {
+                    val next = ThemeController.cycle(context)
+                    runCatching {
+                        EntryPointAccessors.fromApplication(
+                            context.applicationContext,
+                            AppEntryPoint::class.java,
+                        ).analyticsGateway().log(
+                            AnalyticsEvent.ThemeChanged(
+                                when (next) {
+                                    AppThemePreference.System -> "system"
+                                    AppThemePreference.Light -> "light"
+                                    AppThemePreference.Dark -> "dark"
+                                },
+                            ),
+                        )
+                    }
+                }
+                .padding(6.dp),
+        )
+        Text(
+            text = stringResource(
+                if (language == "en") R.string.locale_code_en else R.string.locale_code_ru,
+            ),
+            style = AppStyles.body.copy(color = F1OnChrome),
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable {
+                    val next = (context.applicationContext as? F1Application)?.toggleLocale()
+                        ?: LocaleController.toggle(context)
+                    runCatching {
+                        EntryPointAccessors.fromApplication(
+                            context.applicationContext,
+                            AppEntryPoint::class.java,
+                        ).analyticsGateway().log(AnalyticsEvent.LocaleChanged(next))
+                    }
+                }
+                .padding(8.dp),
+        )
     }
 }
 

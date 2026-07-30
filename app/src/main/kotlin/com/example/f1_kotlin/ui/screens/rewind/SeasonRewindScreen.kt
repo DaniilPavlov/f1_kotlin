@@ -65,7 +65,10 @@ fun SeasonRewindScreen(viewModel: SeasonRewindViewModel) {
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
             ) {
-                Text(stringResource(R.string.season_rewind_subtitle), style = AppStyles.caption.copy(color = colors.textGray))
+                Text(
+                    stringResource(R.string.season_rewind_subtitle),
+                    style = AppStyles.caption.copy(color = colors.textGray),
+                )
                 Spacer(Modifier.height(16.dp))
                 SeasonPickerField(
                     value = uiState.year,
@@ -80,7 +83,10 @@ fun SeasonRewindScreen(viewModel: SeasonRewindViewModel) {
                 if (racesState is AsyncValue.Loading && races.isEmpty()) {
                     LoadingIndicator()
                 } else if (races.isEmpty()) {
-                    Text(stringResource(R.string.season_rewind_empty), style = AppStyles.body.copy(color = colors.black))
+                    Text(
+                        stringResource(R.string.season_rewind_empty),
+                        style = AppStyles.body.copy(color = colors.black),
+                    )
                 } else {
                     val race = uiState.selectedRace
                     Text(

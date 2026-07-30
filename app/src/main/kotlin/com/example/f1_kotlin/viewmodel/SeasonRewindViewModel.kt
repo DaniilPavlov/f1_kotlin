@@ -101,11 +101,11 @@ class SeasonRewindViewModel @Inject constructor(
             while (isActive) {
                 delay(PLAY_INTERVAL_MS)
                 val state = _uiState.value
-                val races = (state.races as? AsyncValue.Value)?.value ?: break
+                val races = (state.races as? AsyncValue.Value)?.value
                 val next = state.selectedRoundIndex + 1
-                if (next >= races.size) {
+                if (races == null || next >= races.size) {
                     stopPlayback()
-                    break
+                    return@launch
                 }
                 _uiState.update { it.copy(selectedRoundIndex = next) }
                 loadStandingsForSelected()
