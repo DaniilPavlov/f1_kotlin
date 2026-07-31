@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +44,7 @@ import com.example.f1_kotlin.util.rememberShareCareerAction
 import com.example.f1_kotlin.viewmodel.ConstructorDetailViewModel
 import androidx.compose.ui.unit.sp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConstructorDetailScreen(
     viewModel: ConstructorDetailViewModel,
@@ -54,27 +57,37 @@ fun ConstructorDetailScreen(
     val context = LocalContext.current
 
     when {
-        constructor.isLoading || career.isLoading -> CareerScreenShimmer(
+        !uiState.isRefreshing && (constructor.isLoading || career.isLoading) -> CareerScreenShimmer(
             showPhoto = false,
-            modifier = Modifier.fillMaxSize(),
-        )
-        uiState.error != null && constructor !is AsyncValue.Value -> ErrorBody(
-            uiState.error?.title,
-            uiState.error?.subtitle,
-            onRetry = viewModel::loadAllData,
             modifier = Modifier.fillMaxSize(),
         )
         constructor is AsyncValue.Value && career is AsyncValue.Value -> {
             val model = constructor.value
-            ConstructorContent(
-                name = model.name,
-                nationality = model.nationality,
-                url = model.url,
-                stats = career.value,
-                news = uiState.news,
-                onDriverClick = onDriverClick,
-                onCircuitClick = onCircuitClick,
-                onWikipediaClick = { openUrl(context, model.url) },
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refreshAll,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                ConstructorContent(
+                    name = model.name,
+                    nationality = model.nationality,
+                    url = model.url,
+                    stats = career.value,
+                    news = uiState.news,
+                    onDriverClick = onDriverClick,
+                    onCircuitClick = onCircuitClick,
+                    onWikipediaClick = { openUrl(context, model.url) },
+                )
+            }
+        }
+        else -> {
+            val asyncError = (constructor as? AsyncValue.Error)
+                ?: (career as? AsyncValue.Error)
+            ErrorBody(
+                uiState.error?.title ?: asyncError?.message,
+                uiState.error?.subtitle ?: asyncError?.subtitle,
+                onRetry = viewModel::loadAllData,
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }

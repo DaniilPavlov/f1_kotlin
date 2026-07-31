@@ -26,11 +26,11 @@ import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.H2hCompareTable
 import com.example.f1_kotlin.ui.components.H2hFilterToggle
 import com.example.f1_kotlin.ui.components.SeasonPickerField
-import com.example.f1_kotlin.ui.components.shimmer.ListRowsShimmer
+import com.example.f1_kotlin.ui.components.shimmer.H2hCompareShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
-import com.example.f1_kotlin.ui.theme.F1TextGray
+import com.example.f1_kotlin.ui.theme.F1Red
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.viewmodel.H2hConstructorsViewModel
 import com.example.f1_kotlin.viewmodel.H2hDriversViewModel
 import com.example.f1_kotlin.viewmodel.H2hScopeState
@@ -82,7 +82,7 @@ fun H2hDriversScreen(viewModel: H2hDriversViewModel) {
         )
         Spacer(Modifier.height(24.dp))
         when (val state = uiState.comparison) {
-            is AsyncValue.Loading -> ListRowsShimmer(rowCount = 4)
+            is AsyncValue.Loading -> H2hCompareShimmer()
             is AsyncValue.Error -> ErrorBody(
                 state.message,
                 state.subtitle,
@@ -96,6 +96,16 @@ fun H2hDriversScreen(viewModel: H2hDriversViewModel) {
                     statsB = result.statsB,
                     season = result.season,
                 )
+                if (!result.timeline.isEmpty) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(stringResource(R.string.h2h_points_chart_title), style = AppStyles.body)
+                    Spacer(Modifier.height(8.dp))
+                    H2hPointsChart(
+                        timeline = result.timeline,
+                        colorA = F1Red,
+                        colorB = appColors().textGray,
+                    )
+                }
             }
         }
         Spacer(Modifier.height(32.dp))
@@ -149,7 +159,7 @@ fun H2hConstructorsScreen(viewModel: H2hConstructorsViewModel) {
         )
         Spacer(Modifier.height(24.dp))
         when (val state = uiState.comparison) {
-            is AsyncValue.Loading -> ListRowsShimmer(rowCount = 4)
+            is AsyncValue.Loading -> H2hCompareShimmer()
             is AsyncValue.Error -> ErrorBody(
                 state.message,
                 state.subtitle,
@@ -163,6 +173,16 @@ fun H2hConstructorsScreen(viewModel: H2hConstructorsViewModel) {
                     statsB = result.statsB,
                     season = result.season,
                 )
+                if (!result.timeline.isEmpty) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(stringResource(R.string.h2h_points_chart_title), style = AppStyles.body)
+                    Spacer(Modifier.height(8.dp))
+                    H2hPointsChart(
+                        timeline = result.timeline,
+                        colorA = F1Red,
+                        colorB = appColors().textGray,
+                    )
+                }
             }
         }
         Spacer(Modifier.height(32.dp))
@@ -181,10 +201,11 @@ private fun H2hFiltersPanel(
     loadSeasons: suspend () -> Result<List<String>>,
     onCurrentOnlyChanged: (Boolean) -> Unit,
 ) {
+    val colors = appColors()
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, F1StrokeGray, RoundedCornerShape(12.dp))
+            .border(1.dp, colors.strokeGray, RoundedCornerShape(12.dp))
             .padding(16.dp),
     ) {
         Text(stringResource(R.string.h2h_filters_title), style = AppStyles.body)
@@ -218,7 +239,7 @@ private fun H2hFiltersPanel(
                 Spacer(Modifier.height(10.dp))
                 Text(
                     stringResource(R.string.season_label, scope.latestSeason),
-                    style = AppStyles.caption.copy(color = F1TextGray),
+                    style = AppStyles.caption.copy(color = colors.textGray),
                 )
             }
         }

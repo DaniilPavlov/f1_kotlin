@@ -8,6 +8,7 @@ import android.content.res.Resources
 import android.os.LocaleList
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -35,6 +36,11 @@ fun App(forceUpdateGate: ForceUpdateGate) {
     val baseContext = LocalContext.current
     val localizedContext = remember(language, baseContext) {
         baseContext.withAppLocale(language)
+    }
+
+    // Re-assert JVM default on every language/config frame — Activity attach can reset it.
+    SideEffect {
+        LocaleController.applyLanguage(language)
     }
 
     CompositionLocalProvider(

@@ -1,13 +1,15 @@
 package com.example.f1_kotlin.domain
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import retrofit2.HttpException
 import java.io.IOException
 
 /**
  * Единая обёртка для сетевых вызовов в Repository.
  *
  * GoF Behavioral Template Method — фиксированный скелет алгоритма
- * (try → retry при [IOException] → map в [AppError]); вызывающий подставляет только `block`.
+ * (try → retry при [IOException]/429 → map в [AppError]); вызывающий подставляет только `block`.
  */
 object ApiCallHandler {
 
@@ -19,18 +21,33 @@ object ApiCallHandler {
         block: suspend () -> T,
     ): Result<T> {
         var lastError: AppException? = null
-        repeat(retries + 1) { attempt ->
+        var attempt = 0
+        var finished = false
+        while (attempt <= retries && !finished) {
             try {
                 return Result.success(block())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: HttpException) {
+                lastError = e.toAppError().asException()
+                // Jolpica rate-limit — повторяем, execute(maxAttempts: 3).
+                if (e.code() == 429 && attempt < retries) {
+                    delay(RETRY_DELAY_MS * (attempt + 1))
+                    attempt++
+                } else {
+                    finished = true
+                }
             } catch (e: IOException) {
                 lastError = e.toAppError().asException()
                 if (attempt < retries) {
                     delay(RETRY_DELAY_MS)
+                    attempt++
                 } else {
-                    return Result.failure(lastError!!)
+                    finished = true
                 }
             } catch (e: Exception) {
-                return Result.failure(e.toAppError().asException())
+                lastError = e.toAppError().asException()
+                finished = true
             }
         }
         return Result.failure(lastError!!)

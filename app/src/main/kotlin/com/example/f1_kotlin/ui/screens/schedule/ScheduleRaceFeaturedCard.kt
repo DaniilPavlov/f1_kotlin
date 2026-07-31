@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,7 +22,6 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
@@ -31,16 +31,16 @@ import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.ui.components.BlackButton
 import com.example.f1_kotlin.ui.components.ScheduleSessionCard
 import com.example.f1_kotlin.ui.components.circuits.CircuitLayoutImage
+import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1TextGray
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.util.CountdownParts
 import com.example.f1_kotlin.util.RaceDateTimeHelper
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.util.Locale
 import kotlinx.coroutines.delay
 
 /** Крупная карточка ближайшей гонки со схемой и countdown. */
@@ -51,7 +51,9 @@ fun ScheduleRaceFeaturedCard(
     modifier: Modifier = Modifier,
     showCountdown: Boolean = true,
 ) {
-    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    val colors = appColors()
+    val language by LocaleController.language.collectAsState()
+    val locale = remember(language) { LocaleController.currentLocale() }
     var now by remember { mutableStateOf(ZonedDateTime.now()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -84,7 +86,7 @@ fun ScheduleRaceFeaturedCard(
     ) {
         Text(
             text = stringResource(R.string.schedule_round, race.round),
-            style = AppStyles.caption.copy(color = F1TextGray),
+            style = AppStyles.caption.copy(color = colors.textGray),
         )
         Spacer(Modifier.height(4.dp))
         Text(race.raceName, style = AppStyles.h2)
@@ -104,7 +106,7 @@ fun ScheduleRaceFeaturedCard(
             Spacer(Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.schedule_countdown_title),
-                style = AppStyles.caption.copy(color = F1TextGray),
+                style = AppStyles.caption.copy(color = colors.textGray),
             )
             Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -142,7 +144,7 @@ private fun CountdownCell(
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = AppStyles.h3)
         Spacer(Modifier.height(2.dp))
-        Text(label, style = AppStyles.caption.copy(color = F1TextGray))
+        Text(label, style = AppStyles.caption.copy(color = appColors().textGray))
     }
 }
 

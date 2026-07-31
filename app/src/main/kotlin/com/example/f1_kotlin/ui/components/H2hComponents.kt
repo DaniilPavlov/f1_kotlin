@@ -41,11 +41,9 @@ import com.example.f1_kotlin.domain.model.Constructor
 import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.ui.theme.AppStyles
-import com.example.f1_kotlin.ui.theme.F1GrayBg
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
-import com.example.f1_kotlin.ui.theme.F1TextGray
 import com.example.f1_kotlin.ui.theme.F1White
+import com.example.f1_kotlin.ui.theme.appColors
 
 @Composable
 fun H2hFilterToggle(
@@ -55,15 +53,16 @@ fun H2hFilterToggle(
     activeIndex: Int,
     onChanged: (Int) -> Unit,
 ) {
+    val colors = appColors()
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, style = AppStyles.caption.copy(color = F1TextGray))
+        Text(label, style = AppStyles.caption.copy(color = colors.textGray))
         Spacer(Modifier.height(8.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .border(1.dp, F1StrokeGray, RoundedCornerShape(10.dp))
-                .background(F1GrayBg),
+                .border(1.dp, colors.strokeGray, RoundedCornerShape(10.dp))
+                .background(colors.grayBg),
         ) {
             H2hSegment(
                 title = firstTitle,
@@ -88,6 +87,7 @@ private fun H2hSegment(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = appColors()
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(9.dp))
@@ -99,7 +99,7 @@ private fun H2hSegment(
         Text(
             text = title,
             style = AppStyles.caption.copy(
-                color = if (selected) F1White else Color.Black,
+                color = if (selected) F1White else colors.black,
             ),
             maxLines = 1,
             textAlign = TextAlign.Center,
@@ -115,6 +115,7 @@ fun H2hCompareTable(
     statsB: H2hStats,
     season: String?,
 ) {
+    val colors = appColors()
     val rows = listOf(
         Triple(stringResource(R.string.career_stat_races), statsA.races, statsB.races),
         Triple(stringResource(R.string.wins), statsA.wins, statsB.wins),
@@ -125,7 +126,7 @@ fun H2hCompareTable(
         if (!season.isNullOrEmpty()) {
             Text(
                 stringResource(R.string.season_label, season),
-                style = AppStyles.caption.copy(color = F1TextGray),
+                style = AppStyles.caption.copy(color = colors.textGray),
             )
             Spacer(Modifier.height(12.dp))
         }
@@ -147,13 +148,14 @@ fun H2hCompareTable(
         Spacer(Modifier.height(12.dp))
         rows.forEach { (label, a, b) ->
             H2hCompareRow(label = label, valueA = a, valueB = b)
-            Divider(color = F1StrokeGray)
+            Divider(color = colors.strokeGray)
         }
     }
 }
 
 @Composable
 private fun H2hCompareRow(label: String, valueA: Int, valueB: Int) {
+    val colors = appColors()
     val aWins = valueA > valueB
     val bWins = valueB > valueA
     Row(
@@ -164,18 +166,18 @@ private fun H2hCompareRow(label: String, valueA: Int, valueB: Int) {
     ) {
         Text(
             label,
-            style = AppStyles.caption.copy(color = F1TextGray),
+            style = AppStyles.caption.copy(color = colors.textGray),
             modifier = Modifier.width(100.dp),
         )
         Text(
             "$valueA",
-            style = AppStyles.h2.copy(color = if (aWins) F1Red else Color.Black),
+            style = AppStyles.h2.copy(color = if (aWins) F1Red else colors.black),
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )
         Text(
             "$valueB",
-            style = AppStyles.h2.copy(color = if (bWins) F1Red else Color.Black),
+            style = AppStyles.h2.copy(color = if (bWins) F1Red else colors.black),
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )
@@ -290,6 +292,7 @@ private fun <T> EntityPickerSheet(
     itemMatches: (T, String) -> Boolean,
     onSelected: (T) -> Unit,
 ) {
+    val colors = appColors()
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
     var items by remember { mutableStateOf<List<T>>(emptyList()) }
@@ -336,7 +339,7 @@ private fun <T> EntityPickerSheet(
                             .clickable { onSelected(item) }
                             .padding(horizontal = 8.dp, vertical = 16.dp),
                     )
-                    Divider(color = F1StrokeGray)
+                    Divider(color = colors.strokeGray)
                 }
             }
         }

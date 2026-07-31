@@ -4,6 +4,7 @@ import com.squareup.moshi.JsonClass
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 
 // region Domain
 
@@ -301,16 +302,25 @@ private fun EspnStatusTypeDto?.statusDetail(): String {
 
 fun parseEspnDateTime(raw: String?): LocalDateTime? {
     if (raw.isNullOrBlank()) return null
-    return try {
-        Instant.parse(raw).atZone(ZoneId.systemDefault()).toLocalDateTime()
-    } catch (_: Exception) {
-        try {
-            // ESPN sometimes omits zone; treat as UTC-ish ISO local
-            LocalDateTime.parse(raw.removeSuffix("Z").substringBefore('+').substringBefore('.'))
-        } catch (_: Exception) {
-            null
-        }
+    val trimmed = raw.trim()
+    // Prefer full Instant (…Z / …+00:00) → device zone.
+    runCatching {
+        return Instant.parse(trimmed).atZone(ZoneId.systemDefault()).toLocalDateTime()
     }
+    runCatching {
+        return java.time.OffsetDateTime.parse(trimmed)
+            .atZoneSameInstant(ZoneId.systemDefault())
+            .toLocalDateTime()
+    }
+    // ESPN sometimes omits zone — treat wall clock as UTC, then convert to device zone.
+    return runCatching {
+        val naive = LocalDateTime.parse(
+            trimmed.removeSuffix("Z").substringBefore('+').substringBefore('.'),
+        )
+        naive.atZone(ZoneOffset.UTC)
+            .withZoneSameInstant(ZoneId.systemDefault())
+            .toLocalDateTime()
+    }.getOrNull()
 }
 
 // endregion

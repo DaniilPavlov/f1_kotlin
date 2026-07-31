@@ -26,6 +26,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.data.model.EspnScoreboardEvent
+import com.example.f1_kotlin.data.model.EspnScoreboardSession
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.model.RaceResult
 import com.example.f1_kotlin.ui.theme.AppStyles
@@ -35,6 +37,7 @@ import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1StrokeGray
 import com.example.f1_kotlin.ui.theme.F1TextGray
 import com.example.f1_kotlin.ui.theme.F1White
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun ShareCareerCard(
@@ -173,6 +176,106 @@ private fun ShareResultRow(result: RaceResult) {
             style = AppStyles.caption.copy(color = if (classified) F1Black else F1Red),
         )
     }
+}
+
+@Composable
+fun ShareWeekendSummaryCard(event: EspnScoreboardEvent) {
+    val title = event.shortName.ifBlank { event.name }
+    val highlighted = event.highlightedSession
+    val podium = weekendPodium(event, highlighted)
+    val isLive = event.isLive || (highlighted?.isLive == true)
+    val statusLabel = weekendStatusLabel(event, highlighted, isLive)
+
+    ShareCardShell {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Text(
+                title,
+                style = AppStyles.h2.copy(fontSize = 24.sp, lineHeight = 28.sp),
+                modifier = Modifier.weight(1f),
+            )
+            if (statusLabel.isNotBlank()) {
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isLive) F1Red else F1Black)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    Text(statusLabel, style = AppStyles.caption.copy(color = F1White))
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(stringResource(R.string.home_weekend_title), style = AppStyles.body.copy(color = F1TextGray))
+        event.circuitName?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(it, style = AppStyles.body.copy(color = F1TextGray))
+        }
+        ShareWeekendSessions(event.sessions)
+        if (podium.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                stringResource(R.string.share_weekend_podium),
+                style = AppStyles.body.copy(fontWeight = FontWeight.SemiBold),
+            )
+            Spacer(Modifier.height(8.dp))
+            podium.forEachIndexed { index, entry ->
+                Text("${index + 1}. ${entry.displayName}", style = AppStyles.caption)
+            }
+        }
+        Spacer(Modifier.height(20.dp))
+        ShareFooter()
+    }
+}
+
+@Composable
+private fun ShareWeekendSessions(sessions: List<EspnScoreboardSession>) {
+    if (sessions.isEmpty()) return
+    Spacer(Modifier.height(16.dp))
+    sessions.forEachIndexed { index, session ->
+        if (index > 0) HorizontalDivider(color = F1StrokeGray)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(session.abbreviation, style = AppStyles.body)
+            Text(
+                sessionStatusText(session),
+                style = AppStyles.caption.copy(color = if (session.isLive) F1Red else F1TextGray),
+            )
+        }
+    }
+}
+
+@Composable
+private fun weekendStatusLabel(
+    event: EspnScoreboardEvent,
+    highlighted: EspnScoreboardSession?,
+    isLive: Boolean,
+): String = when {
+    isLive -> stringResource(R.string.home_weekend_live)
+    highlighted != null && !highlighted.isUpcoming && highlighted.statusDetail.isNotEmpty() ->
+        highlighted.statusDetail
+    event.statusState != "pre" && event.statusDetail.isNotEmpty() -> event.statusDetail
+    else -> ""
+}
+
+private fun weekendPodium(
+    event: EspnScoreboardEvent,
+    highlighted: EspnScoreboardSession?,
+) = (
+    event.sessions.firstOrNull {
+        it.abbreviation.contains("race", ignoreCase = true) && it.results.isNotEmpty()
+    } ?: highlighted?.takeIf { it.results.isNotEmpty() }
+)?.results?.take(3).orEmpty()
+
+private fun sessionStatusText(session: EspnScoreboardSession): String = when {
+    session.isUpcoming -> ""
+    session.statusDetail.isNotBlank() -> session.statusDetail
+    session.isLive -> "LIVE"
+    else -> ""
 }
 
 @Composable

@@ -18,6 +18,7 @@ app/upload-keystore.jks
 .idea/
 *.iml
 .vscode/
+.cursor/
 
 # OS
 .DS_Store

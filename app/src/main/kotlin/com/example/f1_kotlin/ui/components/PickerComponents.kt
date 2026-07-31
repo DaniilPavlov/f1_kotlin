@@ -28,7 +28,7 @@ import com.example.f1_kotlin.R
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
+import com.example.f1_kotlin.ui.theme.appColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,7 +147,7 @@ fun RacePickerField(
                 Icon(
                     Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = if (enabled) F1Red else F1StrokeGray,
+                    tint = if (enabled) F1Red else appColors().strokeGray,
                 )
             },
             modifier = Modifier.fillMaxWidth(),

@@ -29,6 +29,7 @@ data class RaceInfoUiState(
     val pitStops: AsyncValue<List<PitStop>> = AsyncValue.Loading,
     val sprint: AsyncValue<List<RaceResult>> = AsyncValue.Loading,
     val error: AppError? = null,
+    val isRefreshing: Boolean = false,
 )
 
 @HiltViewModel
@@ -50,42 +51,82 @@ class RaceInfoScreenViewModel @Inject constructor(
 
     fun loadAllData() {
         loadJob.launch(viewModelScope) {
-            _uiState.update {
-                it.copy(
-                    error = null,
-                    race = AsyncValue.Loading,
-                    qualifying = AsyncValue.Loading,
-                    pitStops = AsyncValue.Loading,
-                    sprint = AsyncValue.Loading,
-                )
+            loadInternal(softRefresh = false)
+        }
+    }
+
+    /** Pull-to-refresh: keep Values while reloading. */
+    fun refreshAll() {
+        loadJob.launch(viewModelScope) {
+            loadInternal(softRefresh = true)
+        }
+    }
+
+    private suspend fun loadInternal(softRefresh: Boolean) {
+        try {
+            if (softRefresh) {
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = true,
+                        error = null,
+                        race = if (it.race is AsyncValue.Value) it.race else AsyncValue.Loading,
+                        qualifying = if (it.qualifying is AsyncValue.Value) {
+                            it.qualifying
+                        } else {
+                            AsyncValue.Loading
+                        },
+                        pitStops = if (it.pitStops is AsyncValue.Value) {
+                            it.pitStops
+                        } else {
+                            AsyncValue.Loading
+                        },
+                        sprint = if (it.sprint is AsyncValue.Value) it.sprint else AsyncValue.Loading,
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        error = null,
+                        race = AsyncValue.Loading,
+                        qualifying = AsyncValue.Loading,
+                        pitStops = AsyncValue.Loading,
+                        sprint = AsyncValue.Loading,
+                    )
+                }
             }
 
             val raceResult = repository.getRaceResults(season, round)
             raceResult.onFailure { e ->
                 val err = e.toAppError()
-                _uiState.update {
-                    it.copy(
-                        race = err.toAsyncError(),
-                        error = err,
-                    )
+                if (_uiState.value.race !is AsyncValue.Value) {
+                    _uiState.update {
+                        it.copy(
+                            race = err.toAsyncError(),
+                            error = err,
+                        )
+                    }
                 }
             }
-            if (raceResult.isFailure) return@launch
+            if (raceResult.isFailure) return
 
             val loadedRace = raceResult.getOrNull()
             if (loadedRace == null) {
-                val err = AppError(ErrorStrings.raceNotFound)
-                _uiState.update {
-                    it.copy(
-                        race = err.toAsyncError(),
-                        error = err,
-                    )
+                if (_uiState.value.race !is AsyncValue.Value) {
+                    val err = AppError(ErrorStrings.raceNotFound)
+                    _uiState.update {
+                        it.copy(
+                            race = err.toAsyncError(),
+                            error = err,
+                        )
+                    }
                 }
-                return@launch
+                return
             }
 
             _uiState.update { it.copy(race = AsyncValue.Value(loadedRace)) }
             loadExtraSections(loadedRace)
+        } finally {
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 

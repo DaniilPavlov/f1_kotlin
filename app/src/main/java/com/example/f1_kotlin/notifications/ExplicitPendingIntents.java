@@ -19,13 +19,15 @@ final class ExplicitPendingIntents {
             Context context,
             int id,
             String title,
-            String body
+            String body,
+            String deepLinkUri
     ) {
         Intent intent = new Intent(context, RaceReminderReceiver.class);
         intent.setPackage(context.getPackageName());
         intent.putExtra(RaceReminderScheduler.EXTRA_ID, id);
         intent.putExtra(RaceReminderScheduler.EXTRA_TITLE, title);
         intent.putExtra(RaceReminderScheduler.EXTRA_BODY, body);
+        intent.putExtra(RaceReminderScheduler.EXTRA_DEEP_LINK, deepLinkUri);
         return PendingIntent.getBroadcast(
                 context,
                 id,
@@ -35,9 +37,17 @@ final class ExplicitPendingIntents {
     }
 
     static PendingIntent openMainActivity(Context context, int requestCode) {
+        return openMainActivity(context, requestCode, null);
+    }
+
+    static PendingIntent openMainActivity(Context context, int requestCode, String deepLinkUri) {
         Intent intent = new Intent(context, MainActivity.class);
         intent.setPackage(context.getPackageName());
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (deepLinkUri != null && !deepLinkUri.isEmpty()) {
+            intent.setData(android.net.Uri.parse(deepLinkUri));
+            intent.setAction(Intent.ACTION_VIEW);
+        }
         return PendingIntent.getActivity(
                 context,
                 requestCode,

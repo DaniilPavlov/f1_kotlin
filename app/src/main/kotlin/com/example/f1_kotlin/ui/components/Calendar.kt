@@ -19,6 +19,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,10 +29,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.ui.theme.AppStyles
+import com.example.f1_kotlin.ui.theme.F1Black
+import com.example.f1_kotlin.ui.theme.F1OnChrome
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1ShadowColor
 import com.example.f1_kotlin.ui.theme.F1White
+import com.example.f1_kotlin.ui.theme.appColors
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -54,7 +60,9 @@ fun F1Calendar(
     onMonthChanged: (YearMonth) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val locale = Locale.getDefault()
+    val colors = appColors()
+    val language by LocaleController.language.collectAsState()
+    val locale = remember(language) { LocaleController.currentLocale() }
     val daysInMonth = focusedMonth.lengthOfMonth()
     val firstDayOfMonth = focusedMonth.atDay(1)
     // Смещение: календарь начинается с понедельника (ISO), не с воскресенья
@@ -64,7 +72,7 @@ fun F1Calendar(
         modifier = modifier
             .fillMaxWidth()
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
-            .background(F1ShadowColor)
+            .background(colors.shadowColor)
             .padding(12.dp),
     ) {
         Row(
@@ -73,7 +81,11 @@ fun F1Calendar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = { onMonthChanged(focusedMonth.minusMonths(1)) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null)
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = null,
+                    tint = colors.black,
+                )
             }
             Text(
                 text = focusedMonth.month.getDisplayName(TextStyle.FULL_STANDALONE, locale)
@@ -81,7 +93,11 @@ fun F1Calendar(
                 style = AppStyles.body,
             )
             IconButton(onClick = { onMonthChanged(focusedMonth.plusMonths(1)) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = colors.black,
+                )
             }
         }
 
@@ -138,14 +154,15 @@ private fun CalendarDay(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Selection / today pills stay fixed contrast (true white / red), not theme surfaces.
     val background = when {
         selected -> F1White
         today -> F1Red
         else -> Color.Transparent
     }
     val textStyle = when {
-        selected -> AppStyles.body
-        today -> AppStyles.body.copy(color = F1White)
+        selected -> AppStyles.body.copy(color = F1Black)
+        today -> AppStyles.body.copy(color = F1OnChrome)
         else -> AppStyles.body
     }
     Box(

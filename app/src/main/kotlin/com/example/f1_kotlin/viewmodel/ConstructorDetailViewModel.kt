@@ -28,6 +28,7 @@ data class ConstructorDetailUiState(
         > = AsyncValue.Loading,
     val news: List<NewsArticle> = emptyList(),
     val error: AppError? = null,
+    val isRefreshing: Boolean = false,
 )
 
 @HiltViewModel
@@ -48,33 +49,69 @@ class ConstructorDetailViewModel @Inject constructor(
 
     fun loadAllData() {
         loadJob.launch(viewModelScope) {
-            _uiState.update {
-                it.copy(
-                    error = null,
-                    constructor = AsyncValue.Loading,
-                    careerStats = AsyncValue.Loading,
-                    news = emptyList(),
-                )
+            loadInternal(softRefresh = false)
+        }
+    }
+
+    /** Pull-to-refresh: keep Values while reloading. */
+    fun refreshAll() {
+        loadJob.launch(viewModelScope) {
+            loadInternal(softRefresh = true)
+        }
+    }
+
+    private suspend fun loadInternal(softRefresh: Boolean) {
+        try {
+            if (softRefresh) {
+                _uiState.update {
+                    it.copy(
+                        isRefreshing = true,
+                        error = null,
+                        constructor = if (it.constructor is AsyncValue.Value) {
+                            it.constructor
+                        } else {
+                            AsyncValue.Loading
+                        },
+                        careerStats = if (it.careerStats is AsyncValue.Value) {
+                            it.careerStats
+                        } else {
+                            AsyncValue.Loading
+                        },
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        error = null,
+                        constructor = AsyncValue.Loading,
+                        careerStats = AsyncValue.Loading,
+                        news = emptyList(),
+                    )
+                }
             }
 
             val currentDrivers = repository.currentDriversForConstructor(constructorId)
             val constructorResult = repository.getConstructor(constructorId)
             constructorResult.onFailure { ex ->
                 val err = ex.toAppError()
-                _uiState.update {
-                    it.copy(
-                        constructor = err.toAsyncError(),
-                        error = err,
-                    )
+                if (_uiState.value.constructor !is AsyncValue.Value) {
+                    _uiState.update {
+                        it.copy(
+                            constructor = err.toAsyncError(),
+                            error = err,
+                        )
+                    }
                 }
-                return@launch
+                return
             }
             val loaded = constructorResult.getOrNull()
             if (loaded == null) {
-                _uiState.update {
-                    it.copy(constructor = AsyncValue.Error(ErrorStrings.constructorNotFound))
+                if (_uiState.value.constructor !is AsyncValue.Value) {
+                    _uiState.update {
+                        it.copy(constructor = AsyncValue.Error(ErrorStrings.constructorNotFound))
+                    }
                 }
-                return@launch
+                return
             }
             _uiState.update { it.copy(constructor = AsyncValue.Value(loaded)) }
 
@@ -102,6 +139,8 @@ class ConstructorDetailViewModel @Inject constructor(
                 )
                 _uiState.update { it.copy(news = newsDeferred.await()) }
             }
+        } finally {
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 }

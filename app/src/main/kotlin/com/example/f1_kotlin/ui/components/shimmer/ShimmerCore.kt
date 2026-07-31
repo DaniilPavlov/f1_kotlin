@@ -24,8 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.f1_kotlin.ui.theme.F1ShimmerBase
-import com.example.f1_kotlin.ui.theme.F1ShimmerHighlight
+import com.example.f1_kotlin.ui.theme.appColors
 
 internal val LocalShimmerBrush = staticCompositionLocalOf<Brush> {
     error("ScreenShimmer not provided")
@@ -33,6 +32,7 @@ internal val LocalShimmerBrush = staticCompositionLocalOf<Brush> {
 
 @Composable
 fun ScreenShimmer(content: @Composable () -> Unit) {
+    val colors = appColors()
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translate by transition.animateFloat(
         initialValue = 0f,
@@ -44,7 +44,7 @@ fun ScreenShimmer(content: @Composable () -> Unit) {
         label = "shimmerTranslate",
     )
     val brush = Brush.linearGradient(
-        colors = listOf(F1ShimmerBase, F1ShimmerHighlight, F1ShimmerBase),
+        colors = listOf(colors.shimmerBase, colors.shimmerHighlight, colors.shimmerBase),
         start = Offset(translate - 300f, 0f),
         end = Offset(translate, 300f),
     )

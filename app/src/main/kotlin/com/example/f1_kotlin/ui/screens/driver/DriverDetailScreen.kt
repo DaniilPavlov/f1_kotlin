@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,6 +33,7 @@ import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.data.model.EspnDriverCardData
 import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.ui.components.CareerInfoRow
 import com.example.f1_kotlin.ui.components.CareerListTile
 import com.example.f1_kotlin.ui.components.CareerRaceResultsSheet
@@ -51,8 +54,8 @@ import com.example.f1_kotlin.viewmodel.DriverDetailViewModel
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriverDetailScreen(
     viewModel: DriverDetailViewModel,
@@ -65,21 +68,33 @@ fun DriverDetailScreen(
     val context = LocalContext.current
 
     when {
-        driver.isLoading || career.isLoading -> CareerScreenShimmer(modifier = Modifier.fillMaxSize())
-        uiState.error != null && driver !is AsyncValue.Value -> ErrorBody(
-            uiState.error?.title,
-            uiState.error?.subtitle,
-            onRetry = viewModel::loadAllData,
+        !uiState.isRefreshing && (driver.isLoading || career.isLoading) -> CareerScreenShimmer(
             modifier = Modifier.fillMaxSize(),
         )
         driver is AsyncValue.Value && career is AsyncValue.Value -> {
-            DriverContent(
-                driver = driver.value,
-                stats = career.value,
-                espnCard = uiState.espnCard,
-                onConstructorClick = onConstructorClick,
-                onCircuitClick = onCircuitClick,
-                onWikipediaClick = { openUrl(context, driver.value.url) },
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refreshAll,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                DriverContent(
+                    driver = driver.value,
+                    stats = career.value,
+                    espnCard = uiState.espnCard,
+                    onConstructorClick = onConstructorClick,
+                    onCircuitClick = onCircuitClick,
+                    onWikipediaClick = { openUrl(context, driver.value.url) },
+                )
+            }
+        }
+        else -> {
+            val asyncError = (driver as? AsyncValue.Error)
+                ?: (career as? AsyncValue.Error)
+            ErrorBody(
+                uiState.error?.title ?: asyncError?.message,
+                uiState.error?.subtitle ?: asyncError?.subtitle,
+                onRetry = viewModel::loadAllData,
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }
@@ -250,5 +265,7 @@ private fun DriverNewsSection(articles: List<NewsArticle>) {
 }
 
 private fun formatBirthDate(value: String): String = runCatching {
-    LocalDate.parse(value).format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault()))
+    LocalDate.parse(value).format(
+        DateTimeFormatter.ofPattern("d MMMM yyyy", LocaleController.currentLocale()),
+    )
 }.getOrElse { displayValue(value) }

@@ -125,10 +125,13 @@ class H2hDriversViewModel @Inject constructor(
             onLoading = { _uiState.update { it.copy(comparison = AsyncValue.Loading) } },
             onError = { err -> _uiState.update { it.copy(comparison = err.toAsyncError()) } },
             onSuccess = { statsA, statsB ->
+                val scoresA = repository.getDriverH2hRoundScores(a.driverId, season).getOrElse { emptyList() }
+                val scoresB = repository.getDriverH2hRoundScores(b.driverId, season).getOrElse { emptyList() }
+                val timeline = H2hPointsTimeline.fromScores(scoresA, scoresB, season)
                 _uiState.update {
                     it.copy(
                         comparison = AsyncValue.Value(
-                            H2hDriverCompareResult(a, b, statsA, statsB, season),
+                            H2hDriverCompareResult(a, b, statsA, statsB, season, timeline),
                         ),
                     )
                 }

@@ -10,6 +10,7 @@ data class H2hDriverCompareResult(
     val statsA: H2hStats,
     val statsB: H2hStats,
     val season: String?,
+    val timeline: H2hPointsTimeline = H2hPointsTimeline(emptyList()),
 )
 
 data class H2hConstructorCompareResult(
@@ -18,4 +19,5 @@ data class H2hConstructorCompareResult(
     val statsA: H2hStats,
     val statsB: H2hStats,
     val season: String?,
+    val timeline: H2hPointsTimeline = H2hPointsTimeline(emptyList()),
 )

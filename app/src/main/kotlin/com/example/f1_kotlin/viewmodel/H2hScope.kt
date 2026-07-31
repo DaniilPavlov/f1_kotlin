@@ -46,7 +46,7 @@ fun LoadJobHolder.launchH2hCompare(
     fetchB: suspend () -> Result<H2hStats>,
     onLoading: () -> Unit,
     onError: (AppError) -> Unit,
-    onSuccess: (H2hStats, H2hStats) -> Unit,
+    onSuccess: suspend (H2hStats, H2hStats) -> Unit,
 ) {
     if (!canCompare) return
     launch(scope) {

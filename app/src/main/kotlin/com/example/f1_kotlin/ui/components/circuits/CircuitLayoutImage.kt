@@ -17,19 +17,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.data.circuits.CircuitLayoutAssets
-import com.example.f1_kotlin.ui.theme.F1Black
+import com.example.f1_kotlin.ui.theme.appColors
 
-/** Локальная схема трассы; при отсутствии ассета — ничего не рисует. Tint по умолчанию — чёрный. */
+/** Локальная схема трассы; при отсутствии ассета — ничего не рисует. Tint по умолчанию — ink. */
 @Composable
 fun CircuitLayoutImage(
     circuitId: String,
     modifier: Modifier = Modifier,
     height: Dp = 180.dp,
-    tint: Color = F1Black,
+    tint: Color? = null,
     padding: Dp = 12.dp,
 ) {
     val path = CircuitLayoutAssets.assetPath(circuitId) ?: return
     val context = LocalContext.current
+    val resolvedTint = tint ?: appColors().black
     val bitmap = remember(path) {
         runCatching {
             context.assets.open(path).use { BitmapFactory.decodeStream(it) }
@@ -47,7 +48,7 @@ fun CircuitLayoutImage(
             contentDescription = null,
             modifier = Modifier.fillMaxWidth().height(height),
             contentScale = ContentScale.Fit,
-            colorFilter = ColorFilter.tint(tint),
+            colorFilter = ColorFilter.tint(resolvedTint),
         )
     }
 }

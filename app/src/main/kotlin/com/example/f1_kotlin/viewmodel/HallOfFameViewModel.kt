@@ -22,6 +22,7 @@ data class HallOfFameUiState(
     val fieldsInputted: Boolean = false,
     val activeTable: Int = 0,
     val error: AppError? = null,
+    val isRefreshing: Boolean = false,
 )
 
 /** ViewModel «Зал славы» — peek-кэш по году + refresh, [LoadJobHolder]. */
@@ -70,22 +71,51 @@ class HallOfFameViewModel @Inject constructor(
     fun loadAllData() {
         if (!_uiState.value.fieldsInputted) return
         loadJob.launch(viewModelScope) {
-            _uiState.update { it.copy(error = null) }
-            val year = _uiState.value.year
+            loadInternal(softRefresh = false)
+        }
+    }
 
-            repository.peekHistoricalStandingsCache(year)?.let { (drivers, constructors) ->
+    /** Pull-to-refresh: keep Value while reloading. */
+    fun refreshAll() {
+        if (!_uiState.value.fieldsInputted) return
+        loadJob.launch(viewModelScope) {
+            loadInternal(softRefresh = true)
+        }
+    }
+
+    private suspend fun loadInternal(softRefresh: Boolean) {
+        try {
+            val year = _uiState.value.year
+            if (softRefresh) {
                 _uiState.update {
                     it.copy(
-                        drivers = AsyncValue.Value(drivers),
-                        constructors = AsyncValue.Value(constructors),
+                        isRefreshing = true,
+                        error = null,
+                        drivers = if (it.drivers is AsyncValue.Value) it.drivers else AsyncValue.Loading,
+                        constructors = if (it.constructors is AsyncValue.Value) {
+                            it.constructors
+                        } else {
+                            AsyncValue.Loading
+                        },
                     )
                 }
-            } ?: run {
-                _uiState.update {
-                    it.copy(
-                        drivers = AsyncValue.Loading,
-                        constructors = AsyncValue.Loading,
-                    )
+            } else {
+                _uiState.update { it.copy(error = null) }
+
+                repository.peekHistoricalStandingsCache(year)?.let { (drivers, constructors) ->
+                    _uiState.update {
+                        it.copy(
+                            drivers = AsyncValue.Value(drivers),
+                            constructors = AsyncValue.Value(constructors),
+                        )
+                    }
+                } ?: run {
+                    _uiState.update {
+                        it.copy(
+                            drivers = AsyncValue.Loading,
+                            constructors = AsyncValue.Loading,
+                        )
+                    }
                 }
             }
 
@@ -111,6 +141,8 @@ class HallOfFameViewModel @Inject constructor(
                     }
                 },
             )
+        } finally {
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 }

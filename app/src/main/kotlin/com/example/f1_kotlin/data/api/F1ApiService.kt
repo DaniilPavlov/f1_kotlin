@@ -85,10 +85,26 @@ interface F1ApiService {
         @Query("limit") limit: Int = 100,
     ): MrDataResponse<StandingsModel>
 
+    /** Standings пилотов после конкретного раунда. */
+    @GET("{year}/{round}/driverStandings.json")
+    suspend fun getDriverStandingsAfterRound(
+        @Path("year") year: String,
+        @Path("round") round: String,
+        @Query("limit") limit: Int = 100,
+    ): MrDataResponse<StandingsModel>
+
     /** Итоговая таблица конструкторов за указанный год. */
     @GET("{year}/constructorStandings.json")
     suspend fun getConstructorStandings(
         @Path("year") year: String,
+        @Query("limit") limit: Int = 100,
+    ): MrDataResponse<StandingsModel>
+
+    /** Standings конструкторов после конкретного раунда. */
+    @GET("{year}/{round}/constructorStandings.json")
+    suspend fun getConstructorStandingsAfterRound(
+        @Path("year") year: String,
+        @Path("round") round: String,
         @Query("limit") limit: Int = 100,
     ): MrDataResponse<StandingsModel>
 

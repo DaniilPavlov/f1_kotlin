@@ -1,5 +1,6 @@
 package com.example.f1_kotlin.util
 
+import com.example.f1_kotlin.domain.LocaleController
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -23,7 +24,7 @@ object DateUtils {
      * Название месяца в именительном падеже на языке текущей локали приложения.
      * Например: `3` → «Март» / «March».
      */
-    fun monthName(month: Int, locale: Locale = Locale.getDefault()): String =
+    fun monthName(month: Int, locale: Locale = LocaleController.currentLocale()): String =
         java.time.Month.of(month).getDisplayName(TextStyle.FULL_STANDALONE, locale)
             .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
 
@@ -42,7 +43,7 @@ object DateUtils {
     }
 
     /**
-     * Парсит UTC-дату/время сессии. Пустое [time] → полночь UTC (как в Flutter [RaceDateTimeHelper]).
+     * Парсит UTC-дату/время сессии. Пустое [time] → полночь UTC.
      */
     fun parseUtcSession(date: String, time: String?): ZonedDateTime {
         val raw = time?.trim().orEmpty().removeSuffix("Z")

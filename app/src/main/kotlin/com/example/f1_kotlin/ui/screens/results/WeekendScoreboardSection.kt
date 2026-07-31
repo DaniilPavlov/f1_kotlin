@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,11 +47,10 @@ import com.example.f1_kotlin.ui.components.shimmer.WeekendScoreboardSectionShimm
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Black
-import com.example.f1_kotlin.ui.theme.F1GrayBg
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
-import com.example.f1_kotlin.ui.theme.F1TextGray
 import com.example.f1_kotlin.ui.theme.F1White
+import com.example.f1_kotlin.ui.theme.appColors
+import com.example.f1_kotlin.util.rememberShareWeekendAction
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -96,7 +96,7 @@ private fun ScoreboardCard(event: EspnScoreboardEvent) {
             .border(1.dp, F1Red, RoundedCornerShape(20.dp))
             .padding(16.dp),
     ) {
-        ScoreboardHeader(event = event, highlighted = highlighted)
+        ScoreboardHeader(event = event, highlighted = highlighted, onShare = rememberShareWeekendAction(event))
         if (highlighted != null) {
             Spacer(Modifier.height(14.dp))
             HighlightedSessionBlock(
@@ -128,7 +128,9 @@ private fun ScoreboardCard(event: EspnScoreboardEvent) {
 private fun ScoreboardHeader(
     event: EspnScoreboardEvent,
     highlighted: EspnScoreboardSession?,
+    onShare: (() -> Unit)? = null,
 ) {
+    val colors = appColors()
     val locationParts = listOfNotNull(
         event.circuitCity?.takeIf { it.isNotEmpty() },
         event.circuitCountry?.takeIf { it.isNotEmpty() },
@@ -140,9 +142,21 @@ private fun ScoreboardHeader(
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(8.dp))
+        if (onShare != null) {
+            Icon(
+                imageVector = Icons.Filled.Share,
+                contentDescription = stringResource(R.string.share),
+                tint = F1Red,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable(onClick = onShare)
+                    .padding(2.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         StatusChip(event, highlighted)
     }
-    if (!event.circuitName.isNullOrEmpty()) {
+if (!event.circuitName.isNullOrEmpty()) {
         Spacer(Modifier.height(8.dp))
         Text(event.circuitName, style = AppStyles.body)
     }
@@ -155,7 +169,7 @@ private fun ScoreboardHeader(
             }
             Text(
                 locationParts.joinToString(", "),
-                style = AppStyles.caption.copy(color = F1TextGray),
+                style = AppStyles.caption.copy(color = colors.textGray),
             )
         }
     }
@@ -167,11 +181,12 @@ private fun HighlightedSessionBlock(
     dateFormat: DateTimeFormatter,
     onClick: () -> Unit,
 ) {
+    val colors = appColors()
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(F1GrayBg)
+            .background(colors.grayBg)
             .clickable(onClick = onClick)
             .padding(12.dp),
     ) {
@@ -184,13 +199,13 @@ private fun HighlightedSessionBlock(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = F1TextGray,
+                tint = colors.textGray,
                 modifier = Modifier.size(20.dp),
             )
         }
         session.date?.let { date ->
             Spacer(Modifier.height(4.dp))
-            Text(dateFormat.format(date), style = AppStyles.caption.copy(color = F1TextGray))
+            Text(dateFormat.format(date), style = AppStyles.caption.copy(color = colors.textGray))
         }
         session.leaderName?.takeIf { it.isNotEmpty() }?.let { name ->
             Spacer(Modifier.height(6.dp))
@@ -213,6 +228,7 @@ private fun ScoreboardSessionRows(
     dateFormat: DateTimeFormatter,
     onSessionClick: (EspnScoreboardSession) -> Unit,
 ) {
+    val colors = appColors()
     sessions.forEach { session ->
         Row(
             modifier = Modifier
@@ -224,26 +240,29 @@ private fun ScoreboardSessionRows(
             Text(
                 session.abbreviation,
                 style = AppStyles.caption.copy(
-                    color = if (session === highlighted) F1Red else F1Black,
+                    color = if (session === highlighted) F1Red else colors.black,
                     fontWeight = FontWeight.SemiBold,
                 ),
                 modifier = Modifier.width(48.dp),
             )
             Text(
-                session.date?.let { dateFormat.format(it) } ?: session.statusDetail,
-                style = AppStyles.caption.copy(color = F1TextGray),
+                session.date?.let { dateFormat.format(it) }.orEmpty(),
+                style = AppStyles.caption.copy(color = colors.textGray),
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                session.statusDetail,
-                style = AppStyles.caption.copy(
-                    color = if (session.isLive) F1Red else F1TextGray,
-                ),
-            )
+            // ESPN statusDetail for upcoming sessions is US-local (e.g. "8/21 - 6:30 AM EDT") — skip it.
+            if (!session.isUpcoming && session.statusDetail.isNotEmpty()) {
+                Text(
+                    session.statusDetail,
+                    style = AppStyles.caption.copy(
+                        color = if (session.isLive) F1Red else colors.textGray,
+                    ),
+                )
+            }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = F1TextGray.copy(alpha = 0.8f),
+                tint = colors.textGray.copy(alpha = 0.8f),
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -253,10 +272,13 @@ private fun ScoreboardSessionRows(
 @Composable
 private fun StatusChip(event: EspnScoreboardEvent, highlighted: EspnScoreboardSession?) {
     val isLive = event.isLive || (highlighted?.isLive == true)
+    // Skip ESPN schedule strings (EDT / AM-PM); only show Live or post-session status.
     val label = when {
         isLive -> stringResource(R.string.home_weekend_live)
-        !highlighted?.statusDetail.isNullOrEmpty() -> highlighted!!.statusDetail
-        else -> event.statusDetail
+        highlighted != null && !highlighted.isUpcoming && highlighted.statusDetail.isNotEmpty() ->
+            highlighted.statusDetail
+        event.statusState != "pre" && event.statusDetail.isNotEmpty() -> event.statusDetail
+        else -> ""
     }
     if (label.isEmpty()) return
     Text(
@@ -275,11 +297,12 @@ fun WeekendSessionResultsSheet(
     session: EspnScoreboardSession,
     onDismiss: () -> Unit,
 ) {
+    val colors = appColors()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = F1White,
+        containerColor = colors.white,
     ) {
         Column(
             modifier = Modifier
@@ -292,9 +315,9 @@ fun WeekendSessionResultsSheet(
                 stringResource(R.string.weekend_session_results_title, session.abbreviation),
                 style = AppStyles.h2,
             )
-            if (session.statusDetail.isNotEmpty()) {
+            if (!session.isUpcoming && session.statusDetail.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                Text(session.statusDetail, style = AppStyles.caption.copy(color = F1TextGray))
+                Text(session.statusDetail, style = AppStyles.caption.copy(color = colors.textGray))
             }
             Spacer(Modifier.height(16.dp))
             if (session.hasResults) {
@@ -309,7 +332,7 @@ fun WeekendSessionResultsSheet(
                             Text(
                                 "${entry.position}",
                                 style = AppStyles.body.copy(
-                                    color = if (entry.isWinner) F1Red else F1Black,
+                                    color = if (entry.isWinner) F1Red else colors.black,
                                     fontWeight = FontWeight.SemiBold,
                                 ),
                                 modifier = Modifier.width(32.dp),
@@ -317,7 +340,7 @@ fun WeekendSessionResultsSheet(
                             Text(
                                 entry.displayName,
                                 style = AppStyles.body.copy(
-                                    color = if (entry.isWinner) F1Red else F1Black,
+                                    color = if (entry.isWinner) F1Red else colors.black,
                                 ),
                                 modifier = Modifier.weight(1f),
                             )
@@ -325,13 +348,13 @@ fun WeekendSessionResultsSheet(
                                 CountryFlag(countryOrNationality = country, fontSize = 20.sp)
                             }
                         }
-                        HorizontalDivider(color = F1StrokeGray)
+                        HorizontalDivider(color = colors.strokeGray)
                     }
                 }
             } else {
                 Text(
                     stringResource(R.string.weekend_session_results_empty),
-                    style = AppStyles.body.copy(color = F1TextGray),
+                    style = AppStyles.body.copy(color = colors.textGray),
                     modifier = Modifier.padding(vertical = 24.dp),
                 )
             }

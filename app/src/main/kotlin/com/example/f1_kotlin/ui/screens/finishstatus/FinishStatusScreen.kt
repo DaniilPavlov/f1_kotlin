@@ -11,12 +11,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,38 +30,44 @@ import com.example.f1_kotlin.ui.components.shimmer.ListRowsShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
-import com.example.f1_kotlin.ui.theme.F1TextGray
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.viewmodel.FinishStatusViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FinishStatusScreen(viewModel: FinishStatusViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = viewModel::refreshAll,
+        modifier = Modifier.fillMaxSize(),
     ) {
-        Text(stringResource(R.string.finish_status_subtitle), style = AppStyles.body)
-        Spacer(Modifier.height(16.dp))
-        SeasonPickerField(
-            value = uiState.year,
-            label = stringResource(R.string.season),
-            hint = stringResource(R.string.select_season),
-            onSeasonSelected = viewModel::onYearChanged,
-            loadSeasons = viewModel::loadSeasonYears,
-        )
-        Spacer(Modifier.height(20.dp))
-        when (val state = uiState.statuses) {
-            is AsyncValue.Loading -> ListRowsShimmer(rowCount = 8)
-            is AsyncValue.Error -> ErrorBody(
-                state.message,
-                state.subtitle,
-                onRetry = viewModel::loadAllData,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
+        ) {
+            Text(stringResource(R.string.finish_status_subtitle), style = AppStyles.body)
+            Spacer(Modifier.height(16.dp))
+            SeasonPickerField(
+                value = uiState.year,
+                label = stringResource(R.string.season),
+                hint = stringResource(R.string.select_season),
+                onSeasonSelected = viewModel::onYearChanged,
+                loadSeasons = viewModel::loadSeasonYears,
             )
-            is AsyncValue.Value -> StatusList(state.value)
+            Spacer(Modifier.height(20.dp))
+            when (val state = uiState.statuses) {
+                is AsyncValue.Loading -> if (!uiState.isRefreshing) ListRowsShimmer(rowCount = 8)
+                is AsyncValue.Error -> ErrorBody(
+                    state.message,
+                    state.subtitle,
+                    onRetry = viewModel::loadAllData,
+                )
+                is AsyncValue.Value -> StatusList(state.value)
+            }
         }
     }
 }
@@ -76,8 +83,9 @@ private fun StatusList(items: List<FinishStatusItem>) {
         return
     }
     val total = items.sumOf { it.count }
+    val colors = appColors()
     items.forEach { item ->
-        val color = if (item.isHighlight) F1Red else Color.Black
+        val color = if (item.isHighlight) F1Red else colors.black
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -93,12 +101,12 @@ private fun StatusList(items: List<FinishStatusItem>) {
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "${((item.count.toDouble() / total) * 100).toInt()}%",
-                    style = AppStyles.caption.copy(color = F1TextGray),
+                    style = AppStyles.caption.copy(color = colors.textGray),
                     textAlign = TextAlign.Right,
                     modifier = Modifier.width(48.dp),
                 )
             }
         }
-        Divider(color = F1StrokeGray)
+        Divider(color = colors.strokeGray)
     }
 }

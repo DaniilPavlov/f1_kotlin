@@ -18,10 +18,20 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.FileProvider
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.example.f1_kotlin.data.analytics.AnalyticsEvent
+import com.example.f1_kotlin.data.deeplink.F1PetDeepLinks
+import com.example.f1_kotlin.data.model.EspnScoreboardEvent
+import com.example.f1_kotlin.di.AppEntryPoint
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.ui.share.ShareCareerCard
 import com.example.f1_kotlin.ui.share.ShareRaceResultsCard
+import com.example.f1_kotlin.ui.share.ShareWeekendSummaryCard
 import com.example.f1_kotlin.ui.theme.F1Theme
+import dagger.hilt.android.EntryPointAccessors
 import java.io.File
 import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
@@ -86,6 +96,51 @@ fun rememberShareRaceAction(race: Race): () -> Unit {
     }
 }
 
+@Composable
+fun rememberShareCircuitDeepLinkAction(circuitId: String, circuitName: String): () -> Unit {
+    val context = LocalContext.current
+    return remember(circuitId, circuitName) {
+        {
+            val uri = F1PetDeepLinks.circuit(circuitId)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, "$circuitName\n$uri")
+            }
+            context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            runCatching {
+                EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    AppEntryPoint::class.java,
+                ).analyticsGateway().log(AnalyticsEvent.ShareTapped("circuit"))
+            }
+        }
+    }
+}
+
+@Composable
+fun rememberShareWeekendAction(event: EspnScoreboardEvent): () -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    return remember(event) {
+        {
+            scope.launch {
+                ShareHelper.shareComposableAsPng(
+                    context = context,
+                    fileName = "f1_weekend_${System.currentTimeMillis()}.png",
+                ) {
+                    ShareWeekendSummaryCard(event = event)
+                }
+                runCatching {
+                    EntryPointAccessors.fromApplication(
+                        context.applicationContext,
+                        AppEntryPoint::class.java,
+                    ).analyticsGateway().log(AnalyticsEvent.ShareTapped("weekend_summary"))
+                }
+            }
+        }
+    }
+}
+
 /**
  * Renders [content] off-screen, saves PNG to cache, opens the system share sheet.
  */
@@ -108,11 +163,23 @@ object ShareHelper {
         activity: Activity,
         content: @Composable () -> Unit,
     ): Bitmap? = suspendCancellableCoroutine { cont ->
+        // Off-screen WindowManager panels don't inherit Activity's ViewTree owners —
+        // Compose 1.10+ requires them on ComposeView or composition crashes.
+        val lifecycleOwner = activity as? LifecycleOwner
+        val savedStateOwner = activity as? SavedStateRegistryOwner
+        if (lifecycleOwner == null || savedStateOwner == null) {
+            cont.resume(null)
+            return@suspendCancellableCoroutine
+        }
+
         val windowManager = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val composeView = ComposeView(activity).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            setViewTreeLifecycleOwner(lifecycleOwner)
+            setViewTreeSavedStateRegistryOwner(savedStateOwner)
             setContent {
-                F1Theme {
+                // Share cards are designed for a fixed light palette.
+                F1Theme(darkTheme = false) {
                     content()
                 }
             }

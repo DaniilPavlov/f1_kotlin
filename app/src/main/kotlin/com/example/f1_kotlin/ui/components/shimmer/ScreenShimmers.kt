@@ -3,6 +3,7 @@ package com.example.f1_kotlin.ui.components.shimmer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,13 +17,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.F1ShimmerBase
 import com.example.f1_kotlin.ui.theme.F1ShimmerHighlight
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
+import com.example.f1_kotlin.ui.theme.appColors
 
 @Composable
 fun CareerScreenShimmer(showPhoto: Boolean = true, modifier: Modifier = Modifier) {
@@ -186,10 +188,11 @@ fun WeekendScoreboardSectionShimmer(modifier: Modifier = Modifier) {
 
 @Composable
 fun WeekendScoreboardShimmer(modifier: Modifier = Modifier) {
+    val colors = appColors()
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, F1StrokeGray, RoundedCornerShape(20.dp))
+            .border(1.dp, colors.strokeGray, RoundedCornerShape(20.dp))
             .padding(16.dp),
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -248,6 +251,7 @@ fun WeekendScoreboardShimmer(modifier: Modifier = Modifier) {
 
 @Composable
 fun NewsListShimmer(itemCount: Int = 4, modifier: Modifier = Modifier) {
+    val colors = appColors()
     ScreenShimmer {
         Column(
             modifier = modifier
@@ -265,7 +269,7 @@ fun NewsListShimmer(itemCount: Int = 4, modifier: Modifier = Modifier) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, F1StrokeGray, RoundedCornerShape(20.dp))
+                        .border(1.dp, colors.strokeGray, RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp)),
                 ) {
                     ShimmerSkeleton(
@@ -318,5 +322,143 @@ fun CircuitsShimmer(modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.height(16.dp))
         ListRowsShimmer(modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/** Скелет экрана трассы — hero, 5 stats, winners. */
+@Composable
+fun CircuitScreenShimmer(modifier: Modifier = Modifier) {
+    val colors = appColors()
+    ScreenShimmer {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    horizontal = AppDimens.horizontalPadding.dp,
+                    vertical = AppDimens.verticalPadding.dp,
+                ),
+        ) {
+            ShimmerSkeleton(
+                radius = 20.dp,
+                modifier = Modifier.fillMaxWidth().aspectRatio(3f / 2f),
+            )
+            Spacer(Modifier.height(16.dp))
+            ShimmerTextLine(height = 24.dp, width = 220.dp, bottomGap = 16.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, colors.strokeGray, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                repeat(5) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        ShimmerSkeleton(height = 14.dp, radius = 4.dp)
+                        Spacer(Modifier.height(6.dp))
+                        ShimmerSkeleton(height = 10.dp, width = 36.dp, radius = 4.dp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            ShimmerTextLine(width = 140.dp, bottomGap = 16.dp)
+            ShimmerTextLine(height = 18.dp, width = 160.dp, bottomGap = 10.dp)
+            ShimmerTextLine(height = 18.dp, width = 140.dp, bottomGap = 28.dp)
+            ShimmerTextLine(height = 20.dp, width = 140.dp, bottomGap = 12.dp)
+            repeat(4) {
+                ShimmerSkeleton(height = 44.dp, radius = 10.dp, bottomPadding = 12.dp)
+            }
+        }
+    }
+}
+
+/** Скелет H2H compare — chart + legend + 4 compare rows. */
+@Composable
+fun H2hCompareShimmer(modifier: Modifier = Modifier) {
+    ScreenShimmer {
+        Column(modifier = modifier.fillMaxWidth()) {
+            ShimmerTextLine(height = 12.dp, width = 80.dp, bottomGap = 12.dp)
+            ShimmerTextLine(height = 16.dp, width = 160.dp, bottomGap = 8.dp)
+            ShimmerTextLine(height = 12.dp, width = 200.dp, bottomGap = 16.dp)
+            ShimmerSkeleton(height = 220.dp, radius = 12.dp, bottomPadding = 12.dp)
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ShimmerSkeleton(height = 10.dp, width = 10.dp, radius = 5.dp)
+                Spacer(Modifier.width(8.dp))
+                ShimmerSkeleton(height = 12.dp, radius = 4.dp, modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(16.dp))
+                ShimmerSkeleton(height = 10.dp, width = 10.dp, radius = 5.dp)
+                Spacer(Modifier.width(8.dp))
+                ShimmerSkeleton(height = 12.dp, radius = 4.dp, modifier = Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(24.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Spacer(Modifier.width(100.dp))
+                ShimmerSkeleton(height = 16.dp, radius = 4.dp, modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(12.dp))
+                ShimmerSkeleton(height = 16.dp, radius = 4.dp, modifier = Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(12.dp))
+            repeat(4) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                ) {
+                    ShimmerSkeleton(height = 12.dp, width = 80.dp, radius = 4.dp)
+                    Spacer(Modifier.width(20.dp))
+                    ShimmerSkeleton(height = 22.dp, radius = 4.dp, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(12.dp))
+                    ShimmerSkeleton(height = 22.dp, radius = 4.dp, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Скелет Season Rewind — scrubber + racing bars.
+ * [showScrubber] = false when scrubber is already on screen and only chart reloads.
+ */
+@Composable
+fun SeasonRewindShimmer(
+    showScrubber: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    ScreenShimmer {
+        Column(modifier = modifier.fillMaxWidth()) {
+            if (showScrubber) {
+                Column(
+                    modifier = Modifier.padding(vertical = AppDimens.verticalPadding.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    ShimmerTextLine(height = 16.dp, width = 180.dp, bottomGap = 8.dp)
+                    ShimmerTextLine(height = 12.dp, width = 100.dp, bottomGap = 12.dp)
+                    ShimmerSkeleton(height = 32.dp, radius = 16.dp)
+                    Spacer(Modifier.height(12.dp))
+                    ShimmerSkeleton(height = 40.dp, width = 40.dp, radius = 20.dp)
+                }
+            }
+            ShimmerSkeleton(height = 40.dp, radius = 10.dp, bottomPadding = 16.dp)
+            ShimmerTextLine(height = 12.dp, width = 160.dp, bottomGap = 12.dp)
+            repeat(8) { i ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ShimmerSkeleton(height = 28.dp, width = 28.dp, radius = 14.dp)
+                    Spacer(Modifier.width(10.dp))
+                    val factor = (0.85f - i * 0.08f).coerceAtLeast(0.3f)
+                    Box(modifier = Modifier.weight(1f)) {
+                        Box(modifier = Modifier.fillMaxWidth(factor)) {
+                            ShimmerSkeleton(height = 28.dp, radius = 8.dp)
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    ShimmerSkeleton(height = 14.dp, width = 36.dp, radius = 4.dp)
+                }
+            }
+        }
     }
 }

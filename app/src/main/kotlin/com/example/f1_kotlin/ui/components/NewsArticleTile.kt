@@ -27,7 +27,7 @@ import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1TextGray
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.util.TrustedUrl
 import com.example.f1_kotlin.util.openUrl
 import java.time.format.DateTimeFormatter
@@ -37,6 +37,7 @@ import java.util.Locale
 @Composable
 fun NewsArticleTile(article: NewsArticle) {
     val context = LocalContext.current
+    val colors = appColors()
     val language by LocaleController.language.collectAsState()
     val locale = if (language == "en") Locale.ENGLISH else Locale.forLanguageTag("ru")
     val published = article.published?.let {
@@ -82,13 +83,13 @@ fun NewsArticleTile(article: NewsArticle) {
             ) {
                 Text(
                     text = article.byline.orEmpty(),
-                    style = AppStyles.caption.copy(color = F1TextGray),
+                    style = AppStyles.caption.copy(color = colors.textGray),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 if (published != null) {
-                    Text(published, style = AppStyles.caption.copy(color = F1TextGray))
+                    Text(published, style = AppStyles.caption.copy(color = colors.textGray))
                 }
             }
         } else {

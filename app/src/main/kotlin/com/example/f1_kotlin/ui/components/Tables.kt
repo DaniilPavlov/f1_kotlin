@@ -15,12 +15,16 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.domain.model.Constructor
 import com.example.f1_kotlin.domain.model.ConstructorStanding
 import com.example.f1_kotlin.domain.model.Driver
@@ -31,24 +35,18 @@ import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.model.RaceResult
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
-import com.example.f1_kotlin.ui.theme.F1GrayBg
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1White
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.util.DateUtils
 
-/**
- * Ширины как во Flutter `tournament_drivers_table`:
- * Fraction(0.05), Flex(0.2/0.3/0.15/0.05/0.25).
- */
 private val DriversTableWeights = listOf(0.05f, 0.2f, 0.3f, 0.15f, 0.05f, 0.25f)
 
-/** Flutter: Fraction(0.05), Flex(0.3/0.3/0.2/0.15). */
 private val ConstructorsTableWeights = listOf(0.05f, 0.3f, 0.3f, 0.2f, 0.15f)
 
-/** Flutter RaceInfoTable: Flex 1.15 / 1.35 / 1.1 / 0.55 / 0.9. */
 private val RaceResultsTableWeights = listOf(1.15f, 1.35f, 1.1f, 0.55f, 0.9f)
 
-/** Таблица чемпионата пилотов (Главная / Зал славы) — колонки как во Flutter. */
+/** Таблица чемпионата пилотов (Главная / Зал славы). */
 @Composable
 fun TournamentDriversTable(
     drivers: List<DriverStanding>,
@@ -59,7 +57,8 @@ fun TournamentDriversTable(
             cells = listOf(
                 "",
                 stringResource(R.string.driver),
-                stringResource(R.string.nationality),
+                // short "Nat." / "Нац." with Semantics label = nationality
+                stringResource(R.string.nationality_short),
                 stringResource(R.string.points),
                 stringResource(R.string.wins_short),
                 stringResource(R.string.constructor),
@@ -84,7 +83,7 @@ fun TournamentDriversTable(
     }
 }
 
-/** Таблица чемпионата конструкторов — колонки как во Flutter. */
+/** Таблица чемпионата конструкторов. */
 @Composable
 fun TournamentConstructorsTable(
     constructors: List<ConstructorStanding>,
@@ -119,14 +118,18 @@ fun TournamentConstructorsTable(
 }
 
 /**
- * Таблица результатов гонки — как Flutter `RaceInfoTable`:
+ * Таблица результатов гонки:
  * Driver(pos+name) · Constructor · Time/Status · Points · Best lap.
+ *
+ * @param timeHeaderRes last-race preview uses [R.string.time_status];
+ *   Race Info pinned app bar uses [R.string.time].
  */
 @Composable
 fun RaceResultsTable(
     race: Race,
     maxRows: Int? = null,
     showHeader: Boolean = true,
+    timeHeaderRes: Int = R.string.time_status,
     onDetailsClick: (() -> Unit)? = null,
     onDriverClick: ((Driver) -> Unit)? = null,
 ) {
@@ -140,7 +143,7 @@ fun RaceResultsTable(
                 cells = listOf(
                     stringResource(R.string.driver),
                     stringResource(R.string.constructor),
-                    stringResource(R.string.time_status),
+                    stringResource(timeHeaderRes),
                     stringResource(R.string.points),
                     stringResource(R.string.best_lap),
                 ),
@@ -154,7 +157,7 @@ fun RaceResultsTable(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(F1GrayBg)
+                    .background(appColors().grayBg)
                     .clickable(onClick = onDetailsClick)
                     .padding(vertical = 10.dp, horizontal = 12.dp),
                 horizontalArrangement = Arrangement.End,
@@ -205,23 +208,27 @@ private fun RaceResultRow(
 }
 
 /**
- * Квалификация — как Flutter: Driver(place+name) · Constructor · Q1 · Q2 · Q3 (равные колонки).
+ * Квалификация — Driver(place+name) · Constructor · Q1 · Q2 · Q3 (равные колонки).
+ * [showHeader] = false when headers live in a sticky section (Race Info).
  */
 @Composable
 fun QualifyingTable(
     results: List<QualifyingResult>,
+    showHeader: Boolean = true,
     onDriverClick: ((Driver) -> Unit)? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        TableHeaderRow(
-            cells = listOf(
-                stringResource(R.string.driver),
-                stringResource(R.string.constructor),
-                "Q1",
-                "Q2",
-                "Q3",
-            ),
-        )
+        if (showHeader) {
+            TableHeaderRow(
+                cells = listOf(
+                    stringResource(R.string.driver),
+                    stringResource(R.string.constructor),
+                    "Q1",
+                    "Q2",
+                    "Q3",
+                ),
+            )
+        }
         results.forEachIndexed { index, item ->
             val position = item.position.toIntOrNull() ?: (index + 1)
             val q2 = item.q2 ?: if (position < 16) "-" else ""
@@ -245,20 +252,26 @@ fun QualifyingTable(
 }
 
 /**
- * Пит-стопы — как Flutter: Driver(place+name) · Lap · Stop number · Stop time(duration) · Race time.
+ * Пит-стопы — Driver(place+name) · Lap · Stop number · Stop time(duration) · Race time.
+ * [showHeader] = false when headers live in a sticky section (Race Info).
  */
 @Composable
-fun PitStopsTable(stops: List<PitStop>) {
+fun PitStopsTable(
+    stops: List<PitStop>,
+    showHeader: Boolean = true,
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        TableHeaderRow(
-            cells = listOf(
-                stringResource(R.string.driver),
-                stringResource(R.string.lap),
-                stringResource(R.string.stop_number),
-                stringResource(R.string.stop_time),
-                stringResource(R.string.race_time),
-            ),
-        )
+        if (showHeader) {
+            TableHeaderRow(
+                cells = listOf(
+                    stringResource(R.string.driver),
+                    stringResource(R.string.lap),
+                    stringResource(R.string.stop_number),
+                    stringResource(R.string.stop_time),
+                    stringResource(R.string.race_time),
+                ),
+            )
+        }
         stops.forEachIndexed { index, stop ->
             TableDataRow(
                 cells = listOf(
@@ -297,6 +310,8 @@ fun ScheduleSessionCard(
     date: String,
     time: String?,
 ) {
+    val language by LocaleController.language.collectAsState()
+    val locale = remember(language) { LocaleController.currentLocale() }
     val localDateTime = DateUtils.toLocalDateTime(date, time)
     Box(
         modifier = Modifier
@@ -318,7 +333,7 @@ fun ScheduleSessionCard(
                         buildString {
                             append(localDateTime.dayOfMonth)
                             append(' ')
-                            append(DateUtils.monthName(localDateTime.monthValue))
+                            append(DateUtils.monthName(localDateTime.monthValue, locale))
                             append(' ')
                             append(localDateTime.year)
                         },

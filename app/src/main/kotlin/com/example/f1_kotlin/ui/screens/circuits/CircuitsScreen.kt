@@ -19,8 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -45,11 +47,11 @@ import com.example.f1_kotlin.ui.components.CareerListTile
 import com.example.f1_kotlin.ui.components.CustomSwitcher
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.LinkText
-import com.example.f1_kotlin.ui.components.LoadingIndicator
 import com.example.f1_kotlin.ui.components.circuits.CircuitLayoutImage
 import com.example.f1_kotlin.ui.components.circuits.CircuitStatsGrid
-import com.example.f1_kotlin.ui.components.shimmer.CareerScreenShimmer
+import com.example.f1_kotlin.ui.components.shimmer.CircuitScreenShimmer
 import com.example.f1_kotlin.ui.components.shimmer.CircuitsShimmer
+import com.example.f1_kotlin.ui.components.shimmer.ListRowsShimmer
 import com.example.f1_kotlin.ui.components.CountryFlag
 import com.example.f1_kotlin.ui.map.CircuitsTileSource
 import com.example.f1_kotlin.ui.map.F1CircuitsClusterer
@@ -59,7 +61,9 @@ import com.example.f1_kotlin.ui.map.configureCircuitsMapView
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
+import com.example.f1_kotlin.util.RegisterShareAction
 import com.example.f1_kotlin.util.openUrl
+import com.example.f1_kotlin.util.rememberShareCircuitDeepLinkAction
 import com.example.f1_kotlin.viewmodel.CircuitDetailViewModel
 import com.example.f1_kotlin.viewmodel.CircuitsViewModel
 import org.osmdroid.util.GeoPoint
@@ -70,6 +74,7 @@ import org.osmdroid.views.overlay.Marker
  * Экран «Трассы»: переключатель закреплён сверху, контент — в [Box] с [Modifier.weight].
  * Карта — [CircuitsMap] с OSMDroid ([configureCircuitsMapView] без повторения тайлов).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CircuitsScreen(
     viewModel: CircuitsViewModel,
@@ -78,7 +83,9 @@ fun CircuitsScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     when (val state = uiState.circuits) {
-        is AsyncValue.Loading -> CircuitsShimmer(modifier = Modifier.fillMaxSize())
+        is AsyncValue.Loading -> if (!uiState.isRefreshing) {
+            CircuitsShimmer(modifier = Modifier.fillMaxSize())
+        }
         is AsyncValue.Error -> ErrorBody(
             state.message,
             state.subtitle,
@@ -100,7 +107,13 @@ fun CircuitsScreen(
             ) {
                 when (uiState.activePage) {
                     0 -> CircuitsMap(state.value, onCircuitClick)
-                    else -> CircuitsList(state.value, onCircuitClick)
+                    else -> PullToRefreshBox(
+                        isRefreshing = uiState.isRefreshing,
+                        onRefresh = viewModel::refreshAll,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        CircuitsList(state.value, onCircuitClick)
+                    }
                 }
             }
         }
@@ -226,6 +239,7 @@ private fun populateCircuitsMap(
     mapView.invalidate()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CircuitDetailScreen(
     viewModel: CircuitDetailViewModel,
@@ -233,59 +247,77 @@ fun CircuitDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val circuit = (uiState.circuit as? AsyncValue.Value)?.value
+    val shareAction = if (circuit != null) {
+        rememberShareCircuitDeepLinkAction(circuit.circuitId, circuit.circuitName)
+    } else {
+        null
+    }
+    RegisterShareAction(shareAction)
 
     when (val state = uiState.circuit) {
-        is AsyncValue.Loading -> CareerScreenShimmer(modifier = Modifier.fillMaxSize())
+        is AsyncValue.Loading -> if (!uiState.isRefreshing) {
+            CircuitScreenShimmer(modifier = Modifier.fillMaxSize())
+        }
         is AsyncValue.Error -> ErrorBody(
             state.message,
             state.subtitle,
             onRetry = viewModel::loadAllData,
             modifier = Modifier.fillMaxSize(),
         )
-        is AsyncValue.Value -> Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = AppDimens.horizontalPadding.dp, vertical = AppDimens.verticalPadding.dp),
+        is AsyncValue.Value -> PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = viewModel::refreshAll,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            if (CircuitLayoutAssets.hasLayout(state.value.circuitId)) {
-                CircuitLayoutImage(circuitId = state.value.circuitId, height = 220.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        horizontal = AppDimens.horizontalPadding.dp,
+                        vertical = AppDimens.verticalPadding.dp,
+                    ),
+            ) {
+                if (CircuitLayoutAssets.hasLayout(state.value.circuitId)) {
+                    CircuitLayoutImage(circuitId = state.value.circuitId, height = 220.dp)
+                    Spacer(Modifier.height(16.dp))
+                }
+                Text(state.value.circuitName, style = AppStyles.h1)
+                uiState.stats?.let {
+                    Spacer(Modifier.height(16.dp))
+                    CircuitStatsGrid(stats = it)
+                }
                 Spacer(Modifier.height(16.dp))
-            }
-            Text(state.value.circuitName, style = AppStyles.h1)
-            uiState.stats?.let {
+                LinkText(stringResource(R.string.read_on_wikipedia)) { openUrl(context, state.value.url) }
                 Spacer(Modifier.height(16.dp))
-                CircuitStatsGrid(stats = it)
-            }
-            Spacer(Modifier.height(16.dp))
-            LinkText(stringResource(R.string.read_on_wikipedia)) { openUrl(context, state.value.url) }
-            Spacer(Modifier.height(16.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("${stringResource(R.string.country)}: ", style = AppStyles.h3)
-                CountryFlag(
-                    countryOrNationality = state.value.location.country,
-                    fontSize = 28.sp,
-                    fallbackStyle = AppStyles.h3,
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(stringResource(R.string.city_label, state.value.location.locality), style = AppStyles.h3)
-            Spacer(Modifier.height(28.dp))
-            Text(stringResource(R.string.circuit_winners_title), style = AppStyles.h2)
-            Spacer(Modifier.height(12.dp))
-            when (val winners = uiState.winners) {
-                is AsyncValue.Loading -> LoadingIndicator(Modifier.padding(vertical = 16.dp))
-                is AsyncValue.Error -> Text(winners.message, style = AppStyles.body)
-                is AsyncValue.Value -> {
-                    if (winners.value.isEmpty()) {
-                        Text(stringResource(R.string.circuit_winners_empty), style = AppStyles.body)
-                    } else {
-                        winners.value.forEach { win ->
-                            CareerListTile(
-                                title = "${win.season} · ${win.raceName}",
-                                subtitle = "${win.driver.fullName} · ${win.constructor.name}",
-                                onClick = { onDriverClick(win.driver) },
-                            )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${stringResource(R.string.country)}: ", style = AppStyles.h3)
+                    CountryFlag(
+                        countryOrNationality = state.value.location.country,
+                        fontSize = 28.sp,
+                        fallbackStyle = AppStyles.h3,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(stringResource(R.string.city_label, state.value.location.locality), style = AppStyles.h3)
+                Spacer(Modifier.height(28.dp))
+                Text(stringResource(R.string.circuit_winners_title), style = AppStyles.h2)
+                Spacer(Modifier.height(12.dp))
+                when (val winners = uiState.winners) {
+                    is AsyncValue.Loading -> if (!uiState.isRefreshing) ListRowsShimmer(rowCount = 4)
+                    is AsyncValue.Error -> Text(winners.message, style = AppStyles.body)
+                    is AsyncValue.Value -> {
+                        if (winners.value.isEmpty()) {
+                            Text(stringResource(R.string.circuit_winners_empty), style = AppStyles.body)
+                        } else {
+                            winners.value.forEach { win ->
+                                CareerListTile(
+                                    title = "${win.season} · ${win.raceName}",
+                                    subtitle = "${win.driver.fullName} · ${win.constructor.name}",
+                                    onClick = { onDriverClick(win.driver) },
+                                )
+                            }
                         }
                     }
                 }
