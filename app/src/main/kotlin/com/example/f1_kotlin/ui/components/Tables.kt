@@ -15,12 +15,16 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.domain.model.Constructor
 import com.example.f1_kotlin.domain.model.ConstructorStanding
 import com.example.f1_kotlin.domain.model.Driver
@@ -31,9 +35,9 @@ import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.model.RaceResult
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
-import com.example.f1_kotlin.ui.theme.F1GrayBg
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1White
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.util.DateUtils
 
 private val DriversTableWeights = listOf(0.05f, 0.2f, 0.3f, 0.15f, 0.05f, 0.25f)
@@ -153,7 +157,7 @@ fun RaceResultsTable(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(F1GrayBg)
+                    .background(appColors().grayBg)
                     .clickable(onClick = onDetailsClick)
                     .padding(vertical = 10.dp, horizontal = 12.dp),
                 horizontalArrangement = Arrangement.End,
@@ -306,6 +310,8 @@ fun ScheduleSessionCard(
     date: String,
     time: String?,
 ) {
+    val language by LocaleController.language.collectAsState()
+    val locale = remember(language) { LocaleController.currentLocale() }
     val localDateTime = DateUtils.toLocalDateTime(date, time)
     Box(
         modifier = Modifier
@@ -327,7 +333,7 @@ fun ScheduleSessionCard(
                         buildString {
                             append(localDateTime.dayOfMonth)
                             append(' ')
-                            append(DateUtils.monthName(localDateTime.monthValue))
+                            append(DateUtils.monthName(localDateTime.monthValue, locale))
                             append(' ')
                             append(localDateTime.year)
                         },

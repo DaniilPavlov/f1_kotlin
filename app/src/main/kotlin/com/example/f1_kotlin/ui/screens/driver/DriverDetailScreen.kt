@@ -33,6 +33,7 @@ import com.example.f1_kotlin.domain.model.Driver
 import com.example.f1_kotlin.data.model.EspnDriverCardData
 import com.example.f1_kotlin.data.model.NewsArticle
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.domain.LocaleController
 import com.example.f1_kotlin.ui.components.CareerInfoRow
 import com.example.f1_kotlin.ui.components.CareerListTile
 import com.example.f1_kotlin.ui.components.CareerRaceResultsSheet
@@ -53,7 +54,6 @@ import com.example.f1_kotlin.viewmodel.DriverDetailViewModel
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -265,5 +265,7 @@ private fun DriverNewsSection(articles: List<NewsArticle>) {
 }
 
 private fun formatBirthDate(value: String): String = runCatching {
-    LocalDate.parse(value).format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault()))
+    LocalDate.parse(value).format(
+        DateTimeFormatter.ofPattern("d MMMM yyyy", LocaleController.currentLocale()),
+    )
 }.getOrElse { displayValue(value) }

@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.F1ShimmerBase
 import com.example.f1_kotlin.ui.theme.F1ShimmerHighlight
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
+import com.example.f1_kotlin.ui.theme.appColors
 
 @Composable
 fun CareerScreenShimmer(showPhoto: Boolean = true, modifier: Modifier = Modifier) {
@@ -188,10 +188,11 @@ fun WeekendScoreboardSectionShimmer(modifier: Modifier = Modifier) {
 
 @Composable
 fun WeekendScoreboardShimmer(modifier: Modifier = Modifier) {
+    val colors = appColors()
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, F1StrokeGray, RoundedCornerShape(20.dp))
+            .border(1.dp, colors.strokeGray, RoundedCornerShape(20.dp))
             .padding(16.dp),
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -250,6 +251,7 @@ fun WeekendScoreboardShimmer(modifier: Modifier = Modifier) {
 
 @Composable
 fun NewsListShimmer(itemCount: Int = 4, modifier: Modifier = Modifier) {
+    val colors = appColors()
     ScreenShimmer {
         Column(
             modifier = modifier
@@ -267,7 +269,7 @@ fun NewsListShimmer(itemCount: Int = 4, modifier: Modifier = Modifier) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, F1StrokeGray, RoundedCornerShape(20.dp))
+                        .border(1.dp, colors.strokeGray, RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp)),
                 ) {
                     ShimmerSkeleton(
@@ -326,6 +328,7 @@ fun CircuitsShimmer(modifier: Modifier = Modifier) {
 /** Скелет экрана трассы — hero, 5 stats, winners. */
 @Composable
 fun CircuitScreenShimmer(modifier: Modifier = Modifier) {
+    val colors = appColors()
     ScreenShimmer {
         Column(
             modifier = modifier
@@ -345,7 +348,7 @@ fun CircuitScreenShimmer(modifier: Modifier = Modifier) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, F1StrokeGray, RoundedCornerShape(20.dp))
+                    .border(1.dp, colors.strokeGray, RoundedCornerShape(20.dp))
                     .padding(horizontal = 12.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {

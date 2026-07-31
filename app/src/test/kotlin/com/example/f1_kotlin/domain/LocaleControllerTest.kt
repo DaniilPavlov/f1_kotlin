@@ -38,4 +38,12 @@ class LocaleControllerTest {
         LocaleController.init(context)
         assertEquals("en", LocaleController.language.value)
     }
+
+    @Test
+    fun currentLocale_followsLanguage() {
+        LocaleController.init(context)
+        assertEquals("ru", LocaleController.currentLocale().language)
+        LocaleController.toggle(context)
+        assertEquals("en", LocaleController.currentLocale().language)
+    }
 }

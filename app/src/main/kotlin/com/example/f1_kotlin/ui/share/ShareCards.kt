@@ -188,8 +188,10 @@ fun ShareWeekendSummaryCard(event: EspnScoreboardEvent) {
     val isLive = event.isLive || (highlighted?.isLive == true)
     val statusLabel = when {
         isLive -> stringResource(R.string.home_weekend_live)
-        !highlighted?.statusDetail.isNullOrEmpty() -> highlighted!!.statusDetail
-        else -> event.statusDetail
+        highlighted != null && !highlighted.isUpcoming && highlighted.statusDetail.isNotEmpty() ->
+            highlighted.statusDetail
+        event.statusState != "pre" && event.statusDetail.isNotEmpty() -> event.statusDetail
+        else -> ""
     }
 
     ShareCardShell {
@@ -229,7 +231,12 @@ fun ShareWeekendSummaryCard(event: EspnScoreboardEvent) {
                 ) {
                     Text(session.abbreviation, style = AppStyles.body)
                     Text(
-                        session.statusDetail.ifBlank { if (session.isLive) "LIVE" else "" },
+                        when {
+                            session.isUpcoming -> ""
+                            session.statusDetail.isNotBlank() -> session.statusDetail
+                            session.isLive -> "LIVE"
+                            else -> ""
+                        },
                         style = AppStyles.caption.copy(color = if (session.isLive) F1Red else F1TextGray),
                     )
                 }

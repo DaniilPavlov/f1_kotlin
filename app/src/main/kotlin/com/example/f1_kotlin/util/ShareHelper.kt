@@ -18,6 +18,10 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.FileProvider
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.f1_kotlin.data.analytics.AnalyticsEvent
 import com.example.f1_kotlin.data.deeplink.F1PetDeepLinks
 import com.example.f1_kotlin.data.model.EspnScoreboardEvent
@@ -159,11 +163,23 @@ object ShareHelper {
         activity: Activity,
         content: @Composable () -> Unit,
     ): Bitmap? = suspendCancellableCoroutine { cont ->
+        // Off-screen WindowManager panels don't inherit Activity's ViewTree owners —
+        // Compose 1.10+ requires them on ComposeView or composition crashes.
+        val lifecycleOwner = activity as? LifecycleOwner
+        val savedStateOwner = activity as? SavedStateRegistryOwner
+        if (lifecycleOwner == null || savedStateOwner == null) {
+            cont.resume(null)
+            return@suspendCancellableCoroutine
+        }
+
         val windowManager = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val composeView = ComposeView(activity).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            setViewTreeLifecycleOwner(lifecycleOwner)
+            setViewTreeSavedStateRegistryOwner(savedStateOwner)
             setContent {
-                F1Theme {
+                // Share cards are designed for a fixed light palette.
+                F1Theme(darkTheme = false) {
                     content()
                 }
             }

@@ -35,16 +35,25 @@ object LocaleController {
     val language: StateFlow<String> = _language.asStateFlow()
 
     fun init(context: Context) {
-        val saved = LocalePreferences(context).language()
-        _language.value = saved
-        Locale.setDefault(Locale.forLanguageTag(saved))
+        applyLanguage(LocalePreferences(context).language())
     }
 
     fun toggle(context: Context): String {
         val next = if (_language.value == "ru") "en" else "ru"
         LocalePreferences(context).save(next)
-        _language.value = next
-        Locale.setDefault(Locale.forLanguageTag(next))
+        applyLanguage(next)
         return next
     }
+
+    /** Locale for formatting (dates, calendar) — not Android system default. */
+    fun currentLocale(): Locale = localeFor(_language.value)
+
+    fun applyLanguage(language: String) {
+        _language.value = language
+        // Keep JVM default in sync; Activity config changes can reset it otherwise.
+        Locale.setDefault(localeFor(language))
+    }
+
+    private fun localeFor(language: String): Locale =
+        if (language == "en") Locale.ENGLISH else Locale.forLanguageTag("ru")
 }

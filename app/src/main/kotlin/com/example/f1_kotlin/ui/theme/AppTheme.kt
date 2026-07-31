@@ -1,6 +1,7 @@
 package com.example.f1_kotlin.ui.theme
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -41,7 +42,7 @@ data class AppColors(
             black = Color(0xFFE8E8E8),
             textGray = Color(0xFF9A9A9A),
             grayBg = Color(0xFF1E1E1E),
-            shadowColor = Color(0xFF000000),
+            shadowColor = Color(0xFF2A2A2A),
             strokeGray = Color(0xFF3A3A3A),
             shimmerBase = Color(0xFF2C2C2C),
             shimmerHighlight = Color(0xFF404040),
@@ -55,13 +56,17 @@ data class AppColors(
 val LocalAppColors = staticCompositionLocalOf { AppColors.Light }
 
 @Composable
+@ReadOnlyComposable
 fun appColors(): AppColors = LocalAppColors.current
 
 /** Chrome (app bar / nav) stays F1 black regardless of theme. */
 val F1Chrome = Color(0xFF333333)
 val F1OnChrome = Color(0xFFFFFFFF)
 
-/** Light-palette aliases for share cards and non-Compose code. */
+/**
+ * Fixed light-palette aliases for share cards, red/chrome overlays, and other
+ * surfaces that must stay light regardless of app theme.
+ */
 val F1Black = AppColors.Light.black
 val F1Red = AppColors.Light.red
 val F1Pink = AppColors.Light.pink
@@ -76,32 +81,77 @@ val F1ShimmerHighlight = AppColors.Light.shimmerHighlight
 val HelveticaBold = FontFamily(Font(R.font.helvetica_neue_cyr_bold, FontWeight.Bold))
 val InterRegular = FontFamily(Font(R.font.inter_regular, FontWeight.Normal))
 
+/** Typography — ink color follows [appColors].black (inverts in dark mode). */
 object AppStyles {
-    val h1 = TextStyle(fontFamily = HelveticaBold, fontSize = 34.sp, color = Color.Black)
-    val h2 = TextStyle(fontFamily = HelveticaBold, fontSize = 30.sp, color = Color.Black)
-    val h3 = TextStyle(fontFamily = HelveticaBold, fontSize = 25.sp, color = Color.Black)
-    val body = TextStyle(fontFamily = InterRegular, fontSize = 16.sp, lineHeight = 20.sp, color = Color.Black)
-    val caption = TextStyle(fontFamily = InterRegular, fontSize = 12.sp, lineHeight = 14.sp, color = Color.Black)
-    val navBar = TextStyle(fontFamily = InterRegular, fontSize = 10.sp, lineHeight = 12.sp, color = Color.Black)
+    val h1: TextStyle
+        @Composable
+        @ReadOnlyComposable
+        get() = TextStyle(fontFamily = HelveticaBold, fontSize = 34.sp, color = appColors().black)
+
+    val h2: TextStyle
+        @Composable
+        @ReadOnlyComposable
+        get() = TextStyle(fontFamily = HelveticaBold, fontSize = 30.sp, color = appColors().black)
+
+    val h3: TextStyle
+        @Composable
+        @ReadOnlyComposable
+        get() = TextStyle(fontFamily = HelveticaBold, fontSize = 25.sp, color = appColors().black)
+
+    val body: TextStyle
+        @Composable
+        @ReadOnlyComposable
+        get() = TextStyle(
+            fontFamily = InterRegular,
+            fontSize = 16.sp,
+            lineHeight = 20.sp,
+            color = appColors().black,
+        )
+
+    val caption: TextStyle
+        @Composable
+        @ReadOnlyComposable
+        get() = TextStyle(
+            fontFamily = InterRegular,
+            fontSize = 12.sp,
+            lineHeight = 14.sp,
+            color = appColors().black,
+        )
+
+    val navBar: TextStyle
+        @Composable
+        @ReadOnlyComposable
+        get() = TextStyle(
+            fontFamily = InterRegular,
+            fontSize = 10.sp,
+            lineHeight = 12.sp,
+            color = appColors().black,
+        )
 }
 
 @Composable
-fun themedH1() = AppStyles.h1.copy(color = appColors().black)
+@ReadOnlyComposable
+fun themedH1() = AppStyles.h1
 
 @Composable
-fun themedH2() = AppStyles.h2.copy(color = appColors().black)
+@ReadOnlyComposable
+fun themedH2() = AppStyles.h2
 
 @Composable
-fun themedH3() = AppStyles.h3.copy(color = appColors().black)
+@ReadOnlyComposable
+fun themedH3() = AppStyles.h3
 
 @Composable
-fun themedBody() = AppStyles.body.copy(color = appColors().black)
+@ReadOnlyComposable
+fun themedBody() = AppStyles.body
 
 @Composable
-fun themedCaption() = AppStyles.caption.copy(color = appColors().black)
+@ReadOnlyComposable
+fun themedCaption() = AppStyles.caption
 
 @Composable
-fun themedNavBar() = AppStyles.navBar.copy(color = appColors().black)
+@ReadOnlyComposable
+fun themedNavBar() = AppStyles.navBar
 
 object AppDimens {
     const val horizontalPadding = 12f

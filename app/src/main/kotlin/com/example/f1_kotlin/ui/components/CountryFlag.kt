@@ -9,7 +9,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.example.f1_kotlin.ui.theme.AppStyles
-import com.example.f1_kotlin.ui.theme.F1TextGray
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.util.CountryFlagCodes
 
 /** Country / nationality Jolpica string → flag emoji (or fallback text). */
@@ -34,7 +34,7 @@ fun CountryFlag(
     if (!showFallbackText || raw.isEmpty()) return
     Text(
         text = raw,
-        style = fallbackStyle ?: AppStyles.caption.copy(color = F1TextGray),
+        style = fallbackStyle ?: AppStyles.caption.copy(color = appColors().textGray),
         modifier = modifier,
     )
 }

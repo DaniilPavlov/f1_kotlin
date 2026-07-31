@@ -24,9 +24,8 @@ import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.circuits.CircuitStats
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
-import com.example.f1_kotlin.ui.theme.F1TextGray
 import com.example.f1_kotlin.ui.theme.HelveticaBold
+import com.example.f1_kotlin.ui.theme.appColors
 
 /** Сетка характеристик трассы: длина, круги, повороты, скорость, перепад. */
 @Composable
@@ -34,6 +33,7 @@ fun CircuitStatsGrid(
     stats: CircuitStats,
     modifier: Modifier = Modifier,
 ) {
+    val colors = appColors()
     val items = listOf(
         stringResource(R.string.circuit_stat_length) to stats.lengthLabel,
         stringResource(R.string.circuit_stat_laps) to stats.lapsLabel,
@@ -56,7 +56,7 @@ fun CircuitStatsGrid(
                     modifier = Modifier
                         .width(1.dp)
                         .height(44.dp)
-                        .background(F1StrokeGray),
+                        .background(colors.strokeGray),
                 )
             }
             Column(
@@ -75,7 +75,7 @@ fun CircuitStatsGrid(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = label,
-                    style = AppStyles.caption.copy(color = F1TextGray),
+                    style = AppStyles.caption.copy(color = colors.textGray),
                     textAlign = TextAlign.Center,
                 )
             }

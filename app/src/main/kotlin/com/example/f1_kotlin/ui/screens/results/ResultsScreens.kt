@@ -175,46 +175,54 @@ fun RaceSearchScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(AppDimens.horizontalPadding.dp),
+            .padding(bottom = AppDimens.horizontalPadding.dp),
     ) {
-        Text(
-            stringResource(R.string.race_search_info),
-            style = AppStyles.body,
-            modifier = Modifier.padding(vertical = 16.dp),
-        )
-        SeasonPickerField(
-            value = uiState.year,
-            label = stringResource(R.string.season),
-            hint = stringResource(R.string.select_season),
-            onSeasonSelected = viewModel::onYearChanged,
-            loadSeasons = viewModel::loadSeasonYears,
-        )
-        Spacer(Modifier.height(12.dp))
-        RacePickerField(
-            displayValue = uiState.raceDisplay,
-            seasonYear = uiState.year,
-            label = stringResource(R.string.race),
-            hint = stringResource(R.string.select_race),
-            disabledHint = stringResource(R.string.select_season_first),
-            onRacePicked = { viewModel.onRacePicked(it.round, it.title) },
-            loadRaces = viewModel::loadSeasonRaces,
-        )
-        Spacer(Modifier.height(16.dp))
-        BlackButton(
-            text = stringResource(R.string.search),
-            enabled = uiState.fieldsInputted,
-            onClick = viewModel::loadRaceResults,
-        )
-        if (uiState.errorMessage.isNotEmpty()) {
-            Text(uiState.errorMessage, style = AppStyles.body, modifier = Modifier.padding(top = 16.dp))
-        }
-        if (!uiState.dataLoaded) {
-            LoadingIndicator(Modifier.padding(top = 24.dp))
+        Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
+            Text(
+                stringResource(R.string.race_search_info),
+                style = AppStyles.body,
+                modifier = Modifier.padding(vertical = 16.dp),
+            )
+            SeasonPickerField(
+                value = uiState.year,
+                label = stringResource(R.string.season),
+                hint = stringResource(R.string.select_season),
+                onSeasonSelected = viewModel::onYearChanged,
+                loadSeasons = viewModel::loadSeasonYears,
+            )
+            Spacer(Modifier.height(12.dp))
+            RacePickerField(
+                displayValue = uiState.raceDisplay,
+                seasonYear = uiState.year,
+                label = stringResource(R.string.race),
+                hint = stringResource(R.string.select_race),
+                disabledHint = stringResource(R.string.select_season_first),
+                onRacePicked = { viewModel.onRacePicked(it.round, it.title) },
+                loadRaces = viewModel::loadSeasonRaces,
+            )
+            Spacer(Modifier.height(16.dp))
+            BlackButton(
+                text = stringResource(R.string.search),
+                enabled = uiState.fieldsInputted,
+                onClick = viewModel::loadRaceResults,
+            )
+            if (uiState.errorMessage.isNotEmpty()) {
+                Text(uiState.errorMessage, style = AppStyles.body, modifier = Modifier.padding(top = 16.dp))
+            }
+            if (!uiState.dataLoaded) {
+                LoadingIndicator(Modifier.padding(top = 24.dp))
+            }
+            when (val state = uiState.searchedRace) {
+                is AsyncValue.Value -> state.value?.let { race ->
+                    Spacer(Modifier.height(24.dp))
+                    Text(race.raceName, style = AppStyles.h2)
+                }
+                else -> Unit
+            }
         }
         when (val state = uiState.searchedRace) {
             is AsyncValue.Value -> state.value?.let { race ->
-                Spacer(Modifier.height(24.dp))
-                Text(race.raceName, style = AppStyles.h2)
+                Spacer(Modifier.height(10.dp))
                 RaceResultsTable(
                     race = race,
                     maxRows = 3,
@@ -256,19 +264,19 @@ fun RaceInfoScreen(
                 onRefresh = viewModel::refreshAll,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                // pinned section app bars
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = AppDimens.horizontalPadding.dp),
-                ) {
+                // Tables edge-to-edge; title keeps horizontal padding (same as last-race block).
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
                     item {
-                        Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                        Text(raceData.raceName, style = AppStyles.h2)
-                        RowInfo(
-                            stringResource(R.string.season_label, raceData.season),
-                            stringResource(R.string.round_label, raceData.round),
-                        )
+                        Column(
+                            modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp),
+                        ) {
+                            Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                            Text(raceData.raceName, style = AppStyles.h2)
+                            RowInfo(
+                                stringResource(R.string.season_label, raceData.season),
+                                stringResource(R.string.round_label, raceData.round),
+                            )
+                        }
                     }
                     stickyHeader {
                         RaceInfoPinnedHeader(

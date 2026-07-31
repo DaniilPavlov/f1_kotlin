@@ -55,7 +55,6 @@ import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Chrome
 import com.example.f1_kotlin.ui.theme.F1OnChrome
-import com.example.f1_kotlin.ui.theme.F1Pink
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.ui.views.F1TableHeaderView
@@ -308,6 +307,7 @@ fun CustomSwitcher(
 
 @Composable
 private fun RowScope.SwitcherTab(title: String, active: Boolean, onClick: () -> Unit) {
+    val colors = appColors()
     Column(
         modifier = Modifier
             .weight(1f)
@@ -316,7 +316,7 @@ private fun RowScope.SwitcherTab(title: String, active: Boolean, onClick: () -> 
     ) {
         Text(
             text = title,
-            style = AppStyles.h3.copy(color = if (active) F1Red else F1Pink),
+            style = AppStyles.h3.copy(color = if (active) F1Red else colors.pink),
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(15.dp))
@@ -324,7 +324,7 @@ private fun RowScope.SwitcherTab(title: String, active: Boolean, onClick: () -> 
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(if (active) F1Red else F1Pink),
+                .background(if (active) F1Red else colors.pink),
         )
     }
 }

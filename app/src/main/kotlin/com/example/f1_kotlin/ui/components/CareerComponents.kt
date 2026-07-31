@@ -31,8 +31,7 @@ import com.example.f1_kotlin.data.model.CareerRaceResult
 import com.example.f1_kotlin.domain.model.Circuit
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
-import com.example.f1_kotlin.ui.theme.F1TextGray
+import com.example.f1_kotlin.ui.theme.appColors
 
 @Composable
 fun CareerInfoRow(
@@ -100,6 +99,7 @@ private fun CareerStatCell(
     onTap: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    val colors = appColors()
     val tappable = onTap != null && value > 0
     Column(
         modifier = modifier
@@ -114,7 +114,7 @@ private fun CareerStatCell(
             }
         }
         Spacer(Modifier.height(2.dp))
-        Text(label, style = AppStyles.body.copy(color = F1TextGray), maxLines = 1)
+        Text(label, style = AppStyles.body.copy(color = colors.textGray), maxLines = 1)
     }
 }
 
@@ -127,6 +127,7 @@ fun CareerRaceResultsSheet(
     onDismiss: () -> Unit,
     onCircuitClick: (Circuit) -> Unit,
 ) {
+    val colors = appColors()
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -158,7 +159,7 @@ fun CareerRaceResultsSheet(
                                 onCircuitClick(race.circuit)
                             },
                         )
-                        Divider(color = F1StrokeGray)
+                        Divider(color = colors.strokeGray)
                     }
                 }
             }

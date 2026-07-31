@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,8 +30,7 @@ import com.example.f1_kotlin.ui.components.shimmer.ListRowsShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1Red
-import com.example.f1_kotlin.ui.theme.F1StrokeGray
-import com.example.f1_kotlin.ui.theme.F1TextGray
+import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.viewmodel.FinishStatusViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,8 +83,9 @@ private fun StatusList(items: List<FinishStatusItem>) {
         return
     }
     val total = items.sumOf { it.count }
+    val colors = appColors()
     items.forEach { item ->
-        val color = if (item.isHighlight) F1Red else Color.Black
+        val color = if (item.isHighlight) F1Red else colors.black
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,12 +101,12 @@ private fun StatusList(items: List<FinishStatusItem>) {
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "${((item.count.toDouble() / total) * 100).toInt()}%",
-                    style = AppStyles.caption.copy(color = F1TextGray),
+                    style = AppStyles.caption.copy(color = colors.textGray),
                     textAlign = TextAlign.Right,
                     modifier = Modifier.width(48.dp),
                 )
             }
         }
-        Divider(color = F1StrokeGray)
+        Divider(color = colors.strokeGray)
     }
 }
