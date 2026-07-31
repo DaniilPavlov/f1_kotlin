@@ -43,9 +43,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.f1_kotlin.R
+import java.util.Locale
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.ui.components.CustomSwitcher
@@ -392,52 +394,15 @@ private fun RacingBarRow(
             }
         }
         Spacer(Modifier.width(8.dp))
-        Layout(
-            content = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(22.dp)
-                        .background(colors.grayBg, RoundedCornerShape(6.dp)),
-                )
-                Box(
-                    modifier = Modifier
-                        .height(22.dp)
-                        .then(
-                            if (isLeader) {
-                                Modifier.shadow(
-                                    elevation = 4.dp,
-                                    shape = RoundedCornerShape(6.dp),
-                                    ambientColor = base.copy(alpha = 0.4f),
-                                    spotColor = base.copy(alpha = 0.4f),
-                                )
-                            } else {
-                                Modifier
-                            },
-                        )
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                listOf(base.copy(alpha = 0.85f), base),
-                            ),
-                            shape = RoundedCornerShape(6.dp),
-                        ),
-                )
-            },
+        RacingBarTrack(
+            widthFactor = widthFactor,
+            barColor = base,
+            trackColor = colors.grayBg,
+            isLeader = isLeader,
             modifier = Modifier
                 .weight(1f)
                 .height(22.dp),
-        ) { measurables, constraints ->
-            val track = measurables[0].measure(constraints)
-            val barMax = constraints.maxWidth
-            val barWidth = max(8, (barMax * widthFactor).roundToInt()).coerceAtMost(barMax)
-            val bar = measurables[1].measure(
-                constraints.copy(minWidth = barWidth, maxWidth = barWidth),
-            )
-            layout(constraints.maxWidth, constraints.maxHeight) {
-                track.placeRelative(0, 0)
-                bar.placeRelative(0, 0)
-            }
-        }
+        )
         Spacer(Modifier.width(8.dp))
         Text(
             text = pointsLabel,
@@ -451,12 +416,66 @@ private fun RacingBarRow(
     }
 }
 
+@Composable
+private fun RacingBarTrack(
+    widthFactor: Float,
+    barColor: Color,
+    trackColor: Color,
+    isLeader: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Layout(
+        content = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(22.dp)
+                    .background(trackColor, RoundedCornerShape(6.dp)),
+            )
+            Box(
+                modifier = Modifier
+                    .height(22.dp)
+                    .then(
+                        if (isLeader) {
+                            Modifier.shadow(
+                                elevation = 4.dp,
+                                shape = RoundedCornerShape(6.dp),
+                                ambientColor = barColor.copy(alpha = 0.4f),
+                                spotColor = barColor.copy(alpha = 0.4f),
+                            )
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            listOf(barColor.copy(alpha = 0.85f), barColor),
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                    ),
+            )
+        },
+        modifier = modifier,
+    ) { measurables, constraints ->
+        val track = measurables[0].measure(constraints)
+        val barMax = constraints.maxWidth
+        val barWidth = max(8, (barMax * widthFactor).roundToInt()).coerceAtMost(barMax)
+        val bar = measurables[1].measure(
+            constraints.copy(minWidth = barWidth, maxWidth = barWidth),
+        )
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            track.placeRelative(0, 0)
+            bar.placeRelative(0, 0)
+        }
+    }
+}
+
 private fun formatPoints(points: Double): String {
     val asInt = points.roundToInt()
     return if (kotlin.math.abs(points - asInt) < 0.05) {
         asInt.toString()
     } else {
-        String.format("%.1f", points)
+        String.format(Locale.US, "%.1f", points)
     }
 }
 

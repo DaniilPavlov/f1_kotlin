@@ -21,7 +21,9 @@ object ApiCallHandler {
         block: suspend () -> T,
     ): Result<T> {
         var lastError: AppException? = null
-        repeat(retries + 1) { attempt ->
+        var attempt = 0
+        var finished = false
+        while (attempt <= retries && !finished) {
             try {
                 return Result.success(block())
             } catch (e: CancellationException) {
@@ -31,18 +33,21 @@ object ApiCallHandler {
                 // Jolpica rate-limit — повторяем, execute(maxAttempts: 3).
                 if (e.code() == 429 && attempt < retries) {
                     delay(RETRY_DELAY_MS * (attempt + 1))
+                    attempt++
                 } else {
-                    return Result.failure(lastError!!)
+                    finished = true
                 }
             } catch (e: IOException) {
                 lastError = e.toAppError().asException()
                 if (attempt < retries) {
                     delay(RETRY_DELAY_MS)
+                    attempt++
                 } else {
-                    return Result.failure(lastError!!)
+                    finished = true
                 }
             } catch (e: Exception) {
-                return Result.failure(e.toAppError().asException())
+                lastError = e.toAppError().asException()
+                finished = true
             }
         }
         return Result.failure(lastError!!)
