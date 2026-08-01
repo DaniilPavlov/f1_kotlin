@@ -72,7 +72,7 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx", version = "22.5.0" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version = "20.1.0" }
-firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version = "22.0.1" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version = "22.1.2" }
 appmetrica-analytics = { group = "io.appmetrica.analytics", name = "analytics", version.ref = "appmetrica" }
 
 [plugins]
