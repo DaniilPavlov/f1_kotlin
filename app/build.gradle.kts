@@ -44,8 +44,8 @@ android {
         applicationId = "com.example.f1_kotlin"
         minSdk = 30
         targetSdk = 37
-        versionCode = 202607310
-        versionName = "1.7.0"
+        versionCode = 202608040
+        versionName = "2.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Empty until set in local.properties / CI — bootstrap skips AppMetrica.

@@ -5,10 +5,15 @@
     <string name="nav_home">Главная</string>
     <string name="nav_results">Результаты</string>
     <string name="nav_calendar">Календарь</string>
-    <string name="nav_news">Новости</string>
+    <string name="nav_predictor">Предикт</string>
+    <string name="nav_profile">Профиль</string>
     <string name="nav_circuits">Трассы</string>
 
+    <string name="home_headlines_title">Новости</string>
+    <string name="home_scroll_to_news">К новостям</string>
     <string name="news_empty">Новостей пока нет</string>
+    <string name="predictor_placeholder">Предиктор скоро появится</string>
+    <string name="profile_placeholder">Профиль скоро появится</string>
     <string name="home_weekend_title">Уикенд</string>
     <string name="home_weekend_live">Live</string>
     <string name="home_weekend_leader">Лидер: %1$s</string>

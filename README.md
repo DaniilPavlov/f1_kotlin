@@ -88,6 +88,7 @@ Not in git.
 2. Add Android app with package **`com.example.f1_kotlin`** (if not added yet)  
 3. Download `google-services.json` → put at **`app/google-services.json`** (gitignored)  
 4. Enable **Analytics**, **Crashlytics**, **Remote Config** in the console  
+5. For Profile / Predictor: Auth (Email/Password), Firestore, App Check — see [`docs/firebase_setup.md`](docs/firebase_setup.md)
 
 Without a real file, Gradle copies `tool/ci/google-services.stub.json` so CI/local still builds.
 
@@ -186,11 +187,12 @@ Forced reload (`refreshAll`) soft-invalidates ESPN + in-memory caches via `AppDa
 
 ## Features
 
-- **Home** — current season driver and constructor standings  
+- **Home** — current season standings + ESPN headlines  
 - **Results** — weekend scoreboard (ESPN, live poll), latest race, race search, hall of fame, H2H (drivers / constructors), finish statuses  
-- **Calendar** — monthly calendar with session times; on empty days shows next GP card (layout + countdown); local reminders 30 min before  
-- **News** — F1 headlines from ESPN  
-- **Circuits** — list and map with pins/clusters, track layouts, length/laps/turns/speed/elevation, Wikipedia, winners history  
+- **Calendar** — monthly calendar with session times; on empty days shows next GP card (layout + countdown); entry to circuits list; local reminders 30 min before  
+- **Predictor** — race weekend predictions (placeholder; full feature coming)  
+- **Profile** — account and settings (placeholder; Auth coming)  
+- **Circuits** — list and map with pins/clusters, track layouts, length/laps/turns/speed/elevation, Wikipedia, winners history (from Calendar)  
 - **Driver / Constructor cards** — ESPN photos/news, career stats with tappable wins / podiums / poles lists  
 - **Localization** — Russian and English, toggle in the app bar without restarting the app  
 - **Reminders** — local notifications 30 minutes before a session (up to 10 upcoming; Remote Config can disable)  

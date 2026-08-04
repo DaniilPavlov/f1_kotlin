@@ -5,10 +5,15 @@
     <string name="nav_home">Home</string>
     <string name="nav_results">Results</string>
     <string name="nav_calendar">Calendar</string>
-    <string name="nav_news">News</string>
+    <string name="nav_predictor">Predict</string>
+    <string name="nav_profile">Profile</string>
     <string name="nav_circuits">Circuits</string>
 
+    <string name="home_headlines_title">Headlines</string>
+    <string name="home_scroll_to_news">Back to news</string>
     <string name="news_empty">No news right now</string>
+    <string name="predictor_placeholder">Predictor coming soon</string>
+    <string name="profile_placeholder">Profile coming soon</string>
     <string name="home_weekend_title">Race weekend</string>
     <string name="home_weekend_live">Live</string>
     <string name="home_weekend_leader">Leader: %1$s</string>

@@ -23,7 +23,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit-тесты [NewsViewModel] — вкладка «Новости» (ESPN).
+ * Unit-тесты [NewsViewModel] — ESPN headlines на Home.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class NewsViewModelTest {
@@ -95,6 +95,26 @@ class NewsViewModelTest {
         assertFalse(state.isRefreshing)
         coVerify { espnRepository.getNews(forceRefresh = true) }
         coVerify { appDataRefresh.clearAll() }
+    }
+
+    @Test
+    fun revealMore_paginatesVisibleArticles() = runTest {
+        val articles = (1..25).map { sampleArticle(id = it, headline = "H$it") }
+        every { espnRepository.peekNews } returns null
+        coEvery { espnRepository.getNews(forceRefresh = false) } returns Result.success(articles)
+
+        val viewModel = NewsViewModel(espnRepository, appDataRefresh)
+        advanceUntilIdle()
+
+        assertEquals(NewsViewModel.PAGE_SIZE, viewModel.uiState.value.visibleArticles.size)
+        assertTrue(viewModel.uiState.value.canRevealMore)
+
+        viewModel.revealMore()
+        assertEquals(20, viewModel.uiState.value.visibleArticles.size)
+
+        viewModel.revealMore()
+        assertEquals(25, viewModel.uiState.value.visibleArticles.size)
+        assertFalse(viewModel.uiState.value.canRevealMore)
     }
 
     private fun sampleArticle(id: Int = 1, headline: String = "Test Headline") = NewsArticle(

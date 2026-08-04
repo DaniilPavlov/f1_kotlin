@@ -15,10 +15,23 @@ import javax.inject.Inject
 
 data class NewsUiState(
     val articles: AsyncValue<List<NewsArticle>> = AsyncValue.Loading,
+    val visibleCount: Int = NewsViewModel.PAGE_SIZE,
     val isRefreshing: Boolean = false,
-)
+) {
+    val visibleArticles: List<NewsArticle>
+        get() {
+            val list = (articles as? AsyncValue.Value)?.value ?: return emptyList()
+            return list.take(visibleCount)
+        }
 
-/** ViewModel вкладки «Новости» (ESPN). */
+    val canRevealMore: Boolean
+        get() {
+            val list = (articles as? AsyncValue.Value)?.value ?: return false
+            return visibleCount < list.size
+        }
+}
+
+/** ViewModel ленты ESPN-новостей (секция Headlines на Home). */
 @HiltViewModel
 class NewsViewModel @Inject constructor(
     private val espnRepository: IEspnRepository,
@@ -42,7 +55,9 @@ class NewsViewModel @Inject constructor(
             try {
                 if (!forceRefresh) {
                     espnRepository.peekNews?.let { cached ->
-                        _uiState.update { it.copy(articles = AsyncValue.Value(cached)) }
+                        _uiState.update {
+                            it.copy(articles = AsyncValue.Value(cached), visibleCount = PAGE_SIZE)
+                        }
                         if (espnRepository.isNewsFresh) return@launch
                     } ?: run {
                         _uiState.update { it.copy(articles = AsyncValue.Loading) }
@@ -54,7 +69,12 @@ class NewsViewModel @Inject constructor(
                 espnRepository.getNews(forceRefresh = forceRefresh).applyUnlessCached(
                     current = _uiState.value.articles,
                     onSuccess = { list ->
-                        _uiState.update { it.copy(articles = AsyncValue.Value(list)) }
+                        _uiState.update {
+                            it.copy(
+                                articles = AsyncValue.Value(list),
+                                visibleCount = if (forceRefresh) PAGE_SIZE else it.visibleCount,
+                            )
+                        }
                     },
                     onFailure = { err ->
                         _uiState.update { it.copy(articles = err.toAsyncError()) }
@@ -66,5 +86,18 @@ class NewsViewModel @Inject constructor(
         }
     }
 
+    /** Клиентская пагинация уже загруженного списка. */
+    fun revealMore() {
+        _uiState.update { state ->
+            val list = (state.articles as? AsyncValue.Value)?.value ?: return@update state
+            if (state.visibleCount >= list.size) return@update state
+            state.copy(visibleCount = minOf(state.visibleCount + PAGE_SIZE, list.size))
+        }
+    }
+
     fun refreshAll() = loadArticles(forceRefresh = true)
+
+    companion object {
+        const val PAGE_SIZE = 10
+    }
 }

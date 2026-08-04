@@ -55,7 +55,8 @@ import com.example.f1_kotlin.ui.screens.h2h.H2hConstructorsScreen
 import com.example.f1_kotlin.ui.screens.h2h.H2hDriversScreen
 import com.example.f1_kotlin.ui.screens.halloffame.HallOfFameScreen
 import com.example.f1_kotlin.ui.screens.home.HomeScreen
-import com.example.f1_kotlin.ui.screens.news.NewsScreen
+import com.example.f1_kotlin.ui.screens.predictor.PredictorScreen
+import com.example.f1_kotlin.ui.screens.profile.ProfileScreen
 import com.example.f1_kotlin.ui.screens.results.RaceInfoScreen
 import com.example.f1_kotlin.ui.screens.results.RaceSearchScreen
 import com.example.f1_kotlin.ui.screens.results.ResultsScreen
@@ -99,19 +100,19 @@ sealed class BottomTab(
         iconRes = com.example.f1_kotlin.R.drawable.nav_lights,
         analyticsTab = "schedule",
     )
-    data object News : BottomTab(
-        route = com.example.f1_kotlin.ui.navigation.News,
-        routeClass = com.example.f1_kotlin.ui.navigation.News::class,
-        labelRes = com.example.f1_kotlin.R.string.nav_news,
+    data object Predictor : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.Predictor,
+        routeClass = com.example.f1_kotlin.ui.navigation.Predictor::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_predictor,
         iconRes = com.example.f1_kotlin.R.drawable.nav_trophy,
-        analyticsTab = "news",
+        analyticsTab = "predictor",
     )
-    data object Circuits : BottomTab(
-        route = com.example.f1_kotlin.ui.navigation.Circuits,
-        routeClass = com.example.f1_kotlin.ui.navigation.Circuits::class,
-        labelRes = com.example.f1_kotlin.R.string.nav_circuits,
-        iconRes = com.example.f1_kotlin.R.drawable.nav_circuit,
-        analyticsTab = "circuits",
+    data object Profile : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.Profile,
+        routeClass = com.example.f1_kotlin.ui.navigation.Profile::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_profile,
+        iconRes = com.example.f1_kotlin.R.drawable.nav_helmet,
+        analyticsTab = "profile",
     )
 }
 
@@ -119,8 +120,8 @@ private val tabs = listOf(
     BottomTab.Home,
     BottomTab.Results,
     BottomTab.Schedule,
-    BottomTab.News,
-    BottomTab.Circuits,
+    BottomTab.Predictor,
+    BottomTab.Profile,
 )
 
 @Composable
@@ -254,6 +255,10 @@ private fun F1TopBar(
             title = stringResource(com.example.f1_kotlin.R.string.race_search_title),
             onBack = popBack,
         )
+        destination?.hasRoute<Circuits>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.nav_circuits),
+            onBack = popBack,
+        )
         destination?.hasRoute<HallOfFame>() == true -> F1AppBar(
             title = stringResource(com.example.f1_kotlin.R.string.hall_of_fame_title),
             onBack = popBack,
@@ -313,6 +318,7 @@ private fun F1NavHost(
         composable<Home> {
             HomeScreen(
                 viewModel = hiltViewModel(),
+                newsViewModel = hiltViewModel(),
                 onDriverClick = onDriverClick,
                 onConstructorClick = onConstructorClick,
             )
@@ -366,9 +372,17 @@ private fun F1NavHost(
                 onDriverClick = onDriverClick,
             )
         }
-        composable<Schedule> { ScheduleScreen(hiltViewModel()) }
-        composable<News> {
-            NewsScreen(viewModel = hiltViewModel())
+        composable<Schedule> {
+            ScheduleScreen(
+                viewModel = hiltViewModel(),
+                onCircuits = { navController.navigate(Circuits) },
+            )
+        }
+        composable<Predictor> {
+            PredictorScreen()
+        }
+        composable<Profile> {
+            ProfileScreen()
         }
         composable<Circuits> {
             CircuitsScreen(

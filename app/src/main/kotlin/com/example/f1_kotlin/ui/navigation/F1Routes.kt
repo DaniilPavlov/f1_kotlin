@@ -5,7 +5,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object Home
 @Serializable data object Results
 @Serializable data object Schedule
-@Serializable data object News
+@Serializable data object Predictor
+@Serializable data object Profile
 @Serializable data object Circuits
 @Serializable data object RaceSearch
 @Serializable data object HallOfFame
