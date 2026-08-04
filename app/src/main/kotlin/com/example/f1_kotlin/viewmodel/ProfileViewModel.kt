@@ -3,6 +3,8 @@ package com.example.f1_kotlin.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.f1_kotlin.data.repository.IAuthRepository
+import com.example.f1_kotlin.data.repository.IPredictorLeaderboardRepository
+import com.example.f1_kotlin.data.repository.IPredictorRepository
 import com.example.f1_kotlin.domain.NotificationsPreference
 import com.example.f1_kotlin.domain.auth.AuthUser
 import com.example.f1_kotlin.notifications.RaceReminderScheduler
@@ -26,6 +28,8 @@ class ProfileViewModel @Inject constructor(
     private val authRepository: IAuthRepository,
     private val notificationsPreference: NotificationsPreference,
     private val reminderScheduler: RaceReminderScheduler,
+    private val predictorRepository: IPredictorRepository,
+    private val leaderboardRepository: IPredictorLeaderboardRepository,
 ) : ViewModel() {
     val user: StateFlow<AuthUser?> = authRepository.userChanges
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), authRepository.currentUser)
@@ -55,6 +59,8 @@ class ProfileViewModel @Inject constructor(
     fun signOut() {
         viewModelScope.launch {
             authRepository.signOut()
+            predictorRepository.clearMemoryCache()
+            leaderboardRepository.clearMemoryCache()
         }
     }
 
