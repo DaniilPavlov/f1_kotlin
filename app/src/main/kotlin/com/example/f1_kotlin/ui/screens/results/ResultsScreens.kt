@@ -35,8 +35,10 @@ import com.example.f1_kotlin.domain.model.QualifyingResult
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.model.RaceResult
 import com.example.f1_kotlin.ui.components.BlackButton
+import com.example.f1_kotlin.ui.components.CachedDataBanner
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.LoadingIndicator
+import com.example.f1_kotlin.ui.components.OnAppResumed
 import com.example.f1_kotlin.ui.components.PitStopsTable
 import com.example.f1_kotlin.ui.components.QualifyingTable
 import com.example.f1_kotlin.ui.components.RacePickerField
@@ -76,6 +78,7 @@ fun ResultsScreen(
             uiState = uiState,
             onRetry = viewModel::refreshAll,
             onRefresh = viewModel::refreshAll,
+            onDismissOfflineBanner = viewModel::dismissOfflineBannerIfOnline,
             onSearchRace = onSearchRace,
             onHallOfFame = onHallOfFame,
             onSeasonRewind = onSeasonRewind,
@@ -95,6 +98,7 @@ fun ResultsScreenContent(
         uiState: ResultsUiState,
         onRetry: () -> Unit = {},
         onRefresh: () -> Unit = {},
+        onDismissOfflineBanner: () -> Unit = {},
         onSearchRace: () -> Unit = {},
         onHallOfFame: () -> Unit = {},
         onSeasonRewind: () -> Unit = {},
@@ -104,6 +108,7 @@ fun ResultsScreenContent(
         onRaceDetails: (Race) -> Unit = {},
         onDriverClick: (Driver) -> Unit = {},
 ) {
+    OnAppResumed(onResumed = onDismissOfflineBanner)
     PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = onRefresh,
@@ -115,6 +120,9 @@ fun ResultsScreenContent(
                                 .verticalScroll(rememberScrollState())
                                 .padding(bottom = AppDimens.verticalPadding.dp),
         ) {
+            if (uiState.showingCachedData) {
+                CachedDataBanner()
+            }
             WeekendScoreboardSection(uiState.scoreboard)
 
             when (val state = uiState.lastRace) {

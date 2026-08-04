@@ -12,6 +12,7 @@
     <string name="home_headlines_title">Новости</string>
     <string name="home_scroll_to_news">К новостям</string>
     <string name="news_empty">Новостей пока нет</string>
+    <string name="showing_cached_data">Показаны сохранённые данные</string>
     <string name="predictor_placeholder">Предиктор скоро появится</string>
     <string name="profile_placeholder">Профиль скоро появится</string>
     <string name="home_weekend_title">Уикенд</string>

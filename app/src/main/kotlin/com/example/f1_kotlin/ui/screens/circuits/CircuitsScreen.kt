@@ -44,9 +44,11 @@ import com.example.f1_kotlin.data.circuits.CircuitLayoutAssets
 import com.example.f1_kotlin.domain.model.Circuit
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.ui.components.CareerListTile
+import com.example.f1_kotlin.ui.components.CachedDataBanner
 import com.example.f1_kotlin.ui.components.CustomSwitcher
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.LinkText
+import com.example.f1_kotlin.ui.components.OnAppResumed
 import com.example.f1_kotlin.ui.components.circuits.CircuitLayoutImage
 import com.example.f1_kotlin.ui.components.circuits.CircuitStatsGrid
 import com.example.f1_kotlin.ui.components.shimmer.CircuitScreenShimmer
@@ -81,6 +83,7 @@ fun CircuitsScreen(
     onCircuitClick: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    OnAppResumed(onResumed = viewModel::dismissOfflineBannerIfOnline)
 
     when (val state = uiState.circuits) {
         is AsyncValue.Loading -> if (!uiState.isRefreshing) {
@@ -93,6 +96,9 @@ fun CircuitsScreen(
             modifier = Modifier.fillMaxSize(),
         )
         is AsyncValue.Value -> Column(modifier = Modifier.fillMaxSize()) {
+            if (uiState.showingCachedData) {
+                CachedDataBanner()
+            }
             Spacer(Modifier.height(12.dp))
             CustomSwitcher(
                 stringResource(R.string.on_map),

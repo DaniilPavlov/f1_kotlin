@@ -27,8 +27,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.domain.model.Race
+import com.example.f1_kotlin.ui.components.CachedDataBanner
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.F1Calendar
+import com.example.f1_kotlin.ui.components.OnAppResumed
 import com.example.f1_kotlin.ui.components.ScheduleSessionCard
 import com.example.f1_kotlin.ui.components.shimmer.ScheduleShimmer
 import com.example.f1_kotlin.ui.theme.AppDimens
@@ -52,6 +54,8 @@ fun ScheduleScreen(
     val uiState by viewModel.uiState.collectAsState()
     var sessionsRace by remember { mutableStateOf<Race?>(null) }
 
+    OnAppResumed(onResumed = viewModel::dismissOfflineBannerIfOnline)
+
     when {
         uiState.error != null && uiState.races.isError -> ErrorBody(
             uiState.error?.title,
@@ -68,39 +72,45 @@ fun ScheduleScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                if (uiState.showingCachedData) {
+                    CachedDataBanner()
+                }
+                Column(
+                    modifier = Modifier.padding(
                         horizontal = AppDimens.horizontalPadding.dp,
                         vertical = AppDimens.verticalPadding.dp,
                     ),
-            ) {
-                F1Calendar(
-                    selectedDate = uiState.selectedDate,
-                    focusedMonth = uiState.focusedMonth,
-                    userPickedDay = uiState.userPickedDay,
-                    logoForDay = viewModel::logoForDay,
-                    onDaySelected = viewModel::onSelectDay,
-                    onMonthChanged = viewModel::onMonthChanged,
-                )
-                Spacer(Modifier.height(AppDimens.verticalPadding.dp))
-                if (uiState.scheduleItems.isNotEmpty()) {
-                    uiState.scheduleItems.forEach { item ->
-                        if (item.titleRes == null) {
-                            Text(item.raceName, style = AppStyles.h3, modifier = Modifier.padding(bottom = 12.dp))
-                        } else {
-                            ScheduleSessionCard(stringResource(item.titleRes), item.date.date, item.date.time)
+                ) {
+                    F1Calendar(
+                        selectedDate = uiState.selectedDate,
+                        focusedMonth = uiState.focusedMonth,
+                        userPickedDay = uiState.userPickedDay,
+                        logoForDay = viewModel::logoForDay,
+                        onDaySelected = viewModel::onSelectDay,
+                        onMonthChanged = viewModel::onMonthChanged,
+                    )
+                    Spacer(Modifier.height(AppDimens.verticalPadding.dp))
+                    if (uiState.scheduleItems.isNotEmpty()) {
+                        uiState.scheduleItems.forEach { item ->
+                            if (item.titleRes == null) {
+                                Text(item.raceName, style = AppStyles.h3, modifier = Modifier.padding(bottom = 12.dp))
+                            } else {
+                                ScheduleSessionCard(stringResource(item.titleRes), item.date.date, item.date.time)
+                            }
+                        }
+                    } else {
+                        uiState.upcomingRace?.let { race ->
+                            ScheduleRaceFeaturedCard(
+                                race = race,
+                                onViewSessions = { sessionsRace = race },
+                            )
                         }
                     }
-                } else {
-                    uiState.upcomingRace?.let { race ->
-                        ScheduleRaceFeaturedCard(
-                            race = race,
-                            onViewSessions = { sessionsRace = race },
-                        )
-                    }
+                    Spacer(Modifier.height(12.dp))
+                    CircuitsEntry(onClick = onCircuits)
                 }
-                Spacer(Modifier.height(12.dp))
-                CircuitsEntry(onClick = onCircuits)
             }
         }
     }

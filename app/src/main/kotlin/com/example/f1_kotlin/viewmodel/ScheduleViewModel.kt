@@ -6,8 +6,11 @@ import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.AppDataRefresh
 import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.domain.NetworkReachability
+import com.example.f1_kotlin.domain.clearOfflineBannerIfOnline
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.model.RaceSession
+import com.example.f1_kotlin.domain.shouldShowOfflineCachedBanner
 import com.example.f1_kotlin.util.DateUtils
 import com.example.f1_kotlin.util.RaceDateTimeHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +43,7 @@ data class ScheduleUiState(
     val upcomingRace: Race? = null,
     val error: AppError? = null,
     val isRefreshing: Boolean = false,
+    val showingCachedData: Boolean = false,
 )
 
 /**
@@ -53,6 +57,7 @@ data class ScheduleUiState(
 class ScheduleViewModel @Inject constructor(
     private val repository: IF1Repository,
     private val appDataRefresh: AppDataRefresh,
+    private val networkReachability: NetworkReachability,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
@@ -73,6 +78,17 @@ class ScheduleViewModel @Inject constructor(
     fun refreshAll() {
         loadJob.launch(viewModelScope) {
             loadInternal(clearCaches = true)
+        }
+    }
+
+    fun dismissOfflineBannerIfOnline() {
+        _uiState.update {
+            it.copy(
+                showingCachedData = clearOfflineBannerIfOnline(
+                    currentlyShowing = it.showingCachedData,
+                    reachability = networkReachability,
+                ),
+            )
         }
     }
 
@@ -118,7 +134,15 @@ class ScheduleViewModel @Inject constructor(
                 },
             )
         } finally {
-            _uiState.update { it.copy(isRefreshing = false) }
+            _uiState.update {
+                it.copy(
+                    isRefreshing = false,
+                    showingCachedData = shouldShowOfflineCachedBanner(
+                        hasCachedContent = it.races is AsyncValue.Value,
+                        reachability = networkReachability,
+                    ),
+                )
+            }
         }
     }
 

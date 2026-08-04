@@ -12,6 +12,7 @@
     <string name="home_headlines_title">Headlines</string>
     <string name="home_scroll_to_news">Back to news</string>
     <string name="news_empty">No news right now</string>
+    <string name="showing_cached_data">Showing saved data</string>
     <string name="predictor_placeholder">Predictor coming soon</string>
     <string name="profile_placeholder">Profile coming soon</string>
     <string name="home_weekend_title">Race weekend</string>

@@ -38,8 +38,10 @@ import com.example.f1_kotlin.R
 import com.example.f1_kotlin.domain.AsyncValue
 import com.example.f1_kotlin.domain.model.Constructor
 import com.example.f1_kotlin.domain.model.Driver
+import com.example.f1_kotlin.ui.components.CachedDataBanner
 import com.example.f1_kotlin.ui.components.CustomSwitcher
 import com.example.f1_kotlin.ui.components.ErrorBody
+import com.example.f1_kotlin.ui.components.OnAppResumed
 import com.example.f1_kotlin.ui.components.TournamentConstructorsTable
 import com.example.f1_kotlin.ui.components.TournamentDriversTable
 import com.example.f1_kotlin.ui.components.shimmer.TournamentTablesShimmer
@@ -77,6 +79,7 @@ fun HomeScreen(
         },
         onChangeTable = viewModel::changeActiveTable,
         onRevealMoreNews = newsViewModel::revealMore,
+        onDismissOfflineBanner = viewModel::dismissOfflineBannerIfOnline,
         onDriverClick = onDriverClick,
         onConstructorClick = onConstructorClick,
     )
@@ -94,18 +97,24 @@ fun HomeScreenContent(
     onConstructorClick: (Constructor) -> Unit = {},
     onRefresh: () -> Unit = {},
     onRevealMoreNews: () -> Unit = {},
+    onDismissOfflineBanner: () -> Unit = {},
 ) {
+    OnAppResumed(onResumed = onDismissOfflineBanner)
+
     val drivers = uiState.drivers
     val constructors = uiState.constructors
 
     when {
         drivers.isLoading || constructors.isLoading -> TournamentTablesShimmer(modifier = Modifier.fillMaxSize())
-        uiState.error != null -> ErrorBody(
-            uiState.error!!.title,
-            uiState.error!!.subtitle,
-            onRetry = onRetry,
-            modifier = Modifier.fillMaxSize(),
-        )
+        uiState.error != null -> {
+            val error = uiState.error
+            ErrorBody(
+                error.title,
+                error.subtitle,
+                onRetry = onRetry,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         drivers is AsyncValue.Value && constructors is AsyncValue.Value -> {
             val scrollState = rememberScrollState()
             val scope = rememberCoroutineScope()
@@ -146,6 +155,9 @@ fun HomeScreenContent(
                             .verticalScroll(scrollState)
                             .padding(vertical = AppDimens.verticalPadding.dp),
                     ) {
+                        if (uiState.showingCachedData) {
+                            CachedDataBanner(modifier = Modifier.padding(bottom = 8.dp))
+                        }
                         Column(modifier = Modifier.padding(horizontal = AppDimens.horizontalPadding.dp)) {
                             Text(stringResource(R.string.home_standings_title), style = AppStyles.h1)
                             Spacer(Modifier.height(32.dp))

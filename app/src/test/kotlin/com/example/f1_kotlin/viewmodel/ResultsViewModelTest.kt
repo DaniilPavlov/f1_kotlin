@@ -62,7 +62,7 @@ class ResultsViewModelTest {
         coEvery { repository.peekLastRaceCache() } returns null
         coEvery { repository.getLastRace() } returns Result.success(race)
 
-        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh)
+        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         val state = viewModel.uiState.value.lastRace
@@ -78,7 +78,7 @@ class ResultsViewModelTest {
             AppError("Соединение отсутствует").asException(),
         )
 
-        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh)
+        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.lastRace is AsyncValue.Error)
@@ -96,7 +96,7 @@ class ResultsViewModelTest {
             AppError("Соединение отсутствует").asException(),
         )
 
-        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh)
+        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         val scoreboard = viewModel.uiState.value.scoreboard
@@ -121,7 +121,7 @@ class ResultsViewModelTest {
         every { espnRepository.peekScoreboard } returns null
         coEvery { espnRepository.getScoreboardEvent(forceRefresh = false) } returns Result.success(event)
 
-        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh)
+        val viewModel = ResultsViewModel(repository, espnRepository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         coEvery { espnRepository.getScoreboardEvent(forceRefresh = true) } returns Result.failure(
