@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import com.example.f1_kotlin.MainActivity
 
+/** Broadcast `APPWIDGET_UPDATE` + PendingIntent «открыть приложение». */
 object WidgetUpdater {
     fun updateProviders(context: Context, vararg providers: Class<*>) {
         val appContext = context.applicationContext

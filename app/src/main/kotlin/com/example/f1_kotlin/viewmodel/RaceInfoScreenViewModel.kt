@@ -32,6 +32,7 @@ data class RaceInfoUiState(
     val isRefreshing: Boolean = false,
 )
 
+/** Detail уикенда: sessions/results/pitstops. */
 @HiltViewModel
 class RaceInfoScreenViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

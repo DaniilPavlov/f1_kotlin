@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.RemoteViews
 import com.example.f1_kotlin.R
 
+/** Виджет ближайшего ГП: countdown из prefs, тап → MainActivity. */
 class NextGpWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,

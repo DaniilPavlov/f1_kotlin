@@ -22,6 +22,7 @@ data class PredictorSeasonHistoryUiState(
     val season: PredictorSeason? = null,
 )
 
+/** История одного сезона предиктора из Firestore store. */
 @HiltViewModel
 class PredictorSeasonHistoryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

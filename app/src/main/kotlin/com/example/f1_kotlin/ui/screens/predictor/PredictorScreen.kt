@@ -53,6 +53,7 @@ import com.example.f1_kotlin.util.CountdownParts
 import com.example.f1_kotlin.viewmodel.PredictorUiState
 import com.example.f1_kotlin.viewmodel.PredictorViewModel
 
+/** Вкладка Predictor: gate → loading/error → драфт сеток и история. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PredictorScreen(

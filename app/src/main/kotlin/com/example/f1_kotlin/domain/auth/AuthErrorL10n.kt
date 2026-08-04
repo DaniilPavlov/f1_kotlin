@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.data.repository.AuthErrorKeys
 
+/** Ключ Auth → `@StringRes`; неизвестный/null → generic/0. */
 @StringRes
 fun authErrorStringRes(key: String?): Int = when (key) {
     AuthErrorKeys.EMPTY_FIELDS -> R.string.auth_error_empty_fields

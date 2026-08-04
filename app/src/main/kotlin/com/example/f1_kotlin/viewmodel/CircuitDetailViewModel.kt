@@ -28,6 +28,7 @@ data class CircuitDetailUiState(
     val isRefreshing: Boolean = false,
 )
 
+/** Карточка трассы: stats + winners через [IF1Repository]. */
 @HiltViewModel
 class CircuitDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

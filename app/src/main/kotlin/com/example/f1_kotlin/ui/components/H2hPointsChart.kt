@@ -21,6 +21,7 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.pow
 
+/** Canvas-график очков H2H по раундам (две серии + ось). */
 @Composable
 fun H2hPointsChart(
     timeline: H2hPointsTimeline,

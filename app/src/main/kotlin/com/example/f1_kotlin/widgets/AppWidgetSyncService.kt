@@ -11,6 +11,9 @@ import javax.inject.Singleton
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/**
+ * Тянет schedule/standings в SharedPreferences и пингует AppWidget providers.
+ */
 @Singleton
 class AppWidgetSyncService @Inject constructor(
     @ApplicationContext private val context: Context,

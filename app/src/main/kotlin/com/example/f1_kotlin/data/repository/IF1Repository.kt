@@ -17,6 +17,7 @@ import com.example.f1_kotlin.domain.model.RaceResult
 import com.example.f1_kotlin.domain.model.StandingsMeta
 import com.example.f1_kotlin.viewmodel.H2hRoundScore
 
+/** Контракт Jolpica/F1: сеть + peek Room/memory; UI только через него. */
 interface IF1Repository {
     suspend fun peekCurrentDriversCache(): Pair<List<DriverStanding>, StandingsMeta>?
 

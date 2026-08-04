@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.RemoteViews
 import com.example.f1_kotlin.R
 
+/** Виджет top-3 пилотов текущего сезона из prefs. */
 class StandingsWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,

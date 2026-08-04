@@ -41,6 +41,7 @@ import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.viewmodel.AuthFormUiState
 import com.example.f1_kotlin.viewmodel.AuthViewModel
 
+/** Экран входа поверх [AuthViewModel]. */
 @Composable
 fun AuthSignInScreen(
     viewModel: AuthViewModel,
@@ -60,6 +61,7 @@ fun AuthSignInScreen(
     )
 }
 
+/** Экран регистрации поверх [AuthViewModel]. */
 @Composable
 fun AuthRegisterScreen(
     viewModel: AuthViewModel,
@@ -79,6 +81,7 @@ fun AuthRegisterScreen(
     )
 }
 
+/** Общая форма sign-in/register (тестируемый content без nav). */
 @Suppress("LongMethod")
 @Composable
 fun AuthFormContent(

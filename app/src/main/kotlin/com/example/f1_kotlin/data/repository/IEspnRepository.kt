@@ -4,6 +4,7 @@ import com.example.f1_kotlin.data.model.EspnDriverCardData
 import com.example.f1_kotlin.data.model.EspnScoreboardEvent
 import com.example.f1_kotlin.data.model.NewsArticle
 
+/** Контракт ESPN: новости/scoreboard/карточки с TTL in-memory. */
 interface IEspnRepository {
     val peekNews: List<NewsArticle>?
     val isNewsFresh: Boolean

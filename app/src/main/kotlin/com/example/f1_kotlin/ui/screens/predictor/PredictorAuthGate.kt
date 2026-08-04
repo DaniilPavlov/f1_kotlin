@@ -27,6 +27,7 @@ import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.viewmodel.PredictorAuthGateViewModel
 
+/** Гейт вкладки Predictor: контент только после sign-in + verified email. */
 @Composable
 fun PredictorAuthGate(
     asTabRoot: Boolean,

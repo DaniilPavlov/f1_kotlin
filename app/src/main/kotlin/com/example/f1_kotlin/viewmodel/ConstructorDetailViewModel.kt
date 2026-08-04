@@ -31,6 +31,7 @@ data class ConstructorDetailUiState(
     val isRefreshing: Boolean = false,
 )
 
+/** Карточка команды: standings/новости ESPN. */
 @HiltViewModel
 class ConstructorDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

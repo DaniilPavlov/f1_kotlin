@@ -32,7 +32,10 @@ data class H2hScopeState(
 }
 
 /**
- * H2H compare: A then B sequentially (Jolpica throttle), one pass stats+scores each.
+ * Общий скелет H2H-сравнения: A затем B последовательно (throttle Jolpica).
+ *
+ * GoF Behavioral Strategy — способ получения статистики выбирается на вызове:
+ * [fetchA] / [fetchB] — взаимозаменяемые стратегии (драйверы / конструкторы / тесты).
  */
 fun LoadJobHolder.launchH2hCompare(
     scope: CoroutineScope,

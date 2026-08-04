@@ -33,6 +33,7 @@ class NotificationsPreference @Inject constructor(
     val effectivelyEnabled: Boolean
         get() = _raceRemindersEnabled.value
 
+    /** Practice on только если race-reminders тоже включены. */
     val practiceRemindersEffectivelyEnabled: Boolean
         get() = effectivelyEnabled && _practiceRemindersEnabled.value
 

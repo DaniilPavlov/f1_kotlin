@@ -13,6 +13,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
+/**
+ * Firestore-хранилище прогнозов сезона (`users/{uid}/seasons`).
+ * Mutex + memory по uid; UI offline-кэш не трогает.
+ */
 @Singleton
 class PredictorRepository @Inject constructor(
     private val authRepository: IAuthRepository,

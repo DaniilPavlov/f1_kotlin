@@ -17,6 +17,10 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
 
+/**
+ * Реализация [IAuthRepository]: Firebase Auth + merge `users/{uid}` в Firestore.
+ * Ошибки мапятся в стабильные ключи [AuthErrorKeys] для l10n.
+ */
 @Singleton
 class AuthRepository @Inject constructor() : IAuthRepository {
     private val auth: FirebaseAuth get() = FirebaseAuth.getInstance()
@@ -198,6 +202,7 @@ class AuthRepository @Inject constructor() : IAuthRepository {
     }
 }
 
+/** Стабильные ключи ошибок Auth для l10n (не UI-строки). */
 object AuthErrorKeys {
     const val EMPTY_FIELDS = "authErrorEmptyFields"
     const val EMPTY_EMAIL = "authErrorEmptyEmail"

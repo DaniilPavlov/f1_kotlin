@@ -8,10 +8,12 @@ import io.appmetrica.analytics.AppMetrica
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Единая точка аналитики: один [log] → Firebase + AppMetrica (UI не знает SDK). */
 interface AnalyticsGateway {
     fun log(event: AnalyticsEvent)
 }
 
+/** Двойная отправка событий; в DEBUG дублирует в [AppLogger]. */
 @Singleton
 class AppAnalyticsGateway @Inject constructor() : AnalyticsGateway {
     override fun log(event: AnalyticsEvent) {

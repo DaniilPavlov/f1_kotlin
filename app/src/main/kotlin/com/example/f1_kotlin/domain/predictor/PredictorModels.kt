@@ -62,6 +62,7 @@ data class PredictorWeekendPrediction(
     }
 }
 
+/** Сезон предиктора (`users/.../seasons/{year}`): weekends + суммарные очки. */
 data class PredictorSeason(
     val year: String,
     val weekends: Map<String, PredictorWeekendPrediction> = emptyMap(),
@@ -113,6 +114,7 @@ data class PredictorStore(
     }
 }
 
+/** Краткая карточка архивного сезона для списка на главном Predictor. */
 data class PredictorSeasonSummary(
     val year: String,
     val totalPoints: Int,
@@ -127,8 +129,10 @@ data class PredictorSeasonSummary(
     }
 }
 
+/** Какая сетка активна в UI: квалификация или гонка. */
 enum class PredictorGridKind { Qualifying, Race }
 
+/** Одна строка сравнения predicted vs actual на позиции. */
 data class PredictorComparisonRow(
     val position: Int,
     val predictedDriverId: String?,
@@ -138,6 +142,7 @@ data class PredictorComparisonRow(
         get() = predictedDriverId != null && predictedDriverId == actualDriverId
 }
 
+/** Side-by-side predicted vs actual + очки сессии для detail-экрана. */
 data class PredictorSessionCompare(
     val rows: List<PredictorComparisonRow>,
     val points: Int,
@@ -157,6 +162,7 @@ data class PredictorSessionCompare(
     }
 }
 
+/** Профиль участия: ник + opt-in; [canShowOnLeaderboard] = оба заданы. */
 data class PredictorLeaderboardProfile(
     val nickname: String? = null,
     val leaderboardOptIn: Boolean = false,
@@ -175,6 +181,7 @@ data class PredictorLeaderboardProfile(
     }
 }
 
+/** Строка таблицы лидерборда с рангом после сортировки. */
 data class PredictorLeaderboardEntry(
     val uid: String,
     val nickname: String,
@@ -198,6 +205,7 @@ data class PredictorLeaderboardEntry(
     }
 }
 
+/** Результат join/leave/rename: Ok или l10n-ключ ошибки. */
 sealed class PredictorLeaderboardResult {
     data object Ok : PredictorLeaderboardResult()
     data class Fail(val errorKey: String) : PredictorLeaderboardResult()

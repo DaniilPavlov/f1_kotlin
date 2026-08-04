@@ -22,6 +22,7 @@ import com.example.f1_kotlin.ui.theme.AppStyles
 import com.example.f1_kotlin.ui.theme.F1OnChrome
 import com.example.f1_kotlin.ui.theme.F1Red
 
+/** Красный баннер live-сессии ESPN; тап ведёт на Results. */
 @Composable
 fun LiveSessionBanner(
     controller: LiveWeekendController,

@@ -20,6 +20,7 @@ data class FinishStatusUiState(
     val isRefreshing: Boolean = false,
 )
 
+/** Справочник статусов финиша Jolpica. */
 @HiltViewModel
 class FinishStatusViewModel @Inject constructor(
     private val repository: IF1Repository,

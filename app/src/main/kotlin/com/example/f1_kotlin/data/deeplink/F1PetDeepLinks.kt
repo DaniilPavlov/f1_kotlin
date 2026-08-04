@@ -2,6 +2,7 @@ package com.example.f1_kotlin.data.deeplink
 
 import android.net.Uri
 
+/** Билдеры URI схемы `f1pet://` для виджетов/шаринга. */
 object F1PetDeepLinks {
     const val SCHEME = "f1pet"
 
@@ -21,6 +22,7 @@ object F1PetDeepLinks {
         Uri.Builder().scheme(SCHEME).authority("race").appendPath(season).appendPath(round).build()
 }
 
+/** Разобранная цель навигации после cold start / `onNewIntent`. */
 sealed class DeepLinkTarget {
     data class Driver(val driverId: String) : DeepLinkTarget()
     data class Constructor(val constructorId: String) : DeepLinkTarget()
@@ -29,6 +31,7 @@ sealed class DeepLinkTarget {
     data class Race(val season: String, val round: String) : DeepLinkTarget()
 }
 
+/** Парсит `f1pet://…` в [DeepLinkTarget]; чужая схема → null. */
 fun Uri.toDeepLinkTarget(): DeepLinkTarget? {
     if (scheme != F1PetDeepLinks.SCHEME) return null
     return when (host) {

@@ -3,6 +3,7 @@ package com.example.f1_kotlin.ui.screens.predictor
 import androidx.annotation.StringRes
 import com.example.f1_kotlin.R
 
+/** Ключ формы лидерборда/ника → `@StringRes` или null. */
 @StringRes
 fun predictorFormErrorRes(key: String?): Int? = when (key) {
     "predictorNicknameErrorLength" -> R.string.predictor_nickname_error_length
