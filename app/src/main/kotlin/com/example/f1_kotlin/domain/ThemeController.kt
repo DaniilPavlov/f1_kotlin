@@ -5,12 +5,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/** Предпочтение темы: system / light / dark. */
 enum class AppThemePreference {
     System,
     Light,
     Dark,
 }
 
+/** Persist темы в SharedPreferences (`f1_preferences`). */
 class ThemePreferences(context: Context) {
     private val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 
@@ -37,7 +39,7 @@ class ThemePreferences(context: Context) {
 }
 
 /**
- * Cycle system → light → dark; Compose listens to [preference].
+ * Цикл system → light → dark; Compose слушает [preference].
  */
 object ThemeController {
     private val _preference = MutableStateFlow(AppThemePreference.System)
@@ -58,6 +60,7 @@ object ThemeController {
         return next
     }
 
+    /** Стабильная строка темы для analytics (`system`/`light`/`dark`). */
     fun preferenceAnalyticsValue(): String = when (_preference.value) {
         AppThemePreference.System -> "system"
         AppThemePreference.Light -> "light"

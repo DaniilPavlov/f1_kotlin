@@ -12,6 +12,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.tasks.await
 
+/**
+ * Join/leave/никнейм/синк очков лидерборда через Firestore-транзакции
+ * (уникальность ника в `nicknames/{normalized}`).
+ */
 @Singleton
 class PredictorLeaderboardRepository @Inject constructor(
     private val authRepository: IAuthRepository,

@@ -47,6 +47,7 @@ import com.example.f1_kotlin.viewmodel.ProfileUiState
 import com.example.f1_kotlin.viewmodel.ProfileViewModel
 import dagger.hilt.android.EntryPointAccessors
 
+/** Экран профиля: auth-блок, тема/локаль, напоминания. */
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
@@ -72,6 +73,7 @@ fun ProfileScreen(
     )
 }
 
+/** Тестируемый контент профиля без Hilt/ViewModel. */
 @Suppress("LongMethod", "LongParameterList")
 @Composable
 fun ProfileScreenContent(

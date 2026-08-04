@@ -27,6 +27,7 @@ object AuthFormValidators {
         return trimmed.substring(at + 1).lowercase()
     }
 
+    /** Мягкий клиентский блок temp-mail доменов до Firebase. */
     fun isDisposableEmail(email: String): Boolean {
         val domain = emailDomain(email) ?: return false
         if (domain in DISPOSABLE_DOMAINS) return true

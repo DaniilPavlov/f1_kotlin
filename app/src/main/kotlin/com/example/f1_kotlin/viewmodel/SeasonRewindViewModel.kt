@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+/** Полоса racing-chart (очки + rank, в т.ч. дробный при lerp). */
 data class SeasonRewindBarEntry(
     val id: String,
     val constructorId: String,
@@ -71,6 +72,9 @@ data class SeasonRewindUiState(
         get() = if (activeTable == 0) driverBars else constructorBars
 }
 
+/**
+ * Rewind сезона: scrubber раундов, playback и standings→bar chart.
+ */
 @HiltViewModel
 class SeasonRewindViewModel @Inject constructor(
     private val repository: IF1Repository,

@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZonedDateTime
 
+/** UI-состояние вкладки Predictor (расписание, драфт, store, тикер `now`). */
 data class PredictorUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
@@ -54,6 +55,9 @@ data class PredictorUiState(
     val now: ZonedDateTime = ZonedDateTime.now(),
 )
 
+/**
+ * Главный Predictor: драфт сеток, lock/countdown, scoring, синк лидерборда.
+ */
 @HiltViewModel
 class PredictorViewModel @Inject constructor(
     private val authRepository: IAuthRepository,
@@ -110,6 +114,7 @@ class PredictorViewModel @Inject constructor(
         _uiState.update { it.copy(selectedGrid = kind) }
     }
 
+    /** DnD активной сетки; после lock не пишет. */
     fun reorderDraft(oldIndex: Int, newIndex: Int) {
         val state = _uiState.value
         if (computeIsLocked(state) || oldIndex == newIndex) return
@@ -136,6 +141,7 @@ class PredictorViewModel @Inject constructor(
         viewModelScope.launch { persistDraft() }
     }
 
+    /** Копирует quali-драфт в race до lock. */
     fun copyQualifyingToRace() {
         val state = _uiState.value
         if (computeIsLocked(state) || state.draftQualifyingOrder.isEmpty()) return
@@ -165,6 +171,7 @@ class PredictorViewModel @Inject constructor(
         return PredictorLock.lockAt(race)
     }
 
+    /** Lock относительно `now` в state (тикер). */
     fun computeIsLocked(state: PredictorUiState = _uiState.value): Boolean {
         val race = upcomingRace(state) ?: return true
         return PredictorLock.isLocked(race, state.now)
@@ -175,6 +182,7 @@ class PredictorViewModel @Inject constructor(
         return race != null && race.qualifying == null
     }
 
+    /** Countdown до lock относительно `now` в state. */
     fun lockCountdown(state: PredictorUiState = _uiState.value): CountdownParts {
         val at = lockAt(state) ?: return CountdownParts.ZERO
         return CountdownParts.until(at, state.now)
@@ -193,6 +201,7 @@ class PredictorViewModel @Inject constructor(
         return season.weekendsSorted.filter { it.round != upcomingRound }.asReversed()
     }
 
+    /** Прошлые сезоны store кроме текущего года расписания. */
     fun archivedSeasonSummaries(state: PredictorUiState = _uiState.value): List<PredictorSeasonSummary> {
         val current = seasonYear(state)
         return state.store.seasons.values

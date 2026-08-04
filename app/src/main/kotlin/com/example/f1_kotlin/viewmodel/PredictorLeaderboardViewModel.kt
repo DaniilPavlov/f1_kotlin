@@ -32,6 +32,7 @@ data class PredictorLeaderboardUiState(
     val myPoints: Int = 0,
 )
 
+/** Экран лидерборда: join/leave/никнейм и ранжированный список. */
 @HiltViewModel
 class PredictorLeaderboardViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

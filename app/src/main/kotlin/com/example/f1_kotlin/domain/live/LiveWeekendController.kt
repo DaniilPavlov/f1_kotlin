@@ -55,11 +55,13 @@ class LiveWeekendController @Inject constructor(
         }
     }
 
+    /** Старт force-refresh + poll при возврате в foreground. */
     fun onAppForeground() {
         appInForeground = true
         loadScoreboard(forceRefresh = true)
     }
 
+    /** Стоп poll вне foreground. */
     fun onAppBackground() {
         appInForeground = false
         stopLivePolling()

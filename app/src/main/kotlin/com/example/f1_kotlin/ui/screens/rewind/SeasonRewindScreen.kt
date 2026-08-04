@@ -68,6 +68,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/** Rewind: picker сезона + scrubber + chart. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeasonRewindScreen(viewModel: SeasonRewindViewModel) {
@@ -85,6 +86,7 @@ fun SeasonRewindScreen(viewModel: SeasonRewindViewModel) {
     )
 }
 
+/** Тестируемый контент Rewind без ViewModel. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeasonRewindScreenContent(
@@ -274,6 +276,7 @@ private fun SeasonRewindScrubber(
     }
 }
 
+/** Анимированный bar-chart очков при смене раунда (lerp rank/points). */
 @Composable
 fun SeasonRewindRacingChart(
     entries: List<SeasonRewindBarEntry>,

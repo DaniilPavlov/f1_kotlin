@@ -5,10 +5,14 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Подтягивает результаты Jolpica и дописывает очки во все unscored уикенды сезона.
+ */
 @Singleton
 class PredictorScoringCoordinator @Inject constructor(
     private val f1Repository: IF1Repository,
 ) {
+    /** Проходит уикенды сезона; новый store только если что-то изменилось. */
     suspend fun scoreAllPending(store: PredictorStore, year: String, now: Instant = Instant.now()): PredictorStore? {
         val season = store.season(year) ?: return null
         var next = store
@@ -23,6 +27,7 @@ class PredictorScoringCoordinator @Inject constructor(
         return next.takeIf { changed }
     }
 
+    /** Тянет quali/race results при отсутствии actual и считает очки. */
     suspend fun scoreWeekend(
         year: String,
         weekend: PredictorWeekendPrediction,

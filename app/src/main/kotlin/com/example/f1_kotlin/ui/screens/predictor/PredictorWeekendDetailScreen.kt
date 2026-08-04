@@ -39,6 +39,7 @@ import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.viewmodel.PredictorAuthGateViewModel
 import com.example.f1_kotlin.viewmodel.PredictorWeekendDetailViewModel
 
+/** Сравнение прогноза и факта по quali/race. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PredictorWeekendDetailScreen(

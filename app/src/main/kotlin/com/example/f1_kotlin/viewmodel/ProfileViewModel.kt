@@ -23,6 +23,7 @@ data class ProfileUiState(
     val isBusy: Boolean = false,
 )
 
+/** Профиль: сессия Auth, верификация email, тогглы напоминаний + reschedule. */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: IAuthRepository,
@@ -53,6 +54,7 @@ class ProfileViewModel @Inject constructor(
         _uiState.update { it.copy(toastMessageKey = null) }
     }
 
+    /** Выход + сброс in-memory predictor/leaderboard кэшей. */
     fun signOut() {
         viewModelScope.launch {
             authRepository.signOut()
@@ -81,6 +83,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** После «я подтвердил»: reload токена и toast-ключ. */
     fun refreshVerification() {
         viewModelScope.launch {
             _uiState.update { it.copy(isBusy = true) }

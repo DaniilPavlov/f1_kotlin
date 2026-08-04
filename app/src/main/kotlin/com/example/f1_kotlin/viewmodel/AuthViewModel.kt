@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Состояние полей/ошибок auth-формы (ключи, не готовые строки). */
 data class AuthFormUiState(
     val email: String = "",
     val password: String = "",
@@ -22,6 +23,7 @@ data class AuthFormUiState(
     val passwordResetSent: Boolean = false,
 )
 
+/** Форма sign-in/register/reset: клиентская валидация + [IAuthRepository]. */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: IAuthRepository,
@@ -57,6 +59,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    /** Регистрация с клиентским фильтром disposable/weak password. */
     fun register(onSuccess: () -> Unit) {
         if (!validateRegister()) return
         viewModelScope.launch {
@@ -72,6 +75,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    /** Reset по email; успех → флаг toast, не авто-login. */
     fun sendPasswordReset() {
         val email = _uiState.value.email
         when {

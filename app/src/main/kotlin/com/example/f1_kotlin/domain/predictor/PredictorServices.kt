@@ -10,6 +10,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZonedDateTime
 
+/** Дедлайн прогноза: за 1 ч до квалификации; после — сетка только на чтение. */
 object PredictorLock {
     private val lead: Duration = Duration.ofHours(1)
 
@@ -24,7 +25,9 @@ object PredictorLock {
     }
 }
 
+/** Подсчёт очков 1:1 по позиции + применение actual order к уикенду. */
 object PredictorScoreService {
+    /** +1 за каждое совпадение driverId на той же позиции. */
     fun scoreOrders(predicted: List<String>, actualByPosition: List<String>): Int {
         val length = minOf(predicted.size, actualByPosition.size)
         var points = 0
@@ -43,6 +46,7 @@ object PredictorScoreService {
             .sortedBy { it.position.toIntOrNull() ?: 999 }
             .map { it.driver.driverId }
 
+    /** Мержит actual order/очки в prediction, не затирая уже scored. */
     fun applyResults(
         weekend: PredictorWeekendPrediction,
         qualifyingResults: List<QualifyingResult>? = null,
@@ -69,12 +73,14 @@ object PredictorScoreService {
     }
 }
 
+/** Сборка/синк драфта сетки с ростером чемпионата. */
 object PredictorOrder {
     fun hasUsableDriverCode(driver: Driver): Boolean {
         val code = driver.code?.trim().orEmpty()
         return code.isNotEmpty() && !code.equals("none", ignoreCase = true)
     }
 
+    /** Стартовый драфт: чемпионат ∩ roster, затем хвост ростера. */
     fun defaultPredictorOrder(rosterIds: List<String>, championshipOrder: List<String>): List<String> {
         val roster = rosterIds.toSet()
         val fromStandings = championshipOrder.filter { it in roster }
@@ -82,6 +88,7 @@ object PredictorOrder {
         return fromStandings + rest
     }
 
+    /** Сохраняет порядок пользователя, дописывает новых пилотов в конец. */
     fun syncOrderToRoster(saved: List<String>, rosterIds: List<String>): List<String> {
         val roster = rosterIds.toSet()
         val kept = saved.filter { it in roster }
@@ -90,6 +97,7 @@ object PredictorOrder {
     }
 }
 
+/** Правила ника лидерборда: длина, charset, нормализация для уникальности. */
 object PredictorNickname {
     const val MIN_LENGTH = 3
     const val MAX_LENGTH = 16
@@ -110,6 +118,7 @@ object PredictorNickname {
     }
 }
 
+/** Подпись пилота в сетке: `CODE · family` или fullName / id. */
 fun predictorDriverLabel(driver: Driver?, fallbackId: String?): String {
     if (driver != null) {
         val code = driver.code?.trim().orEmpty()

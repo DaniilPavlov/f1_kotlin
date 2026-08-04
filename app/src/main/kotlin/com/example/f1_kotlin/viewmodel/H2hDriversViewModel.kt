@@ -30,6 +30,7 @@ data class H2hDriversUiState(
     val canCompare get() = scope.canCompare(driverA?.driverId, driverB?.driverId)
 }
 
+/** H2H пилотов: выбор пары, scope сезона, timeline очков. */
 @HiltViewModel
 class H2hDriversViewModel @Inject constructor(
     private val repository: IF1Repository,

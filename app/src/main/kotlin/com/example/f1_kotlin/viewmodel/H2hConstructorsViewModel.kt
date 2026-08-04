@@ -30,6 +30,7 @@ data class H2hConstructorsUiState(
     val canCompare get() = scope.canCompare(constructorA?.constructorId, constructorB?.constructorId)
 }
 
+/** H2H конструкторов: та же схема, что drivers. */
 @HiltViewModel
 class H2hConstructorsViewModel @Inject constructor(
     private val repository: IF1Repository,

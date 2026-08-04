@@ -32,6 +32,7 @@ data class PredictorWeekendDetailUiState(
     val raceCompare: PredictorSessionCompare? = null,
 )
 
+/** Detail уикенда: сравнение predicted/actual и досчёт очков при необходимости. */
 @HiltViewModel
 class PredictorWeekendDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

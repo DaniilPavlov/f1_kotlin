@@ -31,6 +31,7 @@ data class DriverDetailUiState(
     val isRefreshing: Boolean = false,
 )
 
+/** Карточка пилота: career + ESPN photo/news. */
 @HiltViewModel
 class DriverDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

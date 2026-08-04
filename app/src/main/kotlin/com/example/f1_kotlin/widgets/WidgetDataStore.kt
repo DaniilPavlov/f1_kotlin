@@ -2,6 +2,7 @@ package com.example.f1_kotlin.widgets
 
 import android.content.Context
 
+/** Ключи SharedPreferences для next-GP и top-3 standings виджетов. */
 object WidgetDataStore {
     const val PREFS_NAME = "f1_app_widgets"
 
