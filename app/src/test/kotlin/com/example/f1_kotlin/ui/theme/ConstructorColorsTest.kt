@@ -8,7 +8,7 @@ import org.junit.Test
 class ConstructorColorsTest {
     @Test
     fun knownIds_matchPalette() {
-        assertEquals(Color(0xFF8B0000), ConstructorColors.forConstructorId("ferrari"))
+        assertEquals(Color(0xFFA51010), ConstructorColors.forConstructorId("ferrari"))
         assertEquals(Color(0xFF006F62), ConstructorColors.forConstructorId("Mercedes"))
         assertEquals(Color(0xFF1E2E5A), ConstructorColors.forConstructorId("red_bull"))
         assertEquals(Color(0xFF6B9AC4), ConstructorColors.forConstructorId("rb"))

@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.AppDataRefresh
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.domain.NetworkReachability
+import com.example.f1_kotlin.domain.clearOfflineBannerIfOnline
 import com.example.f1_kotlin.domain.model.Circuit
+import com.example.f1_kotlin.domain.shouldShowOfflineCachedBanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +20,7 @@ data class CircuitsUiState(
     val circuits: AsyncValue<List<Circuit>> = AsyncValue.Loading,
     val activePage: Int = 0,
     val isRefreshing: Boolean = false,
+    val showingCachedData: Boolean = false,
 )
 
 /**
@@ -27,6 +31,7 @@ data class CircuitsUiState(
 class CircuitsViewModel @Inject constructor(
     private val repository: IF1Repository,
     private val appDataRefresh: AppDataRefresh,
+    private val networkReachability: NetworkReachability,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
 
@@ -51,6 +56,17 @@ class CircuitsViewModel @Inject constructor(
     fun refreshAll() {
         loadJob.launch(viewModelScope) {
             loadInternal(clearCaches = true)
+        }
+    }
+
+    fun dismissOfflineBannerIfOnline() {
+        _uiState.update {
+            it.copy(
+                showingCachedData = clearOfflineBannerIfOnline(
+                    currentlyShowing = it.showingCachedData,
+                    reachability = networkReachability,
+                ),
+            )
         }
     }
 
@@ -82,7 +98,15 @@ class CircuitsViewModel @Inject constructor(
                 },
             )
         } finally {
-            _uiState.update { it.copy(isRefreshing = false) }
+            _uiState.update {
+                it.copy(
+                    isRefreshing = false,
+                    showingCachedData = shouldShowOfflineCachedBanner(
+                        hasCachedContent = it.circuits is AsyncValue.Value,
+                        reachability = networkReachability,
+                    ),
+                )
+            }
         }
     }
 }

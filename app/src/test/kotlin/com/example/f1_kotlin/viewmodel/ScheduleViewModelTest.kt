@@ -46,7 +46,7 @@ class ScheduleViewModelTest {
         val race = sampleRace()
         stubSchedule(listOf(race))
 
-        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true))
+        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true), mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.onSelectDay(LocalDate.parse("2026-05-24"))
@@ -64,7 +64,7 @@ class ScheduleViewModelTest {
         val race = sampleRace()
         stubSchedule(listOf(race))
 
-        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true))
+        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true), mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.onSelectDay(LocalDate.parse("2026-05-25"))
@@ -79,7 +79,7 @@ class ScheduleViewModelTest {
     fun onSelectDay_emptyDay_clearsScheduleItems() = runTest {
         stubSchedule(listOf(sampleRace()))
 
-        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true))
+        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true), mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.onSelectDay(LocalDate.parse("2026-01-01"))
@@ -91,7 +91,7 @@ class ScheduleViewModelTest {
     fun logoForDay_raceDay_isFinish_sessionDay_isCar() = runTest {
         stubSchedule(listOf(sampleRace()))
 
-        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true))
+        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true), mockk(relaxed = true))
         advanceUntilIdle()
 
         assertEquals(
@@ -109,7 +109,7 @@ class ScheduleViewModelTest {
     fun loadAllData_success_setsRacesValue() = runTest {
         stubSchedule(listOf(sampleRace()))
 
-        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true))
+        val viewModel = ScheduleViewModel(repository, mockk(relaxed = true), mockk(relaxed = true))
         advanceUntilIdle()
 
         val races = viewModel.uiState.value.races

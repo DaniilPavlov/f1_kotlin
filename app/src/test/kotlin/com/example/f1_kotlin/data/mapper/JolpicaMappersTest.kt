@@ -19,6 +19,20 @@ class JolpicaMappersTest {
     private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
 
     @Test
+    fun driverModel_missingOptionalBioFields_parses() {
+        val json = """
+            {"driverId":"paul_aron","givenName":"Paul","familyName":"Aron"}
+        """.trimIndent()
+        val adapter = moshi.adapter(DriverModel::class.java)
+        val dto = adapter.fromJson(json)!!
+        assertEquals("paul_aron", dto.driverId)
+        assertEquals("", dto.url)
+        assertEquals("", dto.dateOfBirth)
+        assertEquals("", dto.nationality)
+        assertEquals("Paul Aron", dto.toDomain().fullName)
+    }
+
+    @Test
     fun driverStandingsModel_toDomain_mapsFields() {
         val dto = DriverStandingsModel(
             position = "1",

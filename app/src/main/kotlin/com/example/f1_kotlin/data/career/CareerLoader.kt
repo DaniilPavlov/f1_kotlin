@@ -4,6 +4,7 @@ import com.example.f1_kotlin.data.api.F1ApiService
 import com.example.f1_kotlin.data.mapper.toDomain
 import com.example.f1_kotlin.data.model.CareerRaceResult
 import com.example.f1_kotlin.data.model.CareerStats
+import com.example.f1_kotlin.data.model.H2hEntityCompareData
 import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.data.model.MrDataTotalModel
 import com.example.f1_kotlin.data.model.RaceModel
@@ -144,37 +145,91 @@ object CareerLoader {
         )
     }
 
+    /**
+     * Stats + round scores за один проход (results → sprint → poles), как Flutter H2hRepository.
+     * Не дублирует пагинацию после лёгких totals — иначе Jolpica 429 и график пустеет.
+     */
+    suspend fun loadH2hCompareData(
+        api: F1ApiService,
+        entityPath: String,
+        season: String? = null,
+    ): H2hEntityCompareData {
+        val prefix = seasonPrefix(season)
+        val racePages = fetchAllPages(api, "$prefix$entityPath/results")
+        val sprintPages = fetchAllPagesOrEmpty(api, "$prefix$entityPath/sprint")
+        val polesResponse = getThrottled(
+            api,
+            listOf("$prefix$entityPath/qualifying/1"),
+            limit = 1,
+        )
+        val acc = H2hScoreAccumulator()
+        acc.mergePages(racePages, sprint = false)
+        acc.mergePages(sprintPages, sprint = true)
+        return acc.toCompareData(poles = totalOf(polesResponse.first()))
+    }
+
     /** Round-by-round points (race + sprint) for H2H cumulative chart. */
     suspend fun loadH2hRoundScores(
         api: F1ApiService,
         entityPath: String,
         season: String? = null,
-    ): List<com.example.f1_kotlin.viewmodel.H2hRoundScore> {
-        val prefix = seasonPrefix(season)
-        val racePages = fetchAllPages(api, "$prefix$entityPath/results")
-        val sprintPages = fetchAllPages(api, "$prefix$entityPath/sprint")
-        val byKey = linkedMapOf<String, com.example.f1_kotlin.viewmodel.H2hRoundScore>()
+    ): List<com.example.f1_kotlin.viewmodel.H2hRoundScore> =
+        loadH2hCompareData(api, entityPath, season).scores
 
-        fun merge(pages: List<MrDataTotalModel>, sprint: Boolean) {
+    private class H2hScoreAccumulator {
+        private val byKey = linkedMapOf<String, com.example.f1_kotlin.viewmodel.H2hRoundScore>()
+        private val raceKeys = linkedSetOf<String>()
+        private var wins = 0
+        private var seconds = 0
+        private var thirds = 0
+
+        fun mergePages(pages: List<MrDataTotalModel>, sprint: Boolean) {
             pages.forEach { page ->
                 page.raceTable?.races.orEmpty().forEach { race ->
-                    val entries = if (sprint) race.sprintResults else race.results
-                    if (entries.isNullOrEmpty()) return@forEach
-                    val key = raceKey(race.season, race.round)
-                    val points = entries.sumOf { it.points.toDoubleOrNull() ?: 0.0 }
-                    val prev = byKey[key]
-                    byKey[key] = com.example.f1_kotlin.viewmodel.H2hRoundScore(
-                        season = race.season,
-                        round = race.round,
-                        raceName = race.raceName,
-                        points = (prev?.points ?: 0.0) + points,
-                    )
+                    mergeRace(race, sprint)
                 }
             }
         }
-        merge(racePages, sprint = false)
-        merge(sprintPages, sprint = true)
-        return byKey.values.toList()
+
+        private fun mergeRace(race: RaceModel, sprint: Boolean) {
+            val entries = if (sprint) race.sprintResults else race.results
+            if (entries.isNullOrEmpty()) return
+            val key = raceKey(race.season, race.round)
+            if (!sprint) raceKeys.add(key)
+            var points = 0.0
+            entries.forEach { entry ->
+                points += entry.points.toDoubleOrNull() ?: 0.0
+                if (!sprint) {
+                    when (entry.position.toIntOrNull()) {
+                        1 -> wins++
+                        2 -> seconds++
+                        3 -> thirds++
+                    }
+                }
+            }
+            val prev = byKey[key]
+            byKey[key] = com.example.f1_kotlin.viewmodel.H2hRoundScore(
+                season = race.season,
+                round = race.round,
+                raceName = race.raceName,
+                points = (prev?.points ?: 0.0) + points,
+            )
+        }
+
+        fun toCompareData(poles: Int): H2hEntityCompareData {
+            val scores = byKey.values.sortedWith(
+                compareBy({ it.season }, { it.roundNumber }),
+            )
+            return H2hEntityCompareData(
+                stats = H2hStats(
+                    races = raceKeys.size,
+                    wins = wins,
+                    podiums = wins + seconds + thirds,
+                    poles = poles,
+                ),
+                scores = scores,
+            )
+        }
     }
 
     private fun seasonPrefix(season: String?): String {
@@ -219,6 +274,14 @@ object CareerLoader {
         }
         return pages
     }
+
+    /** Sprint endpoint may 404 for older careers — treat as empty, don't fail the chart. */
+    private suspend fun fetchAllPagesOrEmpty(api: F1ApiService, path: String): List<MrDataTotalModel> =
+        try {
+            fetchAllPages(api, path)
+        } catch (e: HttpException) {
+            if (e.code() == 404) emptyList() else throw e
+        }
 
     /**
      * Один HTTP-запрос с throttle и retry на 429 (без перезапуска всей карьеры с offset=0).

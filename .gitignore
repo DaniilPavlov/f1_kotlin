@@ -26,3 +26,6 @@ app/upload-keystore.jks
 # Firebase CLI
 firebase-debug.log
 .firebase/
+firebase.json
+.firebaserc
+firestore.rules

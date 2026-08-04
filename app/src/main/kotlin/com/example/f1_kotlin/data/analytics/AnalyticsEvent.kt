@@ -129,6 +129,11 @@ sealed class AnalyticsEvent {
         override val params get() = mapOf("enabled" to enabled)
     }
 
+    data class PracticeReminderToggled(val enabled: Boolean) : AnalyticsEvent() {
+        override val name = "practice_reminder_toggled"
+        override val params get() = mapOf("enabled" to enabled)
+    }
+
     data class RaceSearched(val query: String) : AnalyticsEvent() {
         override val name = "race_searched"
         override val params get() = mapOf("query" to query)

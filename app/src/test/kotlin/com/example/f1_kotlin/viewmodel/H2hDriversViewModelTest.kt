@@ -1,5 +1,6 @@
 package com.example.f1_kotlin.viewmodel
 
+import com.example.f1_kotlin.data.model.H2hEntityCompareData
 import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.AppError
@@ -33,7 +34,7 @@ class H2hDriversViewModelTest {
         Dispatchers.setMain(dispatcher)
         repository = mockk()
         coEvery { repository.getSeasonYears() } returns Result.success(listOf("2026", "2025"))
-        coEvery { repository.getDriverH2hRoundScores(any(), any()) } returns Result.success(emptyList())
+        coEvery { repository.currentConstructorsForDriver(any()) } returns emptyList()
     }
 
     @After
@@ -81,8 +82,14 @@ class H2hDriversViewModelTest {
     fun compare_success_setsComparisonValue() = runTest {
         val statsA = H2hStats(races = 10, wins = 3, podiums = 5, poles = 2)
         val statsB = H2hStats(races = 12, wins = 1, podiums = 4, poles = 0)
-        coEvery { repository.getDriverH2hStats("hamilton", null) } returns Result.success(statsA)
-        coEvery { repository.getDriverH2hStats("norris", null) } returns Result.success(statsB)
+        val scoresA = listOf(H2hRoundScore("2024", "1", "Bahrain", 25.0))
+        val scoresB = listOf(H2hRoundScore("2024", "1", "Bahrain", 18.0))
+        coEvery { repository.getDriverH2hCompareData("hamilton", null) } returns Result.success(
+            H2hEntityCompareData(statsA, scoresA),
+        )
+        coEvery { repository.getDriverH2hCompareData("norris", null) } returns Result.success(
+            H2hEntityCompareData(statsB, scoresB),
+        )
 
         val viewModel = H2hDriversViewModel(repository)
         advanceUntilIdle()
@@ -99,15 +106,16 @@ class H2hDriversViewModelTest {
         assertEquals(statsA, result?.statsA)
         assertEquals(statsB, result?.statsB)
         assertNull(result?.season)
+        assertFalse(result?.timeline?.isEmpty == true)
     }
 
     @Test
     fun compare_failure_setsComparisonError() = runTest {
-        coEvery { repository.getDriverH2hStats("hamilton", null) } returns Result.failure(
+        coEvery { repository.getDriverH2hCompareData("hamilton", null) } returns Result.failure(
             AppError("Соединение отсутствует").asException(),
         )
-        coEvery { repository.getDriverH2hStats("norris", null) } returns Result.success(
-            H2hStats(1, 0, 0, 0),
+        coEvery { repository.getDriverH2hCompareData("norris", null) } returns Result.success(
+            H2hEntityCompareData(H2hStats(1, 0, 0, 0), emptyList()),
         )
 
         val viewModel = H2hDriversViewModel(repository)
@@ -125,8 +133,12 @@ class H2hDriversViewModelTest {
     @Test
     fun compare_passesSeasonWhenSeasonScope() = runTest {
         val stats = H2hStats(22, 4, 9, 1)
-        coEvery { repository.getDriverH2hStats("hamilton", "2026") } returns Result.success(stats)
-        coEvery { repository.getDriverH2hStats("norris", "2026") } returns Result.success(stats)
+        coEvery { repository.getDriverH2hCompareData("hamilton", "2026") } returns Result.success(
+            H2hEntityCompareData(stats, emptyList()),
+        )
+        coEvery { repository.getDriverH2hCompareData("norris", "2026") } returns Result.success(
+            H2hEntityCompareData(stats, emptyList()),
+        )
 
         val viewModel = H2hDriversViewModel(repository)
         advanceUntilIdle()

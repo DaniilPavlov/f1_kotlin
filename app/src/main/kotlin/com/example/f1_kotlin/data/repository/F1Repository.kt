@@ -18,6 +18,7 @@ import com.example.f1_kotlin.data.model.ConstructorStandingsModel
 import com.example.f1_kotlin.data.model.DriverStandingsCache
 import com.example.f1_kotlin.data.model.FinishStatusItem
 import com.example.f1_kotlin.data.model.HistoricalStandingsCache
+import com.example.f1_kotlin.data.model.H2hEntityCompareData
 import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.data.model.RaceModel
 import com.example.f1_kotlin.data.model.SeasonsCache
@@ -320,6 +321,22 @@ class F1Repository @Inject constructor(
     override suspend fun getConstructorH2hStats(constructorId: String, season: String?): Result<H2hStats> =
         ApiCallHandler.safeCall {
             CareerLoader.loadH2hStats(api, "constructors/$constructorId", season)
+        }
+
+    override suspend fun getDriverH2hCompareData(
+        driverId: String,
+        season: String?,
+    ): Result<H2hEntityCompareData> =
+        ApiCallHandler.safeCall {
+            CareerLoader.loadH2hCompareData(api, "drivers/$driverId", season)
+        }
+
+    override suspend fun getConstructorH2hCompareData(
+        constructorId: String,
+        season: String?,
+    ): Result<H2hEntityCompareData> =
+        ApiCallHandler.safeCall {
+            CareerLoader.loadH2hCompareData(api, "constructors/$constructorId", season)
         }
 
     override suspend fun getStandingsAfterRound(

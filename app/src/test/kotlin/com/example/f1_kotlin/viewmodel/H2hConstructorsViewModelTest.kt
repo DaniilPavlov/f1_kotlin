@@ -1,5 +1,6 @@
 package com.example.f1_kotlin.viewmodel
 
+import com.example.f1_kotlin.data.model.H2hEntityCompareData
 import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.AsyncValue
@@ -30,7 +31,6 @@ class H2hConstructorsViewModelTest {
         Dispatchers.setMain(dispatcher)
         repository = mockk()
         coEvery { repository.getSeasonYears() } returns Result.success(listOf("2026", "2025"))
-        coEvery { repository.getConstructorH2hRoundScores(any(), any()) } returns Result.success(emptyList())
     }
 
     @After
@@ -56,8 +56,12 @@ class H2hConstructorsViewModelTest {
     fun compare_success_setsComparison() = runTest {
         val statsA = H2hStats(races = 20, wins = 5, podiums = 10, poles = 3)
         val statsB = H2hStats(races = 20, wins = 4, podiums = 8, poles = 2)
-        coEvery { repository.getConstructorH2hStats("mclaren", null) } returns Result.success(statsA)
-        coEvery { repository.getConstructorH2hStats("ferrari", null) } returns Result.success(statsB)
+        coEvery { repository.getConstructorH2hCompareData("mclaren", null) } returns Result.success(
+            H2hEntityCompareData(statsA, emptyList()),
+        )
+        coEvery { repository.getConstructorH2hCompareData("ferrari", null) } returns Result.success(
+            H2hEntityCompareData(statsB, emptyList()),
+        )
 
         val viewModel = H2hConstructorsViewModel(repository)
         advanceUntilIdle()

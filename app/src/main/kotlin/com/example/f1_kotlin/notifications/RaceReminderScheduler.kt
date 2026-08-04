@@ -18,9 +18,9 @@ import androidx.core.content.ContextCompat
 import com.example.f1_kotlin.R
 import com.example.f1_kotlin.domain.model.RaceSession
 import com.example.f1_kotlin.domain.model.Race
-import com.example.f1_kotlin.data.firebase.RemoteConfigService
 import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.LocaleController
+import com.example.f1_kotlin.domain.NotificationsPreference
 import com.example.f1_kotlin.util.DateUtils
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -41,14 +41,13 @@ import kotlinx.coroutines.launch
  *
  * В AlarmManager держим только [MAX_SCHEDULED_REMINDERS] ближайших сессий (rolling window).
  * На каждом sync (старт / resume / смена языка / boot / timezone) окно пересобирается.
- * Флаг Remote Config [RemoteConfigService.localNotificationsEnabled] запрещает создание
- * и снимает уже запланированные.
+ * Remote Config и [NotificationsPreference] могут запретить создание / снять уже запланированные.
  */
 @Singleton
 class RaceReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: IF1Repository,
-    private val remoteConfig: RemoteConfigService,
+    private val notificationsPreference: NotificationsPreference,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lastScheduledIds = AtomicReference<Set<Int>>(emptySet())
@@ -56,14 +55,15 @@ class RaceReminderScheduler @Inject constructor(
     fun sync() {
         scope.launch {
             runCatching {
-                if (!remoteConfig.localNotificationsEnabled) {
+                if (!notificationsPreference.effectivelyEnabled) {
                     cancelIds(lastScheduledIds.getAndSet(emptySet()))
                     return@runCatching
                 }
                 val races = repository.getCurrentSchedule().getOrNull() ?: return@runCatching
                 val language = LocaleController.language.value
                 val localizedContext = context.withAppLocale(language)
-                val upcoming = sessions(races, localizedContext).sortedBy { it.triggerAt }
+                val includePractice = notificationsPreference.practiceRemindersEffectivelyEnabled
+                val upcoming = sessions(races, localizedContext, includePractice).sortedBy { it.triggerAt }
                 val window = upcoming.take(MAX_SCHEDULED_REMINDERS)
 
                 // Снимаем прошлое окно и всё, что могло остаться от старой стратегии «весь сезон».
@@ -74,7 +74,11 @@ class RaceReminderScheduler @Inject constructor(
         }
     }
 
-    private fun sessions(races: List<Race>, localizedContext: Context): List<Reminder> = buildList {
+    private fun sessions(
+        races: List<Race>,
+        localizedContext: Context,
+        includePractice: Boolean,
+    ): List<Reminder> = buildList {
         races.forEach { race ->
             listOf(
                 Triple("fp1", R.string.first_practice, race.firstPractice),
@@ -85,6 +89,7 @@ class RaceReminderScheduler @Inject constructor(
                 Triple("qualifying", R.string.qualifying, race.qualifying),
                 Triple("race", R.string.race, RaceSession(race.date, race.time)),
             ).forEach { (key, titleRes, date) ->
+                if (!includePractice && key.startsWith("fp")) return@forEach
                 val session = date ?: return@forEach
                 val local = DateUtils.toLocalDateTime(session.date, session.time) ?: return@forEach
                 val trigger = local.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - THIRTY_MINUTES

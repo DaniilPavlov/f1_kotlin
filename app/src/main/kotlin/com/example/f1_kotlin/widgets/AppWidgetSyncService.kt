@@ -2,7 +2,7 @@ package com.example.f1_kotlin.widgets
 
 import android.content.Context
 import com.example.f1_kotlin.data.repository.IF1Repository
-import com.example.f1_kotlin.domain.model.Race
+import com.example.f1_kotlin.util.WidgetFormat
 import com.example.f1_kotlin.util.DateUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.ZoneId
@@ -46,7 +46,7 @@ class AppWidgetSyncService @Inject constructor(
         val (race, targetMs) = next
         return mapOf(
             WidgetDataStore.NEXT_GP_HAS_DATA to true,
-            WidgetDataStore.NEXT_GP_RACE_NAME to shortRaceName(race),
+            WidgetDataStore.NEXT_GP_RACE_NAME to WidgetFormat.shortRaceName(race.raceName),
             WidgetDataStore.NEXT_GP_CIRCUIT to race.circuit.circuitName,
             WidgetDataStore.NEXT_GP_TARGET_MS to targetMs.toString(),
         )
@@ -67,25 +67,10 @@ class AppWidgetSyncService @Inject constructor(
         for (i in 1..3) {
             val entry = list.getOrNull(i - 1)
             data[WidgetDataStore.driverCode(i)] = entry
-                ?.let { driverLabel(it.driver.code, it.driver.familyName) }
+                ?.let { WidgetFormat.driverLabel(it.driver.code, it.driver.familyName) }
                 .orEmpty()
             data[WidgetDataStore.driverPoints(i)] = entry?.points.orEmpty()
         }
         return data
-    }
-
-    private fun shortRaceName(race: Race): String {
-        val name = race.raceName.trim()
-        val suffix = " Grand Prix"
-        return if (name.endsWith(suffix) && name.length > suffix.length) {
-            name.substring(0, name.length - suffix.length)
-        } else {
-            name
-        }
-    }
-
-    private fun driverLabel(code: String?, familyName: String): String {
-        val c = code?.trim().orEmpty()
-        return if (c.isNotEmpty() && c != "none") c else familyName.uppercase()
     }
 }

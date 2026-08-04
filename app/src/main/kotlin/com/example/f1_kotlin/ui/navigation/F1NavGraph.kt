@@ -39,6 +39,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.example.f1_kotlin.data.analytics.AnalyticsEvent
 import com.example.f1_kotlin.data.deeplink.DeepLinkTarget
 import com.example.f1_kotlin.di.AppEntryPoint
@@ -51,11 +52,17 @@ import com.example.f1_kotlin.ui.screens.circuits.CircuitsScreen
 import com.example.f1_kotlin.ui.screens.constructor.ConstructorDetailScreen
 import com.example.f1_kotlin.ui.screens.driver.DriverDetailScreen
 import com.example.f1_kotlin.ui.screens.finishstatus.FinishStatusScreen
-import com.example.f1_kotlin.ui.screens.h2h.H2hConstructorsScreen
-import com.example.f1_kotlin.ui.screens.h2h.H2hDriversScreen
+import com.example.f1_kotlin.ui.screens.h2h.H2hMode
+import com.example.f1_kotlin.ui.screens.h2h.H2hScreen
 import com.example.f1_kotlin.ui.screens.halloffame.HallOfFameScreen
 import com.example.f1_kotlin.ui.screens.home.HomeScreen
-import com.example.f1_kotlin.ui.screens.news.NewsScreen
+import com.example.f1_kotlin.ui.screens.predictor.PredictorLeaderboardScreen
+import com.example.f1_kotlin.ui.screens.predictor.PredictorScreen
+import com.example.f1_kotlin.ui.screens.predictor.PredictorSeasonHistoryScreen
+import com.example.f1_kotlin.ui.screens.predictor.PredictorWeekendDetailScreen
+import com.example.f1_kotlin.ui.screens.profile.AuthRegisterScreen
+import com.example.f1_kotlin.ui.screens.profile.AuthSignInScreen
+import com.example.f1_kotlin.ui.screens.profile.ProfileScreen
 import com.example.f1_kotlin.ui.screens.results.RaceInfoScreen
 import com.example.f1_kotlin.ui.screens.results.RaceSearchScreen
 import com.example.f1_kotlin.ui.screens.results.ResultsScreen
@@ -99,19 +106,19 @@ sealed class BottomTab(
         iconRes = com.example.f1_kotlin.R.drawable.nav_lights,
         analyticsTab = "schedule",
     )
-    data object News : BottomTab(
-        route = com.example.f1_kotlin.ui.navigation.News,
-        routeClass = com.example.f1_kotlin.ui.navigation.News::class,
-        labelRes = com.example.f1_kotlin.R.string.nav_news,
+    data object Predictor : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.Predictor,
+        routeClass = com.example.f1_kotlin.ui.navigation.Predictor::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_predictor,
         iconRes = com.example.f1_kotlin.R.drawable.nav_trophy,
-        analyticsTab = "news",
+        analyticsTab = "predictor",
     )
-    data object Circuits : BottomTab(
-        route = com.example.f1_kotlin.ui.navigation.Circuits,
-        routeClass = com.example.f1_kotlin.ui.navigation.Circuits::class,
-        labelRes = com.example.f1_kotlin.R.string.nav_circuits,
-        iconRes = com.example.f1_kotlin.R.drawable.nav_circuit,
-        analyticsTab = "circuits",
+    data object Profile : BottomTab(
+        route = com.example.f1_kotlin.ui.navigation.Profile,
+        routeClass = com.example.f1_kotlin.ui.navigation.Profile::class,
+        labelRes = com.example.f1_kotlin.R.string.nav_profile,
+        iconRes = com.example.f1_kotlin.R.drawable.nav_helmet,
+        analyticsTab = "profile",
     )
 }
 
@@ -119,8 +126,8 @@ private val tabs = listOf(
     BottomTab.Home,
     BottomTab.Results,
     BottomTab.Schedule,
-    BottomTab.News,
-    BottomTab.Circuits,
+    BottomTab.Predictor,
+    BottomTab.Profile,
 )
 
 @Composable
@@ -143,6 +150,19 @@ fun F1App() {
         }
     }
 
+    LaunchedEffect(destination?.route) {
+        val route = destination?.route ?: return@LaunchedEffect
+        val screenName = route.substringBefore('?').substringBefore('/')
+            .substringAfterLast('.')
+            .ifBlank { route }
+        analytics.log(
+            AnalyticsEvent.ScreenView(
+                screenName = screenName,
+                screenClass = destination.route,
+            ),
+        )
+    }
+
     val onDriverClick: (Driver) -> Unit = { driver ->
         analytics.log(AnalyticsEvent.DriverOpened(driver.driverId, driver.fullName))
         navController.navigate(DriverDetail(driver.driverId))
@@ -162,6 +182,7 @@ fun F1App() {
             topBar = {
                 F1TopBar(
                     destination = destination,
+                    backStackEntry = backStackEntry,
                     showBottomBar = showBottomBar,
                     popBack = popBack,
                     shareAction = shareAction,
@@ -241,17 +262,55 @@ private fun navigateDeepLink(
     }
 }
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 private fun F1TopBar(
     destination: NavDestination?,
+    backStackEntry: androidx.navigation.NavBackStackEntry?,
     showBottomBar: Boolean,
     popBack: () -> Unit,
     shareAction: (() -> Unit)?,
 ) {
     when {
+        showBottomBar && destination?.hasRoute<Profile>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.profile_title),
+        )
+        showBottomBar && destination?.hasRoute<Predictor>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.predictor_title),
+        )
         showBottomBar -> F1AppBar()
+        destination?.hasRoute<AuthSignIn>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.auth_sign_in_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<AuthRegister>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.auth_register_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<PredictorWeekendDetail>() == true -> F1AppBar(
+            title = backStackEntry?.toRoute<PredictorWeekendDetail>()?.raceName
+                ?.takeIf { it.isNotBlank() }
+                ?: stringResource(com.example.f1_kotlin.R.string.predictor_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<PredictorSeasonHistory>() == true -> F1AppBar(
+            title = backStackEntry?.toRoute<PredictorSeasonHistory>()?.year
+                ?: stringResource(com.example.f1_kotlin.R.string.predictor_history_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<PredictorLeaderboard>() == true -> F1AppBar(
+            title = stringResource(
+                com.example.f1_kotlin.R.string.predictor_leaderboard_title,
+                backStackEntry?.toRoute<PredictorLeaderboard>()?.year.orEmpty(),
+            ),
+            onBack = popBack,
+        )
         destination?.hasRoute<RaceSearch>() == true -> F1AppBar(
             title = stringResource(com.example.f1_kotlin.R.string.race_search_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<Circuits>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.nav_circuits),
             onBack = popBack,
         )
         destination?.hasRoute<HallOfFame>() == true -> F1AppBar(
@@ -262,12 +321,9 @@ private fun F1TopBar(
             title = stringResource(com.example.f1_kotlin.R.string.season_rewind_title),
             onBack = popBack,
         )
-        destination?.hasRoute<H2hDrivers>() == true -> F1AppBar(
+        destination?.hasRoute<H2hDrivers>() == true ||
+            destination?.hasRoute<H2hConstructors>() == true -> F1AppBar(
             title = stringResource(com.example.f1_kotlin.R.string.h2h_title),
-            onBack = popBack,
-        )
-        destination?.hasRoute<H2hConstructors>() == true -> F1AppBar(
-            title = stringResource(com.example.f1_kotlin.R.string.h2h_constructors_title),
             onBack = popBack,
         )
         destination?.hasRoute<FinishStatus>() == true -> F1AppBar(
@@ -297,6 +353,7 @@ private fun F1TopBar(
     }
 }
 
+@Suppress("LongMethod")
 @Composable
 private fun F1NavHost(
     navController: NavHostController,
@@ -313,6 +370,7 @@ private fun F1NavHost(
         composable<Home> {
             HomeScreen(
                 viewModel = hiltViewModel(),
+                newsViewModel = hiltViewModel(),
                 onDriverClick = onDriverClick,
                 onConstructorClick = onConstructorClick,
             )
@@ -323,8 +381,7 @@ private fun F1NavHost(
                 onSearchRace = { navController.navigate(RaceSearch) },
                 onHallOfFame = { navController.navigate(HallOfFame) },
                 onSeasonRewind = { navController.navigate(SeasonRewind) },
-                onH2hDrivers = { navController.navigate(H2hDrivers) },
-                onH2hConstructors = { navController.navigate(H2hConstructors) },
+                onH2h = { navController.navigate(H2hDrivers) },
                 onFinishStatus = { navController.navigate(FinishStatus) },
                 onRaceDetails = { race ->
                     navController.navigate(RaceInfo(race.season, race.round))
@@ -352,10 +409,18 @@ private fun F1NavHost(
             SeasonRewindScreen(viewModel = hiltViewModel())
         }
         composable<H2hDrivers> {
-            H2hDriversScreen(viewModel = hiltViewModel())
+            H2hScreen(
+                driversViewModel = hiltViewModel(),
+                constructorsViewModel = hiltViewModel(),
+                initialMode = H2hMode.Drivers,
+            )
         }
         composable<H2hConstructors> {
-            H2hConstructorsScreen(viewModel = hiltViewModel())
+            H2hScreen(
+                driversViewModel = hiltViewModel(),
+                constructorsViewModel = hiltViewModel(),
+                initialMode = H2hMode.Constructors,
+            )
         }
         composable<FinishStatus> {
             FinishStatusScreen(viewModel = hiltViewModel())
@@ -366,9 +431,111 @@ private fun F1NavHost(
                 onDriverClick = onDriverClick,
             )
         }
-        composable<Schedule> { ScheduleScreen(hiltViewModel()) }
-        composable<News> {
-            NewsScreen(viewModel = hiltViewModel())
+        composable<Schedule> {
+            ScheduleScreen(
+                viewModel = hiltViewModel(),
+                onCircuits = { navController.navigate(Circuits) },
+            )
+        }
+        composable<Predictor> {
+            PredictorScreen(
+                viewModel = hiltViewModel(),
+                onGoSignIn = { navController.navigate(AuthSignIn) },
+                onGoProfile = {
+                    navController.navigate(Profile) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onOpenLeaderboard = { year, myPoints ->
+                    navController.navigate(PredictorLeaderboard(year = year, myPoints = myPoints))
+                },
+                onOpenWeekend = { season, weekend ->
+                    navController.navigate(
+                        PredictorWeekendDetail(
+                            season = season,
+                            round = weekend.round,
+                            raceName = weekend.raceName,
+                        ),
+                    )
+                },
+                onOpenSeason = { year ->
+                    navController.navigate(PredictorSeasonHistory(year = year))
+                },
+            )
+        }
+        composable<PredictorWeekendDetail> {
+            PredictorWeekendDetailScreen(
+                viewModel = hiltViewModel(),
+                onGoSignIn = {
+                    navController.navigate(AuthSignIn) {
+                        popUpTo(Predictor) { inclusive = false }
+                    }
+                },
+                onBlocked = { navController.popBackStack() },
+            )
+        }
+        composable<PredictorSeasonHistory> {
+            PredictorSeasonHistoryScreen(
+                viewModel = hiltViewModel(),
+                onGoSignIn = {
+                    navController.navigate(AuthSignIn) {
+                        popUpTo(Predictor) { inclusive = false }
+                    }
+                },
+                onBlocked = { navController.popBackStack() },
+                onOpenWeekend = { season, weekend ->
+                    navController.navigate(
+                        PredictorWeekendDetail(
+                            season = season,
+                            round = weekend.round,
+                            raceName = weekend.raceName,
+                        ),
+                    )
+                },
+            )
+        }
+        composable<PredictorLeaderboard> {
+            PredictorLeaderboardScreen(
+                viewModel = hiltViewModel(),
+                onGoSignIn = {
+                    navController.navigate(AuthSignIn) {
+                        popUpTo(Predictor) { inclusive = false }
+                    }
+                },
+                onBlocked = { navController.popBackStack() },
+            )
+        }
+        composable<Profile> {
+            ProfileScreen(
+                viewModel = hiltViewModel(),
+                onSignIn = { navController.navigate(AuthSignIn) },
+            )
+        }
+        composable<AuthSignIn> {
+            AuthSignInScreen(
+                viewModel = hiltViewModel(),
+                onSuccess = { navController.popBackStack() },
+                onGoRegister = {
+                    navController.navigate(AuthRegister) {
+                        popUpTo(AuthSignIn) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        composable<AuthRegister> {
+            AuthRegisterScreen(
+                viewModel = hiltViewModel(),
+                onSuccess = { navController.popBackStack() },
+                onGoSignIn = {
+                    navController.navigate(AuthSignIn) {
+                        popUpTo(AuthRegister) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable<Circuits> {
             CircuitsScreen(

@@ -56,7 +56,7 @@ data class H2hPointsTimeline(
                 H2hTimelinePoint(
                     season = sample.season,
                     round = sample.round,
-                    label = if (singleSeason) sample.round else "${sample.season} · R${sample.round}",
+                    label = if (singleSeason) sample.round else sample.season,
                     raceName = a?.raceName ?: b?.raceName.orEmpty(),
                     cumulativeA = cumA,
                     cumulativeB = cumB,

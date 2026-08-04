@@ -44,8 +44,8 @@ android {
         applicationId = "com.example.f1_kotlin"
         minSdk = 30
         targetSdk = 37
-        versionCode = 202607310
-        versionName = "1.7.0"
+        versionCode = 202608040
+        versionName = "2.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Empty until set in local.properties / CI — bootstrap skips AppMetrica.
@@ -146,6 +146,17 @@ kover {
                     "com.example.f1_kotlin.data.circuits.CircuitStatsRepository*",
                     "com.example.f1_kotlin.data.repository.IF1Repository*",
                     "com.example.f1_kotlin.data.repository.IEspnRepository*",
+                    "com.example.f1_kotlin.data.repository.IPredictorRepository*",
+                    "com.example.f1_kotlin.data.repository.IPredictorLeaderboardRepository*",
+                    "com.example.f1_kotlin.data.repository.PredictorRepository*",
+                    "com.example.f1_kotlin.data.repository.PredictorLeaderboardRepository*",
+                    "com.example.f1_kotlin.data.repository.AuthRepository*",
+                    "com.example.f1_kotlin.data.repository.IAuthRepository*",
+                    "com.example.f1_kotlin.viewmodel.PredictorViewModel*",
+                    "com.example.f1_kotlin.viewmodel.PredictorWeekendDetailViewModel*",
+                    "com.example.f1_kotlin.viewmodel.PredictorLeaderboardViewModel*",
+                    "com.example.f1_kotlin.viewmodel.PredictorSeasonHistoryViewModel*",
+                    "com.example.f1_kotlin.domain.predictor.PredictorScoringCoordinator*",
                     "com.example.f1_kotlin.domain.ThemePreferences*",
                     "com.example.f1_kotlin.domain.LocalePreferences*",
                     "com.example.f1_kotlin.ui.views.*",
@@ -202,6 +213,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
@@ -233,6 +245,9 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.config)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.appmetrica.analytics)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

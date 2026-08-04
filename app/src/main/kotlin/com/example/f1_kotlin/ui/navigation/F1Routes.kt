@@ -5,7 +5,10 @@ import kotlinx.serialization.Serializable
 @Serializable data object Home
 @Serializable data object Results
 @Serializable data object Schedule
-@Serializable data object News
+@Serializable data object Predictor
+@Serializable data object Profile
+@Serializable data object AuthSignIn
+@Serializable data object AuthRegister
 @Serializable data object Circuits
 @Serializable data object RaceSearch
 @Serializable data object HallOfFame
@@ -17,3 +20,10 @@ import kotlinx.serialization.Serializable
 @Serializable data class CircuitDetail(val circuitId: String)
 @Serializable data class DriverDetail(val driverId: String)
 @Serializable data class ConstructorDetail(val constructorId: String)
+@Serializable data class PredictorWeekendDetail(
+    val season: String,
+    val round: String,
+    val raceName: String = "",
+)
+@Serializable data class PredictorSeasonHistory(val year: String)
+@Serializable data class PredictorLeaderboard(val year: String, val myPoints: Int)

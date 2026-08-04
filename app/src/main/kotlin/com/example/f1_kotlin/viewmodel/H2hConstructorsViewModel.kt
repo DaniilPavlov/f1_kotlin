@@ -124,18 +124,25 @@ class H2hConstructorsViewModel @Inject constructor(
         loadJob.launchH2hCompare(
             scope = viewModelScope,
             canCompare = canCompare,
-            fetchA = { repository.getConstructorH2hStats(a.constructorId, season) },
-            fetchB = { repository.getConstructorH2hStats(b.constructorId, season) },
+            fetchA = { repository.getConstructorH2hCompareData(a.constructorId, season) },
+            fetchB = { repository.getConstructorH2hCompareData(b.constructorId, season) },
             onLoading = { _uiState.update { it.copy(comparison = AsyncValue.Loading) } },
             onError = { err -> _uiState.update { it.copy(comparison = err.toAsyncError()) } },
-            onSuccess = { statsA, statsB ->
-                val scoresA = repository.getConstructorH2hRoundScores(a.constructorId, season).getOrElse { emptyList() }
-                val scoresB = repository.getConstructorH2hRoundScores(b.constructorId, season).getOrElse { emptyList() }
-                val timeline = H2hPointsTimeline.fromScores(scoresA, scoresB, season)
+            onSuccess = { dataA, dataB ->
+                val timeline = H2hPointsTimeline.fromScores(dataA.scores, dataB.scores, season)
                 _uiState.update {
                     it.copy(
                         comparison = AsyncValue.Value(
-                            H2hConstructorCompareResult(a, b, statsA, statsB, season, timeline),
+                            H2hConstructorCompareResult(
+                                constructorA = a,
+                                constructorB = b,
+                                statsA = dataA.stats,
+                                statsB = dataB.stats,
+                                season = season,
+                                timeline = timeline,
+                                constructorIdA = a.constructorId,
+                                constructorIdB = b.constructorId,
+                            ),
                         ),
                     )
                 }

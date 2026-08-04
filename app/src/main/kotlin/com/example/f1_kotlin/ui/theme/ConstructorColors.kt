@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
  */
 object ConstructorColors {
     private val knownByConstructorId = mapOf(
-        "ferrari" to Color(0xFF8B0000),
+        "ferrari" to Color(0xFFA51010),
         "mercedes" to Color(0xFF006F62),
         "red_bull" to Color(0xFF1E2E5A),
         "rb" to Color(0xFF6B9AC4),

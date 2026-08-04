@@ -3,6 +3,7 @@ package com.example.f1_kotlin.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
@@ -33,17 +36,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.f1_kotlin.R
+import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.domain.model.Constructor
 import com.example.f1_kotlin.domain.model.Driver
-import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.ui.theme.AppStyles
+import com.example.f1_kotlin.ui.theme.ConstructorColors
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.F1White
 import com.example.f1_kotlin.ui.theme.appColors
+import com.example.f1_kotlin.viewmodel.H2hPointsTimeline
 
 @Composable
 fun H2hFilterToggle(
@@ -55,8 +61,10 @@ fun H2hFilterToggle(
 ) {
     val colors = appColors()
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, style = AppStyles.caption.copy(color = colors.textGray))
-        Spacer(Modifier.height(8.dp))
+        if (label.isNotBlank()) {
+            Text(label, style = AppStyles.caption.copy(color = colors.textGray))
+            Spacer(Modifier.height(8.dp))
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -114,14 +122,23 @@ fun H2hCompareTable(
     statsA: H2hStats,
     statsB: H2hStats,
     season: String?,
+    timeline: H2hPointsTimeline,
+    constructorIdA: String? = null,
+    constructorIdB: String? = null,
 ) {
     val colors = appColors()
+    val colorA = lineColor(constructorIdA, fallback = F1Red)
+    var colorB = lineColor(constructorIdB, fallback = colors.black)
+    if (colorA == colorB) {
+        colorB = lerp(colorB, Color.White, 0.4f)
+    }
     val rows = listOf(
         Triple(stringResource(R.string.career_stat_races), statsA.races, statsB.races),
         Triple(stringResource(R.string.wins), statsA.wins, statsB.wins),
         Triple(stringResource(R.string.career_stat_podiums), statsA.podiums, statsB.podiums),
         Triple(stringResource(R.string.career_stat_poles), statsA.poles, statsB.poles),
     )
+    val last = timeline.points.lastOrNull()
     Column(modifier = Modifier.fillMaxWidth()) {
         if (!season.isNullOrEmpty()) {
             Text(
@@ -130,6 +147,37 @@ fun H2hCompareTable(
             )
             Spacer(Modifier.height(12.dp))
         }
+        Text(stringResource(R.string.h2h_points_chart_title), style = AppStyles.body)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.h2h_points_chart_subtitle),
+            style = AppStyles.caption.copy(color = colors.textGray),
+        )
+        Spacer(Modifier.height(16.dp))
+        if (timeline.isEmpty) {
+            Text(
+                stringResource(R.string.h2h_points_chart_empty),
+                style = AppStyles.body.copy(color = colors.textGray),
+            )
+        } else {
+            H2hPointsChart(
+                timeline = timeline,
+                colorA = colorA,
+                colorB = colorB,
+            )
+            Spacer(Modifier.height(12.dp))
+            if (last != null) {
+                H2hPointsChartLegend(
+                    nameA = nameA,
+                    nameB = nameB,
+                    pointsA = last.cumulativeA,
+                    pointsB = last.cumulativeB,
+                    colorA = colorA,
+                    colorB = colorB,
+                )
+            }
+        }
+        Spacer(Modifier.height(24.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.width(100.dp))
             Text(
@@ -151,6 +199,55 @@ fun H2hCompareTable(
             Divider(color = colors.strokeGray)
         }
     }
+}
+
+@Composable
+private fun H2hPointsChartLegend(
+    nameA: String,
+    nameB: String,
+    pointsA: Double,
+    pointsB: Double,
+    colorA: Color,
+    colorB: Color,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LegendRow(name = nameA, points = pointsA, color = colorA)
+        LegendRow(name = nameB, points = pointsB, color = colorB)
+    }
+}
+
+@Composable
+private fun LegendRow(name: String, points: Double, color: Color) {
+    val colors = appColors()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = name,
+            style = AppStyles.caption,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+        )
+        Text(
+            text = formatLegendPoints(points),
+            style = AppStyles.caption.copy(color = colors.textGray),
+        )
+    }
+}
+
+private fun lineColor(constructorId: String?, fallback: Color): Color {
+    val id = constructorId?.trim().orEmpty()
+    return if (id.isEmpty()) fallback else ConstructorColors.forConstructorId(id)
+}
+
+private fun formatLegendPoints(value: Double): String {
+    return if (value == value.toLong().toDouble()) value.toLong().toString()
+    else String.format(java.util.Locale.US, "%.1f", value)
 }
 
 @Composable
@@ -271,6 +368,7 @@ fun ConstructorPickerField(
                 loadErrorText = stringResource(R.string.constructors_load_error),
                 loadItems = loadConstructors,
                 itemTitle = { it.name },
+                itemAccent = { ConstructorColors.forConstructorId(it.constructorId) },
                 itemMatches = { item, query -> item.name.lowercase().contains(query.lowercase()) },
                 onSelected = {
                     onChanged(it)
@@ -291,6 +389,7 @@ private fun <T> EntityPickerSheet(
     itemTitle: (T) -> String,
     itemMatches: (T, String) -> Boolean,
     onSelected: (T) -> Unit,
+    itemAccent: ((T) -> Color?)? = null,
 ) {
     val colors = appColors()
     var loading by remember { mutableStateOf(true) }
@@ -331,14 +430,29 @@ private fun <T> EntityPickerSheet(
             filtered.isEmpty() -> Text(emptyText, style = AppStyles.body, modifier = Modifier.padding(24.dp))
             else -> LazyColumn {
                 items(filtered) { item ->
-                    Text(
-                        text = itemTitle(item),
-                        style = AppStyles.body,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelected(item) }
                             .padding(horizontal = 8.dp, vertical = 16.dp),
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val accent = itemAccent?.invoke(item)
+                        if (accent != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(accent),
+                            )
+                            Spacer(Modifier.width(10.dp))
+                        }
+                        Text(
+                            text = itemTitle(item),
+                            style = AppStyles.body,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                     Divider(color = colors.strokeGray)
                 }
             }

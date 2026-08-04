@@ -9,6 +9,9 @@ import com.example.f1_kotlin.data.repository.IEspnRepository
 import com.example.f1_kotlin.data.repository.IF1Repository
 import com.example.f1_kotlin.domain.AppDataRefresh
 import com.example.f1_kotlin.domain.AsyncValue
+import com.example.f1_kotlin.domain.NetworkReachability
+import com.example.f1_kotlin.domain.clearOfflineBannerIfOnline
+import com.example.f1_kotlin.domain.shouldShowOfflineCachedBanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -26,6 +29,7 @@ data class ResultsUiState(
     val lastRace: AsyncValue<Race> = AsyncValue.Loading,
     val scoreboard: AsyncValue<EspnScoreboardEvent?> = AsyncValue.Loading,
     val isRefreshing: Boolean = false,
+    val showingCachedData: Boolean = false,
 )
 
 /**
@@ -37,6 +41,7 @@ class ResultsViewModel @Inject constructor(
     private val repository: IF1Repository,
     private val espnRepository: IEspnRepository,
     private val appDataRefresh: AppDataRefresh,
+    private val networkReachability: NetworkReachability,
 ) : ViewModel() {
     private val loadJob = LoadJobHolder()
     private var pollJob: Job? = null
@@ -58,6 +63,17 @@ class ResultsViewModel @Inject constructor(
     fun refreshAll() {
         loadJob.launch(viewModelScope) {
             loadInternal(clearCaches = true)
+        }
+    }
+
+    fun dismissOfflineBannerIfOnline() {
+        _uiState.update {
+            it.copy(
+                showingCachedData = clearOfflineBannerIfOnline(
+                    currentlyShowing = it.showingCachedData,
+                    reachability = networkReachability,
+                ),
+            )
         }
     }
 
@@ -88,7 +104,15 @@ class ResultsViewModel @Inject constructor(
             raceDeferred.await()
             scoreboardDeferred.await()
         } finally {
-            _uiState.update { it.copy(isRefreshing = false) }
+            _uiState.update {
+                it.copy(
+                    isRefreshing = false,
+                    showingCachedData = shouldShowOfflineCachedBanner(
+                        hasCachedContent = it.lastRace is AsyncValue.Value,
+                        reachability = networkReachability,
+                    ),
+                )
+            }
         }
     }
 

@@ -46,7 +46,7 @@ class CircuitsViewModelTest {
         val circuits = listOf(sampleCircuit("monaco"), sampleCircuit("monza"))
         coEvery { repository.getCircuits() } returns Result.success(circuits)
 
-        val viewModel = CircuitsViewModel(repository, appDataRefresh)
+        val viewModel = CircuitsViewModel(repository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         val state = viewModel.uiState.value.circuits
@@ -57,7 +57,7 @@ class CircuitsViewModelTest {
     @Test
     fun changeActivePage_updatesIndex() = runTest {
         coEvery { repository.getCircuits() } returns Result.success(emptyList())
-        val viewModel = CircuitsViewModel(repository, appDataRefresh)
+        val viewModel = CircuitsViewModel(repository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.changeActivePage(3)
@@ -67,7 +67,7 @@ class CircuitsViewModelTest {
     @Test
     fun refreshAll_clearsCachesThenReloads() = runTest {
         coEvery { repository.getCircuits() } returns Result.success(listOf(sampleCircuit("spa")))
-        val viewModel = CircuitsViewModel(repository, appDataRefresh)
+        val viewModel = CircuitsViewModel(repository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.refreshAll()
@@ -82,7 +82,7 @@ class CircuitsViewModelTest {
         coEvery { repository.getCircuits() } returns Result.failure(
             AppError("offline").asException(),
         )
-        val viewModel = CircuitsViewModel(repository, appDataRefresh)
+        val viewModel = CircuitsViewModel(repository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.circuits is AsyncValue.Error)
@@ -94,7 +94,7 @@ class CircuitsViewModelTest {
         coEvery { repository.peekCircuitsCache() } returns cached
         coEvery { repository.getCircuits() } returns Result.success(cached)
 
-        val viewModel = CircuitsViewModel(repository, appDataRefresh)
+        val viewModel = CircuitsViewModel(repository, appDataRefresh, mockk(relaxed = true))
         advanceUntilIdle()
 
         assertEquals("silverstone", (viewModel.uiState.value.circuits as AsyncValue.Value).value[0].circuitId)

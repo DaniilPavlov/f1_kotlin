@@ -35,8 +35,10 @@ import com.example.f1_kotlin.domain.model.QualifyingResult
 import com.example.f1_kotlin.domain.model.Race
 import com.example.f1_kotlin.domain.model.RaceResult
 import com.example.f1_kotlin.ui.components.BlackButton
+import com.example.f1_kotlin.ui.components.CachedDataBanner
 import com.example.f1_kotlin.ui.components.ErrorBody
 import com.example.f1_kotlin.ui.components.LoadingIndicator
+import com.example.f1_kotlin.ui.components.OnAppResumed
 import com.example.f1_kotlin.ui.components.PitStopsTable
 import com.example.f1_kotlin.ui.components.QualifyingTable
 import com.example.f1_kotlin.ui.components.RacePickerField
@@ -65,8 +67,7 @@ fun ResultsScreen(
         onSearchRace: () -> Unit,
         onHallOfFame: () -> Unit,
         onSeasonRewind: () -> Unit = {},
-        onH2hDrivers: () -> Unit,
-        onH2hConstructors: () -> Unit,
+        onH2h: () -> Unit,
         onFinishStatus: () -> Unit,
         onRaceDetails: (Race) -> Unit,
         onDriverClick: (Driver) -> Unit,
@@ -76,11 +77,11 @@ fun ResultsScreen(
             uiState = uiState,
             onRetry = viewModel::refreshAll,
             onRefresh = viewModel::refreshAll,
+            onDismissOfflineBanner = viewModel::dismissOfflineBannerIfOnline,
             onSearchRace = onSearchRace,
             onHallOfFame = onHallOfFame,
             onSeasonRewind = onSeasonRewind,
-            onH2hDrivers = onH2hDrivers,
-            onH2hConstructors = onH2hConstructors,
+            onH2h = onH2h,
             onFinishStatus = onFinishStatus,
             onRaceDetails = onRaceDetails,
             onDriverClick = onDriverClick,
@@ -95,15 +96,16 @@ fun ResultsScreenContent(
         uiState: ResultsUiState,
         onRetry: () -> Unit = {},
         onRefresh: () -> Unit = {},
+        onDismissOfflineBanner: () -> Unit = {},
         onSearchRace: () -> Unit = {},
         onHallOfFame: () -> Unit = {},
         onSeasonRewind: () -> Unit = {},
-        onH2hDrivers: () -> Unit = {},
-        onH2hConstructors: () -> Unit = {},
+        onH2h: () -> Unit = {},
         onFinishStatus: () -> Unit = {},
         onRaceDetails: (Race) -> Unit = {},
         onDriverClick: (Driver) -> Unit = {},
 ) {
+    OnAppResumed(onResumed = onDismissOfflineBanner)
     PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = onRefresh,
@@ -115,6 +117,9 @@ fun ResultsScreenContent(
                                 .verticalScroll(rememberScrollState())
                                 .padding(bottom = AppDimens.verticalPadding.dp),
         ) {
+            if (uiState.showingCachedData) {
+                CachedDataBanner()
+            }
             WeekendScoreboardSection(uiState.scoreboard)
 
             when (val state = uiState.lastRace) {
@@ -182,12 +187,7 @@ fun ResultsScreenContent(
                     onClick = onSeasonRewind
             )
             Spacer(Modifier.height(12.dp))
-            BoxedAction(title = stringResource(R.string.h2h_title), onClick = onH2hDrivers)
-            Spacer(Modifier.height(12.dp))
-            BoxedAction(
-                    title = stringResource(R.string.h2h_constructors_title),
-                    onClick = onH2hConstructors
-            )
+            BoxedAction(title = stringResource(R.string.h2h_title), onClick = onH2h)
             Spacer(Modifier.height(12.dp))
             BoxedAction(
                     title = stringResource(R.string.finish_status_title),

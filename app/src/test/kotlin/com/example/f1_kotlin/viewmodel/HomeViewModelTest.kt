@@ -82,7 +82,7 @@ class HomeViewModelTest {
         coEvery { repository.getCurrentDriverStandings() } returns Result.success(Pair(drivers, meta))
         coEvery { repository.getCurrentConstructorStandings() } returns Result.success(constructors)
 
-        val viewModel = HomeViewModel(repository, mockk<AppDataRefresh>(relaxed = true))
+        val viewModel = HomeViewModel(repository, mockk<AppDataRefresh>(relaxed = true), mockk(relaxed = true))
         advanceUntilIdle()
 
         val state = viewModel.uiState.value

@@ -49,10 +49,10 @@ class H2hPointsTimelineTest {
     }
 
     @Test
-    fun fromScores_careerScope_usesSeasonRoundLabels() {
+    fun fromScores_careerScope_usesYearOnlyLabels() {
         val a = listOf(H2hRoundScore("2026", "3", "Japan", 12.0))
         val timeline = H2hPointsTimeline.fromScores(a, emptyList(), seasonScope = null)
-        assertEquals("2026 · R3", timeline.points.single().label)
+        assertEquals("2026", timeline.points.single().label)
         assertEquals(12.0, timeline.points.single().roundPointsA, 0.0)
         assertEquals(0.0, timeline.points.single().roundPointsB, 0.0)
     }
