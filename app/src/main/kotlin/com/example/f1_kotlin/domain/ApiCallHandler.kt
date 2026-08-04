@@ -1,5 +1,6 @@
 package com.example.f1_kotlin.domain
 
+import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import retrofit2.HttpException
@@ -13,6 +14,7 @@ import java.io.IOException
  */
 object ApiCallHandler {
 
+    private const val TAG = "F1Api"
     private const val DEFAULT_RETRIES = 1
     private const val RETRY_DELAY_MS = 400L
 
@@ -29,6 +31,7 @@ object ApiCallHandler {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: HttpException) {
+                logFailure("HTTP ${e.code()}", e)
                 lastError = e.toAppError().asException()
                 // Jolpica rate-limit — повторяем, execute(maxAttempts: 3).
                 if (e.code() == 429 && attempt < retries) {
@@ -38,6 +41,7 @@ object ApiCallHandler {
                     finished = true
                 }
             } catch (e: IOException) {
+                logFailure("IO", e)
                 lastError = e.toAppError().asException()
                 if (attempt < retries) {
                     delay(RETRY_DELAY_MS)
@@ -46,11 +50,19 @@ object ApiCallHandler {
                     finished = true
                 }
             } catch (e: Exception) {
+                logFailure("parse/other", e)
                 lastError = e.toAppError().asException()
                 finished = true
             }
         }
         return Result.failure(lastError!!)
+    }
+
+    private fun logFailure(kind: String, error: Throwable) {
+        // Logcat filter: `F1Api`. Wrapped — JVM unit tests have no android.util.Log.
+        runCatching {
+            Log.w(TAG, "API $kind: ${error.javaClass.simpleName}: ${error.message}", error)
+        }
     }
 }
 

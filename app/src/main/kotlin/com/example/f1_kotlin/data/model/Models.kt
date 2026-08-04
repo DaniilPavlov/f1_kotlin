@@ -80,7 +80,7 @@ data class DriverModel(
 @JsonClass(generateAdapter = true)
 data class ConstructorModel(
     val constructorId: String,
-    val url: String,
+    val url: String = "",
     val name: String,
     val nationality: String,
 )
@@ -106,7 +106,7 @@ data class RaceTableModel(
 data class RaceModel(
     val season: String,
     val round: String,
-    val url: String,
+    val url: String = "",
     val raceName: String,
     @Json(name = "Circuit") val circuit: CircuitModel,
     val date: String,
@@ -170,9 +170,10 @@ data class TimeModel(
 
 @JsonClass(generateAdapter = true)
 data class FastestLapModel(
-    val rank: String,
-    val lap: String,
-    @Json(name = "Time") val time: TimeModel,
+    /** Jolpica sprint results often omit rank. */
+    val rank: String = "",
+    val lap: String = "",
+    @Json(name = "Time") val time: TimeModel? = null,
     @Json(name = "AverageSpeed") val averageSpeed: AverageSpeedModel? = null,
 )
 
@@ -217,7 +218,7 @@ data class CircuitTableModel(
 @JsonClass(generateAdapter = true)
 data class CircuitModel(
     val circuitId: String,
-    val url: String,
+    val url: String = "",
     val circuitName: String,
     @Json(name = "Location") val location: CircuitLocationModel,
 )
@@ -303,6 +304,12 @@ data class H2hStats(
     val wins: Int,
     val podiums: Int,
     val poles: Int,
+)
+
+/** Stats + round scores из одного прохода results/sprint (для графика H2H). */
+data class H2hEntityCompareData(
+    val stats: H2hStats,
+    val scores: List<com.example.f1_kotlin.viewmodel.H2hRoundScore>,
 )
 
 @JsonClass(generateAdapter = true)

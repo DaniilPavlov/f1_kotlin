@@ -67,8 +67,7 @@ fun ResultsScreen(
         onSearchRace: () -> Unit,
         onHallOfFame: () -> Unit,
         onSeasonRewind: () -> Unit = {},
-        onH2hDrivers: () -> Unit,
-        onH2hConstructors: () -> Unit,
+        onH2h: () -> Unit,
         onFinishStatus: () -> Unit,
         onRaceDetails: (Race) -> Unit,
         onDriverClick: (Driver) -> Unit,
@@ -82,8 +81,7 @@ fun ResultsScreen(
             onSearchRace = onSearchRace,
             onHallOfFame = onHallOfFame,
             onSeasonRewind = onSeasonRewind,
-            onH2hDrivers = onH2hDrivers,
-            onH2hConstructors = onH2hConstructors,
+            onH2h = onH2h,
             onFinishStatus = onFinishStatus,
             onRaceDetails = onRaceDetails,
             onDriverClick = onDriverClick,
@@ -102,8 +100,7 @@ fun ResultsScreenContent(
         onSearchRace: () -> Unit = {},
         onHallOfFame: () -> Unit = {},
         onSeasonRewind: () -> Unit = {},
-        onH2hDrivers: () -> Unit = {},
-        onH2hConstructors: () -> Unit = {},
+        onH2h: () -> Unit = {},
         onFinishStatus: () -> Unit = {},
         onRaceDetails: (Race) -> Unit = {},
         onDriverClick: (Driver) -> Unit = {},
@@ -190,12 +187,7 @@ fun ResultsScreenContent(
                     onClick = onSeasonRewind
             )
             Spacer(Modifier.height(12.dp))
-            BoxedAction(title = stringResource(R.string.h2h_title), onClick = onH2hDrivers)
-            Spacer(Modifier.height(12.dp))
-            BoxedAction(
-                    title = stringResource(R.string.h2h_constructors_title),
-                    onClick = onH2hConstructors
-            )
+            BoxedAction(title = stringResource(R.string.h2h_title), onClick = onH2h)
             Spacer(Modifier.height(12.dp))
             BoxedAction(
                     title = stringResource(R.string.finish_status_title),

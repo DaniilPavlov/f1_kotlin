@@ -79,6 +79,7 @@ fun AuthRegisterScreen(
     )
 }
 
+@Suppress("LongMethod")
 @Composable
 fun AuthFormContent(
     isRegister: Boolean,

@@ -3,6 +3,7 @@ package com.example.f1_kotlin.data.repository
 import com.example.f1_kotlin.data.model.CareerStats
 import com.example.f1_kotlin.data.model.CircuitRaceWin
 import com.example.f1_kotlin.data.model.FinishStatusItem
+import com.example.f1_kotlin.data.model.H2hEntityCompareData
 import com.example.f1_kotlin.data.model.H2hStats
 import com.example.f1_kotlin.domain.model.Circuit
 import com.example.f1_kotlin.domain.model.Constructor
@@ -76,6 +77,16 @@ interface IF1Repository {
     suspend fun getDriverH2hStats(driverId: String, season: String? = null): Result<H2hStats>
 
     suspend fun getConstructorH2hStats(constructorId: String, season: String? = null): Result<H2hStats>
+
+    suspend fun getDriverH2hCompareData(
+        driverId: String,
+        season: String? = null,
+    ): Result<H2hEntityCompareData>
+
+    suspend fun getConstructorH2hCompareData(
+        constructorId: String,
+        season: String? = null,
+    ): Result<H2hEntityCompareData>
 
     suspend fun getSeasonFinishStatuses(year: String): Result<List<FinishStatusItem>>
 

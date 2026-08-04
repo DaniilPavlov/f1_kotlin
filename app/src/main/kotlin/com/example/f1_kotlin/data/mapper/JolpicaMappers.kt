@@ -97,7 +97,7 @@ fun AverageSpeedModel.toDomain() = AverageSpeed(units = units, speed = speed)
 fun FastestLapModel.toDomain() = FastestLap(
     rank = rank,
     lap = lap,
-    time = time.toDomain(),
+    time = time?.toDomain() ?: RaceTime(millis = null, time = ""),
     averageSpeed = averageSpeed?.toDomain(),
 )
 

@@ -19,22 +19,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BrightnessAuto
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -44,21 +41,15 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.f1_kotlin.F1Application
 import com.example.f1_kotlin.R
-import com.example.f1_kotlin.data.analytics.AnalyticsEvent
-import com.example.f1_kotlin.di.AppEntryPoint
-import com.example.f1_kotlin.domain.AppThemePreference
-import com.example.f1_kotlin.domain.LocaleController
-import com.example.f1_kotlin.domain.ThemeController
 import com.example.f1_kotlin.ui.theme.AppDimens
 import com.example.f1_kotlin.ui.theme.AppStyles
+import com.example.f1_kotlin.ui.theme.ConstructorColors
 import com.example.f1_kotlin.ui.theme.F1Chrome
 import com.example.f1_kotlin.ui.theme.F1OnChrome
 import com.example.f1_kotlin.ui.theme.F1Red
 import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.ui.views.F1TableHeaderView
-import dagger.hilt.android.EntryPointAccessors
 
 /**
  * Верхняя панель приложения.
@@ -121,7 +112,6 @@ fun F1AppBar(
                     .align(Alignment.Center),
                 contentScale = ContentScale.Fit,
             )
-            F1AppBarHomeActions(modifier = Modifier.align(Alignment.CenterEnd))
         }
     }
 }
@@ -141,68 +131,6 @@ private fun F1AppBarIconButton(
         contentAlignment = Alignment.Center,
         content = { content() },
     )
-}
-
-@Composable
-private fun F1AppBarHomeActions(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val language by LocaleController.language.collectAsState()
-    val themePreference by ThemeController.preference.collectAsState()
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Icon(
-            imageVector = when (themePreference) {
-                AppThemePreference.System -> Icons.Filled.BrightnessAuto
-                AppThemePreference.Light -> Icons.Filled.LightMode
-                AppThemePreference.Dark -> Icons.Filled.DarkMode
-            },
-            contentDescription = stringResource(R.string.theme_toggle),
-            tint = F1OnChrome,
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .clickable {
-                    val next = ThemeController.cycle(context)
-                    runCatching {
-                        EntryPointAccessors.fromApplication(
-                            context.applicationContext,
-                            AppEntryPoint::class.java,
-                        ).analyticsGateway().log(
-                            AnalyticsEvent.ThemeChanged(
-                                when (next) {
-                                    AppThemePreference.System -> "system"
-                                    AppThemePreference.Light -> "light"
-                                    AppThemePreference.Dark -> "dark"
-                                },
-                            ),
-                        )
-                    }
-                }
-                .padding(6.dp),
-        )
-        Text(
-            text = stringResource(
-                if (language == "en") R.string.locale_code_en else R.string.locale_code_ru,
-            ),
-            style = AppStyles.body.copy(color = F1OnChrome),
-            modifier = Modifier
-                .clip(CircleShape)
-                .clickable {
-                    val next = (context.applicationContext as? F1Application)?.toggleLocale()
-                        ?: LocaleController.toggle(context)
-                    runCatching {
-                        EntryPointAccessors.fromApplication(
-                            context.applicationContext,
-                            AppEntryPoint::class.java,
-                        ).analyticsGateway().log(AnalyticsEvent.LocaleChanged(next))
-                    }
-                }
-                .padding(8.dp),
-        )
-    }
 }
 
 /** Центрированный индикатор загрузки в фирменном красном. */
@@ -369,9 +297,11 @@ fun TableDataRow(
     index: Int,
     modifier: Modifier = Modifier,
     weights: List<Float>? = null,
+    constructorId: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val colors = appColors()
+    val accent = constructorId?.takeIf { it.isNotBlank() }?.let(ConstructorColors::forConstructorId)
     val rowDescription = cells.joinToString(separator = ", ") { cell ->
         when (cell) {
             is TableCell.Text -> cell.value
@@ -383,6 +313,15 @@ fun TableDataRow(
         modifier = modifier
             .fillMaxWidth()
             .background(if (index % 2 == 1) colors.grayBg else Color.Transparent)
+            .drawBehind {
+                if (accent != null) {
+                    drawRect(
+                        color = accent,
+                        topLeft = Offset.Zero,
+                        size = Size(3.dp.toPx(), size.height),
+                    )
+                }
+            }
             .semantics { contentDescription = rowDescription }
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 8.dp),
@@ -459,6 +398,7 @@ fun TableDataRow(
     highlight: Boolean = false,
     flagCellIndices: Set<Int> = emptySet(),
     weights: List<Float>? = null,
+    constructorId: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     TableDataRow(
@@ -472,6 +412,7 @@ fun TableDataRow(
         index = index,
         modifier = modifier,
         weights = weights,
+        constructorId = constructorId,
         onClick = onClick,
     )
 }

@@ -112,20 +112,15 @@ class AuthViewModel @Inject constructor(
 
     private fun validateRegister(): Boolean {
         val state = _uiState.value
-        if (state.email.trim().isEmpty() || state.password.isEmpty()) {
-            _uiState.update { it.copy(errorKey = AuthErrorKeys.EMPTY_FIELDS) }
-            return false
+        val errorKey = when {
+            state.email.trim().isEmpty() || state.password.isEmpty() -> AuthErrorKeys.EMPTY_FIELDS
+            !AuthFormValidators.isEmailFormatOk(state.email) -> AuthErrorKeys.INVALID_EMAIL
+            AuthFormValidators.isDisposableEmail(state.email) -> AuthErrorKeys.DISPOSABLE_EMAIL
+            !AuthFormValidators.isPasswordStrongEnough(state.password) -> AuthErrorKeys.WEAK_PASSWORD
+            else -> null
         }
-        if (!AuthFormValidators.isEmailFormatOk(state.email)) {
-            _uiState.update { it.copy(errorKey = AuthErrorKeys.INVALID_EMAIL) }
-            return false
-        }
-        if (AuthFormValidators.isDisposableEmail(state.email)) {
-            _uiState.update { it.copy(errorKey = AuthErrorKeys.DISPOSABLE_EMAIL) }
-            return false
-        }
-        if (!AuthFormValidators.isPasswordStrongEnough(state.password)) {
-            _uiState.update { it.copy(errorKey = AuthErrorKeys.WEAK_PASSWORD) }
+        if (errorKey != null) {
+            _uiState.update { it.copy(errorKey = errorKey) }
             return false
         }
         return true

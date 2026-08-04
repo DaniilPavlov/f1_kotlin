@@ -72,6 +72,7 @@ fun ProfileScreen(
     )
 }
 
+@Suppress("LongMethod", "LongParameterList")
 @Composable
 fun ProfileScreenContent(
     user: AuthUser?,

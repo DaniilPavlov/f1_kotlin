@@ -90,6 +90,7 @@ fun PredictorScreen(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun PredictorBody(
     viewModel: PredictorViewModel,

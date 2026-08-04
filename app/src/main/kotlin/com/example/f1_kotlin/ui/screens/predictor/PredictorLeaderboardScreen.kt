@@ -37,6 +37,7 @@ import com.example.f1_kotlin.ui.theme.appColors
 import com.example.f1_kotlin.viewmodel.PredictorAuthGateViewModel
 import com.example.f1_kotlin.viewmodel.PredictorLeaderboardViewModel
 
+@Suppress("LongMethod")
 @Composable
 fun PredictorLeaderboardScreen(
     viewModel: PredictorLeaderboardViewModel,

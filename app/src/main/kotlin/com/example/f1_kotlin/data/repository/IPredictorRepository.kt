@@ -1,5 +1,8 @@
 package com.example.f1_kotlin.data.repository
 
+import com.example.f1_kotlin.domain.predictor.PredictorLeaderboardEntry
+import com.example.f1_kotlin.domain.predictor.PredictorLeaderboardProfile
+import com.example.f1_kotlin.domain.predictor.PredictorLeaderboardResult
 import com.example.f1_kotlin.domain.predictor.PredictorSeason
 import com.example.f1_kotlin.domain.predictor.PredictorStore
 import com.example.f1_kotlin.domain.predictor.PredictorWeekendPrediction
@@ -13,11 +16,18 @@ interface IPredictorRepository {
 
 interface IPredictorLeaderboardRepository {
     val currentUid: String?
-    suspend fun loadProfile(): com.example.f1_kotlin.domain.predictor.PredictorLeaderboardProfile
-    suspend fun loadLeaderboard(year: String): List<com.example.f1_kotlin.domain.predictor.PredictorLeaderboardEntry>
-    suspend fun join(nickname: String, year: String, totalPoints: Int): com.example.f1_kotlin.domain.predictor.PredictorLeaderboardResult
-    suspend fun leave(year: String): com.example.f1_kotlin.domain.predictor.PredictorLeaderboardResult
-    suspend fun updateNickname(nickname: String, year: String): com.example.f1_kotlin.domain.predictor.PredictorLeaderboardResult
+    suspend fun loadProfile(): PredictorLeaderboardProfile
+    suspend fun loadLeaderboard(year: String): List<PredictorLeaderboardEntry>
+    suspend fun join(
+        nickname: String,
+        year: String,
+        totalPoints: Int,
+    ): PredictorLeaderboardResult
+    suspend fun leave(year: String): PredictorLeaderboardResult
+    suspend fun updateNickname(
+        nickname: String,
+        year: String,
+    ): PredictorLeaderboardResult
     suspend fun syncPoints(year: String, totalPoints: Int)
     fun clearMemoryCache()
 }

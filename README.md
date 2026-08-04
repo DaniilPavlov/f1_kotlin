@@ -1,31 +1,46 @@
 # F1 Kotlin
 
 Native Android app with Formula 1 stats  
-(standings, results, calendar, news, circuits).
+(standings, results, calendar, predictor, circuits, profile).
 
 Data:
 - [Jolpica F1 API](https://github.com/jolpica/jolpica-f1) (Ergast-compatible) — schedule, results, standings
-- [ESPN](https://site.api.espn.com/) — news, weekend scoreboard, driver photos
+- [ESPN](https://site.api.espn.com/) — news (on Home), weekend scoreboard, driver photos
 
 Same idea, other stacks:
 
 - [f1_pet_project](https://github.com/DaniilPavlov/f1_pet_project) — Flutter (Android / iOS / Web)
 - [f1_kmp](https://github.com/DaniilPavlov/f1_kmp) — Kotlin Multiplatform (Android / iOS)
 
+## Screenshots
+
+<p>
+  <img src="docs/screenshots/01_home_1.png" width="180" alt="Home standings" />
+  <img src="docs/screenshots/01_home_2.png" width="180" alt="Home news" />
+  <img src="docs/screenshots/02_results.png" width="180" alt="Results" />
+  <img src="docs/screenshots/03_schedule.png" width="180" alt="Schedule" />
+  <img src="docs/screenshots/04_predictor.png" width="180" alt="Predictor" />
+  <img src="docs/screenshots/05_circuits.png" width="180" alt="Circuits" />
+  <img src="docs/screenshots/06_race_info.png" width="180" alt="Race info" />
+  <img src="docs/screenshots/07_driver.png" width="180" alt="Driver" />
+  <img src="docs/screenshots/08_widgets.png" width="180" alt="Home widgets" />
+  <img src="docs/screenshots/09_profile.png" width="180" alt="Profile" />
+  <img src="docs/screenshots/10_rewind.png" width="180" alt="Season rewind" />
+  <img src="docs/screenshots/11_h2h_drivers.png" width="180" alt="H2H drivers" />
+</p>
+
 ## Stack
 
 | Layer | Tech |
 |------|------------|
-| UI | Jetpack Compose, Material 3, type-safe Navigation Compose (`kotlinx.serialization` routes) |
-| Presentation | One ViewModel file per screen; `*UiState` + `AsyncValue` |
-| Domain | Plain Kotlin models; `AppError` / `toAppError()`; `AppDataRefresh` |
-| DI | Hilt; `IF1Repository` / `IEspnRepository` bound with `@Binds` |
-| Network | Retrofit + OkHttp + Moshi DTOs; mappers DTO → domain |
-| Images | Coil |
+| UI | Jetpack Compose, Material 3, light/dark themes, type-safe Navigation Compose |
+| Presentation | `@HiltViewModel` + `StateFlow<*UiState>` / `AsyncValue` |
+| DI | Hilt (`IF1Repository`, `IEspnRepository`, auth/predictor repos) |
+| Network | Retrofit + OkHttp + Moshi DTOs → domain mappers |
 | Cache | Room (offline peek → refresh); ESPN in-memory TTL; soft `AppDataRefresh.clearAll` |
-| Time | java.time |
 | Map | OSMDroid + OSMBonusPack (Carto tiles) |
-| Backend | Firebase (Analytics, Crashlytics, Remote Config), AppMetrica |
+| Backend | Firebase (Core, Auth, Firestore, Analytics, Crashlytics, Remote Config), AppMetrica |
+| Tests | JVM unit (`app/src/test`, MockK) + Compose UI (`androidTest`, not in CI); Kover ≥75% |
 
 ### Differences from f1_pet_project (Flutter)
 
@@ -35,20 +50,24 @@ Same idea, other stacks:
 | Auto Route | Type-safe Navigation Compose |
 | Dio | Retrofit + Moshi |
 | Yandex MapKit | OSMDroid |
-| Local cache | Room |
+| Prefs / interceptors | Room |
 | Flutter widgets | Jetpack Compose |
 
 ## Architecture
 
-- **Navigation** — `@Serializable` route objects/classes in `F1Routes.kt`; destinations use `toRoute<T>()` / `SavedStateHandle.toRoute`.
-- **UiState** — each screen exposes a single `StateFlow<*UiState>`; loading/data/error via `AsyncValue`.
-- **Errors** — repositories return `Result`; failures map to `AppError` (`toAppError`) for UI.
-- **Repositories** — `IF1Repository` + `IEspnRepository` interfaces; concrete impls bound in Hilt (`RepositoryModule`).
-- **ViewModels** — one file per screen under `viewmodel/` (no giant shared files).
-- **Refresh** — `AppDataRefresh.clearAll()` soft-invalidates ESPN TTL + in-memory F1 caches (Room kept for offline); `refreshAll()` on main screens calls it before reload.
-- **Firebase** — `google-services` plugin + `app/google-services.json` (gitignored); bootstrap in `F1Application`; Analytics/Crashlytics off in debug. Project: `f1-kotlin`.
-- **AppMetrica** — bootstrap from `local.properties` (`appmetrica.apiKey`); empty key → skip.
+- **Layers** — Compose screens → `@HiltViewModel` → `I*Repository` → Retrofit / Room / Firebase. Screens do not call Retrofit, OkHttp, or DAOs.
+- **Jolpica** — `F1ApiService` only inside `F1Repository` via `ApiCallHandler.safeCall` → `Result`.
+- **ESPN** — `EspnApiService` / `@EspnClient` inside `EspnRepository`.
+- **Navigation** — `@Serializable` routes in `F1Routes.kt`; `composable<Route> { hiltViewModel() }` in `F1NavGraph.kt`.
+- **Refresh** — `AppDataRefresh.clearAll()` soft-invalidates ESPN TTL + in-memory F1 caches (Room kept for offline).
+- **Theme / locale** — `ThemeController`, `LocaleController` (RU/EN).
+- **Analytics** — typed `AnalyticsEvent` + `AnalyticsGateway` (Firebase + AppMetrica); screen_view on nav changes.
+- **Deep links** — `F1PetDeepLinks` / `DeepLinkBus` (`f1pet://driver|constructor|circuit/<id>`, `f1pet://race/live`, `f1pet://race/<season>/<round>`).
+- **Home widgets** — standings top-3 + next GP countdown (`widgets/`).
+- **Firebase** — bootstrap in `F1Application`; `google-services.json` gitignored; CI stub under `tool/ci/`. Project: `f1-kotlin`. Auth + Firestore for Profile / Predictor — see [`docs/firebase_setup.md`](docs/firebase_setup.md). App Check skipped for v1 (same practice as Flutter).
+- **AppMetrica** — `local.properties` `appmetrica.apiKey`; empty → skip.
 - **Remote Config** — `min_app_version` (force update).
+- **Logging** — `AppLogger` + OkHttp logging in debug.
 
 ## Structure
 
@@ -60,23 +79,26 @@ f1_kotlin/
 │       │   ├── assets/      # circuit layouts + circuit_stats.json
 │       │   ├── java/        # PendingIntent / BootCompleted helpers
 │       │   └── kotlin/com/example/f1_kotlin/
-│       │       ├── data/    # Jolpica + ESPN API, Room, Firebase, AppMetrica
+│       │       ├── data/    # API, Room, Firebase, AppMetrica, deeplink, analytics
 │       │       ├── domain/
 │       │       ├── di/
 │       │       ├── ui/
 │       │       ├── viewmodel/
+│       │       ├── widgets/
+│       │       ├── notifications/
 │       │       └── util/
-│       ├── test/            # JVM unit tests (MockK + coroutines-test)
+│       ├── test/            # JVM unit tests
 │       └── androidTest/     # Compose UI tests (not in CI)
-├── tool/ci/                 # google-services stub for CI / local without Firebase
+├── docs/                    # firebase_setup, screenshots
+├── tool/ci/                 # google-services stub
 └── .github/workflows/
 ```
 
 ## Requirements
 
-- JDK **17+** (CI uses Temurin **21**; app `jvmTarget` 11)
+- JDK **17+** (CI: Temurin **21**; app `jvmTarget` 11)
 - Android Studio / Android SDK
-- minSdk 30, targetSdk 36
+- minSdk **30**, targetSdk **37**
 
 ## Secrets
 
@@ -84,15 +106,14 @@ Not in git.
 
 ### Firebase (`f1-kotlin`)
 
-1. [Firebase Console](https://console.firebase.google.com/project/f1-kotlin/overview) → Project settings → Your apps  
-2. Add Android app with package **`com.example.f1_kotlin`** (if not added yet)  
-3. Download `google-services.json` → put at **`app/google-services.json`** (gitignored)  
-4. Enable **Analytics**, **Crashlytics**, **Remote Config** in the console  
-5. For Profile / Predictor: Auth (Email/Password), Firestore, App Check — see [`docs/firebase_setup.md`](docs/firebase_setup.md)
+1. [Firebase Console](https://console.firebase.google.com/project/f1-kotlin/overview) → Your apps  
+2. Android package **`com.example.f1_kotlin`** (+ debug SHA-1 fingerprint)  
+3. `app/google-services.json` (gitignored)  
+4. Enable Analytics, Crashlytics, Remote Config, Auth (Email/Password), Firestore — details in [`docs/firebase_setup.md`](docs/firebase_setup.md)
 
-Without a real file, Gradle copies `tool/ci/google-services.stub.json` so CI/local still builds.
+Without a real file, Gradle copies `tool/ci/google-services.stub.json`.
 
-Remote Config keys: `min_app_version` (string semver).
+Remote Config: `min_app_version` (string).
 
 ### AppMetrica
 
@@ -106,34 +127,32 @@ appmetrica.apiKey=...
 
 ```bash
 ./gradlew :app:assembleDebug
-# install on device/emulator:
 ./gradlew :app:installDebug
 ```
 
-In Android Studio: Run → **app** configuration.
+## Deep links
+
+```text
+f1pet://driver/<driverId>
+f1pet://constructor/<constructorId>
+f1pet://circuit/<circuitId>
+f1pet://race/live
+f1pet://race/<season>/<round>   # reminder tap → Results if that weekend is live, else Schedule
+```
 
 ## Tests
 
-**Unit (JVM)** — MockK + `kotlinx-coroutines-test` (+ Robolectric for Android APIs); coverage via **Kover** (gate **75%** on filtered business logic, same idea as `f1_kmp`):
+**Unit (JVM)** — MockK + `kotlinx-coroutines-test` (+ Robolectric where needed); **Kover** gate **≥75%** on filtered business logic:
 
 ```bash
 ./gradlew :app:testDebugUnitTest
-./gradlew :app:koverHtmlReportDebug       # HTML → app/build/reports/kover/htmlDebug/
-./gradlew :app:koverVerifyDebug           # fails if coverage < 75%
+./gradlew :app:koverHtmlReportDebug
+./gradlew :app:koverVerifyDebug
 ```
 
-CI runs `koverXmlReportDebug` + `koverHtmlReportDebug` + `koverVerifyDebug`.
+CI runs unit tests + Kover verify. Excluded from the gate (same idea as Flutter’s screen/l10n exclusions): UI / widgets / DI / notifications / Firebase bootstrap / Auth+Firestore predictor repos / heavy Predictor ViewModels / DTOs / `@Composable`. Covered: domain predictor services/models, auth form/VM, notifications prefs, widget format helpers, core ViewModels.
 
-UI / widgets / DI / Firebase / DTOs / `@Composable` are excluded from the gate (logic-focused)
-
-
-Covered areas include:
-
-- ViewModels: Home, Results (incl. ESPN hide-on-error), Schedule, Race search, H2H drivers, Finish status, Race info, Circuit detail, News
-- Domain / util: `ApiCallHandler`, `AppVersion`
-- Data: career loader, Jolpica mappers
-
-**Compose UI (`androidTest`)** — content composables (`HomeScreenContent`, `ResultsScreenContent`) without Hilt. Not run in CI (needs device/emulator):
+**Compose UI (`androidTest`)** — not in CI:
 
 ```bash
 ./gradlew :app:connectedDebugAndroidTest
@@ -143,35 +162,21 @@ Covered areas include:
 
 [![CI](https://github.com/DaniilPavlov/f1_kotlin/actions/workflows/ci.yml/badge.svg)](https://github.com/DaniilPavlov/f1_kotlin/actions/workflows/ci.yml)
 
-| Workflow | When | What it does |
-|----------|-------|------------|
-| `ci.yml` | push / PR to `master` | Firebase stub, detekt, debug APK, unit tests |
-| `release.yml` | tag `v*` or manual | Android APK (+ GitHub Release) |
+| Workflow | When | What |
+|----------|------|------|
+| `ci.yml` | push / PR → `master` | Firebase stub, detekt, debug APK, unit tests, Kover ≥75% |
+| `release.yml` | tag `v*` | APK + GitHub Release |
 
 ```bash
-./gradlew :app:detekt :app:testDebugUnitTest
+./gradlew :app:detekt :app:testDebugUnitTest :app:koverVerifyDebug
 ```
-
-Release:
 
 ```bash
 # version in app/build.gradle.kts must match the tag
-git tag v1.6.0
-git push origin v1.6.0
+git tag v2.0.0 && git push origin v2.0.0
 ```
 
-Release secrets (GitHub → Settings → Secrets):
-
-| Secret | Purpose |
-|--------|---------|
-| `GOOGLE_SERVICES_JSON` | Full `app/google-services.json` body (else CI stub) |
-| `APPMETRICA_API_KEY` | AppMetrica API key (else skipped) |
-| `ANDROID_KEYSTORE_BASE64` | Base64 of `upload-keystore.jks` |
-| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
-| `ANDROID_KEY_ALIAS` | Key alias (e.g. `upload`) |
-| `ANDROID_KEY_PASSWORD` | Key password |
-
-Without `ANDROID_KEYSTORE_*`, the release APK is built with **debug** signing.
+Release secrets: `ANDROID_KEYSTORE_*` (required for upload signing); `GOOGLE_SERVICES_JSON`, `APPMETRICA_API_KEY` (optional).
 
 ```bash
 keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
@@ -180,24 +185,23 @@ base64 -i upload-keystore.jks | pbcopy   # → ANDROID_KEYSTORE_BASE64
 
 ## Offline
 
-The app reads the local Room cache first (peek), then refreshes from the network.  
-If the network is unavailable but cache exists, the UI keeps the last known data.  
-ESPN news/scoreboard use a short in-memory TTL (no Room); scoreboard network failures hide the block instead of breaking Results.  
-Forced reload (`refreshAll`) soft-invalidates ESPN + in-memory caches via `AppDataRefresh` (Room kept as offline fallback).
+Room peek first, then network refresh. If offline with cache, UI keeps last known data. ESPN uses short in-memory TTL; scoreboard failures hide the block instead of breaking Results. `refreshAll` soft-invalidates via `AppDataRefresh` (Room kept).
 
 ## Features
 
-- **Home** — current season standings + ESPN headlines  
-- **Results** — weekend scoreboard (ESPN, live poll), latest race, race search, hall of fame, H2H (drivers / constructors), finish statuses  
-- **Calendar** — monthly calendar with session times; on empty days shows next GP card (layout + countdown); entry to circuits list; local reminders 30 min before  
-- **Predictor** — race weekend predictions (placeholder; cloud feature next)  
-- **Profile** — account (email/password Auth), theme/language, race reminders  
-- **Circuits** — list and map with pins/clusters, track layouts, length/laps/turns/speed/elevation, Wikipedia, winners history (from Calendar)  
-- **Driver / Constructor cards** — ESPN photos/news, career stats with tappable wins / podiums / poles lists  
-- **Localization** — Russian and English, toggle in the app bar without restarting the app  
-- **Reminders** — local notifications 30 minutes before a session (up to 10 upcoming; Remote Config can disable)  
-- **Force update** — blocking screen when below Remote Config `min_app_version`  
-- **Offline** — Room cache with instant peek and network refresh  
-- **Share** — career stats and race results as PNG via the system share sheet  
-- **Shimmer skeletons** — loading placeholders for main screens 
-- **Country flags** — nationality / country as emoji in tables, career cards, circuits, scoreboard  
+- **Home** — current season driver and constructor standings; ESPN headlines
+- **Results** — weekend scoreboard (live polling), latest race, race search, hall of fame, season rewind (animated racing-bar standings by round), H2H (drivers / constructors) with points-by-round chart, finish statuses
+- **Live race mode** — app-wide session banner while ESPN status is live; deep link `f1pet://race/live` → Results
+- **Calendar** — monthly calendar with session times; on empty days shows next GP card (layout + countdown); local reminders 30 min before; circuits list/map
+- **Predictor** — race/quali grid predictions (Auth + verified email + Firestore); lock before quali; season history, scoring, public leaderboard
+- **Profile** — account (email/password), theme, locale, race / practice reminder prefs
+- **Circuits** — list and map with pins/clusters, track layouts, length/laps/turns/speed/elevation, Wikipedia, winners history
+- **Driver / Constructor cards** — ESPN photos, career stats with tappable wins / podiums / poles lists, share as image
+- **Android home widgets** — top-3 standings + next GP countdown
+- **Themes** — system / light / dark
+- **A11y** — semantics on key lists and controls
+- **Localization** — Russian and English
+- **Force update** — blocking screen when below Remote Config `min_app_version`
+- **Share** — career / race / weekend as PNG via system share sheet
+- **Shimmer skeletons** — loading placeholders for main screens
+- **Country flags** — nationality / country as emoji in tables and cards

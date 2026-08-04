@@ -149,7 +149,9 @@
     <string name="races_load_error">Could not load races</string>
 
     <string name="hall_of_fame_title">Hall of Fame</string>
-    <string name="h2h_title">H2H · Drivers</string>
+    <string name="h2h_title">H2H</string>
+    <string name="h2h_mode_drivers">Drivers</string>
+    <string name="h2h_mode_constructors">Constructors</string>
     <string name="h2h_subtitle">Compare two drivers with filters for period and driver list</string>
     <string name="h2h_driver_a">Driver 1</string>
     <string name="h2h_driver_b">Driver 2</string>
@@ -242,7 +244,9 @@
     <string name="season_rewind_chart_hint">Full standings by points — scrub or hit Play</string>
     <string name="season_rewind_load_error">Could not load standings for this round</string>
     <string name="season_rewind_retry_subtitle">Try again — the API sometimes rate-limits rapid scrubbing.</string>
-    <string name="h2h_points_chart_title">Cumulative points</string>
+    <string name="h2h_points_chart_title">Points by round</string>
+    <string name="h2h_points_chart_subtitle">Cumulative championship points (race + sprint)</string>
+    <string name="h2h_points_chart_empty">No race results to compare</string>
     <string name="share_weekend_podium">Podium</string>
     <string name="widget_next_gp_title">Next GP</string>
     <string name="widget_next_gp_description">Countdown to the next Grand Prix</string>

@@ -45,6 +45,7 @@ class NotificationsPreference @Inject constructor(
     fun setPracticeRemindersEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_PRACTICE, enabled).apply()
         _practiceRemindersEnabled.update { enabled }
+        analytics.log(AnalyticsEvent.PracticeReminderToggled(enabled))
     }
 
     companion object {

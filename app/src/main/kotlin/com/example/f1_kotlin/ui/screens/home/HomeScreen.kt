@@ -87,6 +87,7 @@ fun HomeScreen(
 
 /** Testable content — no Hilt / ViewModel required. */
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Suppress("LongMethod")
 @Composable
 fun HomeScreenContent(
     uiState: HomeUiState,

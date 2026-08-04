@@ -187,6 +187,52 @@ class CareerLoaderTest {
         assertEquals(32.0, scores.single().points, 0.0) // 25 race + 7 sprint
     }
 
+    @Test
+    fun loadH2hCompareData_buildsStatsAndScoresTogether() = runTest {
+        coEvery { api.getMrDataTotal(any(), any(), any()) } answers {
+            val path = firstArg<String>()
+            when {
+                path.endsWith("/sprint") -> MrDataResponse(
+                    MrDataTotalModel(
+                        total = "1",
+                        raceTable = RaceTableModel(
+                            races = listOf(
+                                sampleWinRace().copy(
+                                    results = null,
+                                    sprintResults = listOf(
+                                        RaceResultModel(
+                                            number = "44",
+                                            position = "2",
+                                            positionText = "2",
+                                            points = "7",
+                                            driver = sampleDriver(),
+                                            constructor = ConstructorModel("mercedes", "", "Mercedes", "German"),
+                                            grid = "2",
+                                            laps = "19",
+                                            status = "Finished",
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                path.endsWith("/results") -> pageWithOptionalRace(total = "1", race = sampleWinRace())
+                path.contains("/qualifying/1") -> emptyPage("2")
+                else -> emptyPage("0")
+            }
+        }
+
+        val data = CareerLoader.loadH2hCompareData(api, "drivers/hamilton")
+
+        assertEquals(1, data.stats.races)
+        assertEquals(1, data.stats.wins)
+        assertEquals(1, data.stats.podiums)
+        assertEquals(2, data.stats.poles)
+        assertEquals(1, data.scores.size)
+        assertEquals(32.0, data.scores.single().points, 0.0)
+    }
+
     private fun stubTotalsByPathSuffix(
         vararg pairs: Pair<String, String>,
         matchFullPath: Boolean = false,

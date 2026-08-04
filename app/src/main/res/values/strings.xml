@@ -149,7 +149,9 @@
     <string name="races_load_error">Не удалось загрузить гонки</string>
 
     <string name="hall_of_fame_title">Зал славы</string>
-    <string name="h2h_title">H2H · Пилоты</string>
+    <string name="h2h_title">H2H</string>
+    <string name="h2h_mode_drivers">Пилоты</string>
+    <string name="h2h_mode_constructors">Конструкторы</string>
     <string name="h2h_subtitle">Сравните двух пилотов с фильтрами периода и списка</string>
     <string name="h2h_driver_a">Пилот 1</string>
     <string name="h2h_driver_b">Пилот 2</string>
@@ -238,7 +240,9 @@
     <string name="season_rewind_chart_hint">Все участники по очкам — двигайте слайдер или нажмите Play</string>
     <string name="season_rewind_load_error">Не удалось загрузить standings для этого раунда</string>
     <string name="season_rewind_retry_subtitle">Попробуйте ещё раз — API иногда ограничивает частоту запросов.</string>
-    <string name="h2h_points_chart_title">Накопленные очки</string>
+    <string name="h2h_points_chart_title">Очки по раундам</string>
+    <string name="h2h_points_chart_subtitle">Накопленные очки чемпионата (гонка + спринт)</string>
+    <string name="h2h_points_chart_empty">Нет результатов гонок для сравнения</string>
     <string name="share_weekend_podium">Подиум</string>
     <string name="widget_next_gp_title">Следующий ГП</string>
     <string name="widget_next_gp_description">Обратный отсчёт до следующего Гран-при</string>

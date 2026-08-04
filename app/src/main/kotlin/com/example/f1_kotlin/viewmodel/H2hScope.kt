@@ -1,11 +1,9 @@
 package com.example.f1_kotlin.viewmodel
 
-import com.example.f1_kotlin.data.model.H2hStats
+import com.example.f1_kotlin.data.model.H2hEntityCompareData
 import com.example.f1_kotlin.domain.AppError
 import com.example.f1_kotlin.domain.toAppError
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 data class H2hScopeState(
     val scopeMode: Int = 0,
@@ -34,39 +32,30 @@ data class H2hScopeState(
 }
 
 /**
- * Общий скелет H2H-сравнения: два параллельных fetch → ошибка или пара [H2hStats].
- *
- * GoF Behavioral Strategy — способ получения статистики выбирается на вызове:
- * [fetchA] / [fetchB] — взаимозаменяемые стратегии (драйверы / конструкторы / тесты).
+ * H2H compare: A then B sequentially (Jolpica throttle), one pass stats+scores each.
  */
 fun LoadJobHolder.launchH2hCompare(
     scope: CoroutineScope,
     canCompare: Boolean,
-    fetchA: suspend () -> Result<H2hStats>,
-    fetchB: suspend () -> Result<H2hStats>,
+    fetchA: suspend () -> Result<H2hEntityCompareData>,
+    fetchB: suspend () -> Result<H2hEntityCompareData>,
     onLoading: () -> Unit,
     onError: (AppError) -> Unit,
-    onSuccess: suspend (H2hStats, H2hStats) -> Unit,
+    onSuccess: suspend (H2hEntityCompareData, H2hEntityCompareData) -> Unit,
 ) {
     if (!canCompare) return
     launch(scope) {
         onLoading()
-        coroutineScope {
-            val statsADeferred = async { fetchA() }
-            val statsBDeferred = async { fetchB() }
-            val statsA = statsADeferred.await()
-            val statsB = statsBDeferred.await()
-            val leftErr = statsA.exceptionOrNull()?.toAppError()
-            if (leftErr != null) {
-                onError(leftErr)
-                return@coroutineScope
-            }
-            val rightErr = statsB.exceptionOrNull()?.toAppError()
-            if (rightErr != null) {
-                onError(rightErr)
-                return@coroutineScope
-            }
-            onSuccess(statsA.getOrThrow(), statsB.getOrThrow())
+        val dataA = fetchA()
+        dataA.exceptionOrNull()?.toAppError()?.let {
+            onError(it)
+            return@launch
         }
+        val dataB = fetchB()
+        dataB.exceptionOrNull()?.toAppError()?.let {
+            onError(it)
+            return@launch
+        }
+        onSuccess(dataA.getOrThrow(), dataB.getOrThrow())
     }
 }

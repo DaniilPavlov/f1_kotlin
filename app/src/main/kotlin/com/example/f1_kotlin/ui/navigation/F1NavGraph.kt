@@ -52,8 +52,8 @@ import com.example.f1_kotlin.ui.screens.circuits.CircuitsScreen
 import com.example.f1_kotlin.ui.screens.constructor.ConstructorDetailScreen
 import com.example.f1_kotlin.ui.screens.driver.DriverDetailScreen
 import com.example.f1_kotlin.ui.screens.finishstatus.FinishStatusScreen
-import com.example.f1_kotlin.ui.screens.h2h.H2hConstructorsScreen
-import com.example.f1_kotlin.ui.screens.h2h.H2hDriversScreen
+import com.example.f1_kotlin.ui.screens.h2h.H2hMode
+import com.example.f1_kotlin.ui.screens.h2h.H2hScreen
 import com.example.f1_kotlin.ui.screens.halloffame.HallOfFameScreen
 import com.example.f1_kotlin.ui.screens.home.HomeScreen
 import com.example.f1_kotlin.ui.screens.predictor.PredictorLeaderboardScreen
@@ -148,6 +148,19 @@ fun F1App() {
         entryPoint.deepLinkBus().targets.collectLatest { target ->
             navigateDeepLink(navController, target, liveController.isLive)
         }
+    }
+
+    LaunchedEffect(destination?.route) {
+        val route = destination?.route ?: return@LaunchedEffect
+        val screenName = route.substringBefore('?').substringBefore('/')
+            .substringAfterLast('.')
+            .ifBlank { route }
+        analytics.log(
+            AnalyticsEvent.ScreenView(
+                screenName = screenName,
+                screenClass = destination.route,
+            ),
+        )
     }
 
     val onDriverClick: (Driver) -> Unit = { driver ->
@@ -249,6 +262,7 @@ private fun navigateDeepLink(
     }
 }
 
+@Suppress("CyclomaticComplexMethod")
 @Composable
 private fun F1TopBar(
     destination: NavDestination?,
@@ -307,12 +321,9 @@ private fun F1TopBar(
             title = stringResource(com.example.f1_kotlin.R.string.season_rewind_title),
             onBack = popBack,
         )
-        destination?.hasRoute<H2hDrivers>() == true -> F1AppBar(
+        destination?.hasRoute<H2hDrivers>() == true ||
+            destination?.hasRoute<H2hConstructors>() == true -> F1AppBar(
             title = stringResource(com.example.f1_kotlin.R.string.h2h_title),
-            onBack = popBack,
-        )
-        destination?.hasRoute<H2hConstructors>() == true -> F1AppBar(
-            title = stringResource(com.example.f1_kotlin.R.string.h2h_constructors_title),
             onBack = popBack,
         )
         destination?.hasRoute<FinishStatus>() == true -> F1AppBar(
@@ -342,6 +353,7 @@ private fun F1TopBar(
     }
 }
 
+@Suppress("LongMethod")
 @Composable
 private fun F1NavHost(
     navController: NavHostController,
@@ -369,8 +381,7 @@ private fun F1NavHost(
                 onSearchRace = { navController.navigate(RaceSearch) },
                 onHallOfFame = { navController.navigate(HallOfFame) },
                 onSeasonRewind = { navController.navigate(SeasonRewind) },
-                onH2hDrivers = { navController.navigate(H2hDrivers) },
-                onH2hConstructors = { navController.navigate(H2hConstructors) },
+                onH2h = { navController.navigate(H2hDrivers) },
                 onFinishStatus = { navController.navigate(FinishStatus) },
                 onRaceDetails = { race ->
                     navController.navigate(RaceInfo(race.season, race.round))
@@ -398,10 +409,18 @@ private fun F1NavHost(
             SeasonRewindScreen(viewModel = hiltViewModel())
         }
         composable<H2hDrivers> {
-            H2hDriversScreen(viewModel = hiltViewModel())
+            H2hScreen(
+                driversViewModel = hiltViewModel(),
+                constructorsViewModel = hiltViewModel(),
+                initialMode = H2hMode.Drivers,
+            )
         }
         composable<H2hConstructors> {
-            H2hConstructorsScreen(viewModel = hiltViewModel())
+            H2hScreen(
+                driversViewModel = hiltViewModel(),
+                constructorsViewModel = hiltViewModel(),
+                initialMode = H2hMode.Constructors,
+            )
         }
         composable<FinishStatus> {
             FinishStatusScreen(viewModel = hiltViewModel())
