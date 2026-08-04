@@ -56,6 +56,8 @@ import com.example.f1_kotlin.ui.screens.h2h.H2hDriversScreen
 import com.example.f1_kotlin.ui.screens.halloffame.HallOfFameScreen
 import com.example.f1_kotlin.ui.screens.home.HomeScreen
 import com.example.f1_kotlin.ui.screens.predictor.PredictorScreen
+import com.example.f1_kotlin.ui.screens.profile.AuthRegisterScreen
+import com.example.f1_kotlin.ui.screens.profile.AuthSignInScreen
 import com.example.f1_kotlin.ui.screens.profile.ProfileScreen
 import com.example.f1_kotlin.ui.screens.results.RaceInfoScreen
 import com.example.f1_kotlin.ui.screens.results.RaceSearchScreen
@@ -250,7 +252,18 @@ private fun F1TopBar(
     shareAction: (() -> Unit)?,
 ) {
     when {
+        showBottomBar && destination?.hasRoute<Profile>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.profile_title),
+        )
         showBottomBar -> F1AppBar()
+        destination?.hasRoute<AuthSignIn>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.auth_sign_in_title),
+            onBack = popBack,
+        )
+        destination?.hasRoute<AuthRegister>() == true -> F1AppBar(
+            title = stringResource(com.example.f1_kotlin.R.string.auth_register_title),
+            onBack = popBack,
+        )
         destination?.hasRoute<RaceSearch>() == true -> F1AppBar(
             title = stringResource(com.example.f1_kotlin.R.string.race_search_title),
             onBack = popBack,
@@ -382,7 +395,34 @@ private fun F1NavHost(
             PredictorScreen()
         }
         composable<Profile> {
-            ProfileScreen()
+            ProfileScreen(
+                viewModel = hiltViewModel(),
+                onSignIn = { navController.navigate(AuthSignIn) },
+            )
+        }
+        composable<AuthSignIn> {
+            AuthSignInScreen(
+                viewModel = hiltViewModel(),
+                onSuccess = { navController.popBackStack() },
+                onGoRegister = {
+                    navController.navigate(AuthRegister) {
+                        popUpTo(AuthSignIn) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        composable<AuthRegister> {
+            AuthRegisterScreen(
+                viewModel = hiltViewModel(),
+                onSuccess = { navController.popBackStack() },
+                onGoSignIn = {
+                    navController.navigate(AuthSignIn) {
+                        popUpTo(AuthRegister) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable<Circuits> {
             CircuitsScreen(

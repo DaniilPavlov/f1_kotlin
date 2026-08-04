@@ -7,6 +7,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object Schedule
 @Serializable data object Predictor
 @Serializable data object Profile
+@Serializable data object AuthSignIn
+@Serializable data object AuthRegister
 @Serializable data object Circuits
 @Serializable data object RaceSearch
 @Serializable data object HallOfFame

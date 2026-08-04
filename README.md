@@ -190,8 +190,8 @@ Forced reload (`refreshAll`) soft-invalidates ESPN + in-memory caches via `AppDa
 - **Home** — current season standings + ESPN headlines  
 - **Results** — weekend scoreboard (ESPN, live poll), latest race, race search, hall of fame, H2H (drivers / constructors), finish statuses  
 - **Calendar** — monthly calendar with session times; on empty days shows next GP card (layout + countdown); entry to circuits list; local reminders 30 min before  
-- **Predictor** — race weekend predictions (placeholder; full feature coming)  
-- **Profile** — account and settings (placeholder; Auth coming)  
+- **Predictor** — race weekend predictions (placeholder; cloud feature next)  
+- **Profile** — account (email/password Auth), theme/language, race reminders  
 - **Circuits** — list and map with pins/clusters, track layouts, length/laps/turns/speed/elevation, Wikipedia, winners history (from Calendar)  
 - **Driver / Constructor cards** — ESPN photos/news, career stats with tappable wins / podiums / poles lists  
 - **Localization** — Russian and English, toggle in the app bar without restarting the app  

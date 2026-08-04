@@ -1,7 +1,9 @@
 package com.example.f1_kotlin.di
 
+import com.example.f1_kotlin.data.repository.AuthRepository
 import com.example.f1_kotlin.data.repository.EspnRepository
 import com.example.f1_kotlin.data.repository.F1Repository
+import com.example.f1_kotlin.data.repository.IAuthRepository
 import com.example.f1_kotlin.data.repository.IEspnRepository
 import com.example.f1_kotlin.data.repository.IF1Repository
 import dagger.Binds
@@ -20,4 +22,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindEspnRepository(impl: EspnRepository): IEspnRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: AuthRepository): IAuthRepository
 }
