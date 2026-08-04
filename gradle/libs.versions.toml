@@ -25,7 +25,7 @@ room = "2.8.4"
 coroutines = "1.11.0"
 kotlinxSerialization = "1.11.0"
 mockk = "1.14.11"
-robolectric = "4.14.1"
+robolectric = "4.16.1"
 coil = "2.7.0"
 appmetrica = "8.4.1"
 
