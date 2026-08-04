@@ -74,7 +74,6 @@
     <string name="profile_notifications_section">Уведомления</string>
     <string name="profile_race_reminders">Напоминания о сессиях</string>
     <string name="profile_race_reminders_subtitle">За 30 минут до старта</string>
-    <string name="profile_race_reminders_disabled_by_remote">Напоминания отключены удалённо</string>
     <string name="profile_practice_reminders">Напоминания о практиках</string>
     <string name="profile_practice_reminders_subtitle">FP1, FP2, FP3</string>
 

@@ -106,6 +106,17 @@ class AuthRepository @Inject constructor() : IAuthRepository {
         }
     }
 
+    override suspend fun refreshIdToken(): Boolean {
+        val user = auth.currentUser ?: return false
+        return try {
+            user.getIdToken(true).await()
+            true
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "refreshIdToken failed", e)
+            false
+        }
+    }
+
     override suspend fun signOut() {
         auth.signOut()
     }

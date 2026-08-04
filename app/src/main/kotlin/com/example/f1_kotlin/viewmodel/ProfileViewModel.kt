@@ -40,9 +40,6 @@ class ProfileViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    val canToggleReminders: Boolean
-        get() = notificationsPreference.canToggle
-
     val canTogglePractice: Boolean
         get() = notificationsPreference.canTogglePractice
 

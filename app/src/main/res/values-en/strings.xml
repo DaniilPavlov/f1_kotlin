@@ -74,7 +74,6 @@
     <string name="profile_notifications_section">Notifications</string>
     <string name="profile_race_reminders">Race reminders</string>
     <string name="profile_race_reminders_subtitle">30 minutes before sessions</string>
-    <string name="profile_race_reminders_disabled_by_remote">Reminders are disabled remotely</string>
     <string name="profile_practice_reminders">Practice reminders</string>
     <string name="profile_practice_reminders_subtitle">FP1, FP2, FP3</string>
 

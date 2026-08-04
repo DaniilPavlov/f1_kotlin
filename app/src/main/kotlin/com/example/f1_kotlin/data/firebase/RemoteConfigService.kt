@@ -20,15 +20,11 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  * Обёртка над Firebase Remote Config.
  *
  * Ключи (defaults при фейле fetch):
- * - [LOCAL_NOTIFICATIONS_ENABLED_KEY] — bool, default true
  * - [MIN_APP_VERSION_KEY] — semver string, default "0.0.0"
  */
 @Singleton
 class RemoteConfigService @Inject constructor() {
     private val remoteConfig: FirebaseRemoteConfig by lazy { FirebaseRemoteConfig.getInstance() }
-
-    val localNotificationsEnabled: Boolean
-        get() = remoteConfig.getBoolean(LOCAL_NOTIFICATIONS_ENABLED_KEY)
 
     val minAppVersion: String
         get() = remoteConfig.getString(MIN_APP_VERSION_KEY)
@@ -44,19 +40,14 @@ class RemoteConfigService @Inject constructor() {
         )
         awaitTask(
             remoteConfig.setDefaultsAsync(
-                mapOf(
-                    LOCAL_NOTIFICATIONS_ENABLED_KEY to true,
-                    MIN_APP_VERSION_KEY to "0.0.0",
-                ),
+                mapOf(MIN_APP_VERSION_KEY to "0.0.0"),
             ),
         )
         try {
             val activated = awaitTask(remoteConfig.fetchAndActivate())
             AppLogger.d(
                 TAG,
-                "Remote Config activated=$activated, " +
-                    "$LOCAL_NOTIFICATIONS_ENABLED_KEY=$localNotificationsEnabled, " +
-                    "$MIN_APP_VERSION_KEY=$minAppVersion",
+                "Remote Config activated=$activated, $MIN_APP_VERSION_KEY=$minAppVersion",
             )
         } catch (e: Exception) {
             AppLogger.w(TAG, "Remote Config fetch failed, using defaults", e)
@@ -84,7 +75,6 @@ class RemoteConfigService @Inject constructor() {
     }
 
     companion object {
-        const val LOCAL_NOTIFICATIONS_ENABLED_KEY = "local_notifications_enabled"
         const val MIN_APP_VERSION_KEY = "min_app_version"
         private const val TAG = "RemoteConfig"
 

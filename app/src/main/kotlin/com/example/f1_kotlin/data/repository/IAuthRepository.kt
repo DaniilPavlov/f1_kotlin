@@ -17,6 +17,8 @@ interface IAuthRepository {
     suspend fun sendPasswordResetEmail(email: String): AuthResult
     suspend fun sendEmailVerification(): AuthResult
     suspend fun refreshEmailVerification(): Boolean
+    /** Принудительно обновляет ID token (нужно для Firestore rules `email_verified`). */
+    suspend fun refreshIdToken(): Boolean
     suspend fun signOut()
     suspend fun ensureUserDocument()
 }

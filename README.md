@@ -48,7 +48,7 @@ Same idea, other stacks:
 - **Refresh** — `AppDataRefresh.clearAll()` soft-invalidates ESPN TTL + in-memory F1 caches (Room kept for offline); `refreshAll()` on main screens calls it before reload.
 - **Firebase** — `google-services` plugin + `app/google-services.json` (gitignored); bootstrap in `F1Application`; Analytics/Crashlytics off in debug. Project: `f1-kotlin`.
 - **AppMetrica** — bootstrap from `local.properties` (`appmetrica.apiKey`); empty key → skip.
-- **Remote Config** — `min_app_version` (force update), `local_notifications_enabled` (reminder kill-switch).
+- **Remote Config** — `min_app_version` (force update).
 
 ## Structure
 
@@ -92,7 +92,7 @@ Not in git.
 
 Without a real file, Gradle copies `tool/ci/google-services.stub.json` so CI/local still builds.
 
-Remote Config keys: `local_notifications_enabled` (bool), `min_app_version` (string semver).
+Remote Config keys: `min_app_version` (string semver).
 
 ### AppMetrica
 

@@ -60,7 +60,6 @@ fun ProfileScreen(
         uiState = uiState,
         raceRemindersEnabled = viewModel.effectivelyEnabled,
         practiceRemindersEnabled = viewModel.practiceEffectivelyEnabled,
-        canToggleReminders = viewModel.canToggleReminders,
         canTogglePractice = viewModel.canTogglePractice,
         onClearToast = viewModel::clearToast,
         onSignIn = onSignIn,
@@ -79,7 +78,6 @@ fun ProfileScreenContent(
     uiState: ProfileUiState,
     raceRemindersEnabled: Boolean,
     practiceRemindersEnabled: Boolean,
-    canToggleReminders: Boolean,
     canTogglePractice: Boolean,
     onClearToast: () -> Unit,
     onSignIn: () -> Unit,
@@ -228,15 +226,9 @@ fun ProfileScreenContent(
         Spacer(Modifier.height(8.dp))
         ProfileSwitchRow(
             title = stringResource(R.string.profile_race_reminders),
-            subtitle = stringResource(
-                if (canToggleReminders) {
-                    R.string.profile_race_reminders_subtitle
-                } else {
-                    R.string.profile_race_reminders_disabled_by_remote
-                },
-            ),
+            subtitle = stringResource(R.string.profile_race_reminders_subtitle),
             checked = raceRemindersEnabled,
-            enabled = canToggleReminders,
+            enabled = true,
             onCheckedChange = onRaceRemindersChange,
         )
         ProfileSwitchRow(

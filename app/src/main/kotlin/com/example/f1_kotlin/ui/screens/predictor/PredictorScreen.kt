@@ -70,13 +70,14 @@ fun PredictorScreen(
     ) {
         val uiState by viewModel.uiState.collectAsState()
         when {
+            uiState.isLoading && uiState.races.isEmpty() ->
+                LoadingIndicator(Modifier.fillMaxSize())
             uiState.error != null && uiState.races.isEmpty() -> ErrorBody(
                 title = uiState.error?.title,
                 subtitle = uiState.error?.subtitle,
                 onRetry = viewModel::refreshAll,
                 modifier = Modifier.fillMaxSize(),
             )
-            uiState.isLoading -> LoadingIndicator(Modifier.fillMaxSize())
             else -> PredictorBody(
                 viewModel = viewModel,
                 uiState = uiState,
@@ -122,6 +123,13 @@ private fun PredictorBody(
                 .padding(horizontal = AppDimens.horizontalPadding.dp)
                 .padding(vertical = AppDimens.verticalPadding.dp),
         ) {
+            uiState.error?.let { err ->
+                Text(
+                    text = listOfNotNull(err.title, err.subtitle).joinToString("\n"),
+                    style = AppStyles.caption.copy(color = F1Red),
+                )
+                Spacer(Modifier.height(12.dp))
+            }
             Text(
                 text = stringResource(
                     R.string.predictor_season_points,

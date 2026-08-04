@@ -20,6 +20,7 @@ import com.example.f1_kotlin.domain.predictor.PredictorSeasonSummary
 import com.example.f1_kotlin.domain.predictor.PredictorStore
 import com.example.f1_kotlin.domain.predictor.PredictorWeekendPrediction
 import com.example.f1_kotlin.domain.toAppError
+import com.example.f1_kotlin.util.AppLogger
 import com.example.f1_kotlin.util.CountdownParts
 import com.example.f1_kotlin.util.RaceDateTimeHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,11 +69,11 @@ class PredictorViewModel @Inject constructor(
 
     val canUsePredictor: StateFlow<Boolean> = authRepository.userChanges
         .map { authRepository.canUsePredictor }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), authRepository.canUsePredictor)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, authRepository.canUsePredictor)
 
     val isSignedIn: StateFlow<Boolean> = authRepository.userChanges
         .map { it != null }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), authRepository.isSignedIn)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, authRepository.isSignedIn)
 
     private val _uiState = MutableStateFlow(PredictorUiState())
     val uiState: StateFlow<PredictorUiState> = _uiState.asStateFlow()
@@ -220,13 +221,16 @@ class PredictorViewModel @Inject constructor(
     private suspend fun loadInternal(clearCaches: Boolean) {
         _uiState.update {
             it.copy(
-                isLoading = !clearCaches && it.error == null && it.races.isEmpty(),
-                isRefreshing = clearCaches || it.races.isNotEmpty(),
+                isLoading = it.races.isEmpty(),
+                isRefreshing = it.races.isNotEmpty() || clearCaches,
                 error = null,
             )
         }
         try {
             if (clearCaches) appDataRefresh.clearAll()
+
+            // Firestore rules читают claim email_verified из ID token.
+            authRepository.refreshIdToken()
 
             val scheduleResult = f1Repository.getCurrentSchedule()
             val driversResult = f1Repository.getCurrentDrivers()
@@ -234,6 +238,7 @@ class PredictorViewModel @Inject constructor(
             val drivers = driversResult.getOrElse { throw it }
                 .filter { PredictorOrder.hasUsableDriverCode(it) }
             val driversById = drivers.associateBy { it.driverId }
+            val rosterIds = drivers.map { it.driverId }
 
             var constructorsByDriver = emptyMap<String, Constructor>()
             var championshipOrder = emptyList<String>()
@@ -245,27 +250,48 @@ class PredictorViewModel @Inject constructor(
                 championshipOrder = sorted.map { it.driver.driverId }
             }
 
-            val store = predictorRepository.load()
+            // Сначала показываем расписание/ростер — Firestore не должен держать спиннер вечно.
             _uiState.update {
                 it.copy(
                     races = schedule,
                     driversById = driversById,
                     constructorsByDriverId = constructorsByDriver,
                     championshipDriverOrder = championshipOrder,
-                    store = store,
                     now = ZonedDateTime.now(),
+                    isLoading = false,
+                    isRefreshing = true,
                 )
             }
 
-            ensureCurrentDraft()
-            scoreAllPending()
-            syncLeaderboardPoints()
-            startTicker()
-
-            _uiState.update {
-                it.copy(isLoading = false, isRefreshing = false, error = null)
+            val store = try {
+                predictorRepository.load()
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "predictor store load failed", e)
+                _uiState.update {
+                    it.copy(
+                        store = PredictorStore.empty(),
+                        error = e.toAppError(),
+                        isRefreshing = false,
+                    )
+                }
+                return
             }
+
+            _uiState.update { it.copy(store = store, error = null) }
+
+            try {
+                ensureCurrentDraft(rosterIds)
+                scoreAllPending()
+                syncLeaderboardPoints()
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "predictor draft/score failed", e)
+                _uiState.update { it.copy(error = e.toAppError()) }
+            }
+
+            startTicker()
+            _uiState.update { it.copy(isRefreshing = false) }
         } catch (e: Exception) {
+            AppLogger.e(TAG, "predictor load failed", e)
             stopTicker()
             _uiState.update {
                 it.copy(isLoading = false, isRefreshing = false, error = e.toAppError())
@@ -273,10 +299,11 @@ class PredictorViewModel @Inject constructor(
         }
     }
 
-    private suspend fun ensureCurrentDraft() {
+    private suspend fun ensureCurrentDraft(rosterIdsOverride: List<String>? = null) {
         val state = _uiState.value
         val race = upcomingRace(state)
-        val rosterIds = state.driversById.keys.toList()
+        val rosterIds = rosterIdsOverride
+            ?: state.driversById.values.map { it.driverId }
         if (race == null || rosterIds.isEmpty()) {
             _uiState.update {
                 it.copy(draftQualifyingOrder = emptyList(), draftRaceOrder = emptyList())
@@ -310,8 +337,10 @@ class PredictorViewModel @Inject constructor(
                 val locked = existing.copy(
                     lockedAt = PredictorLock.lockAt(race)?.toInstant() ?: Instant.now(),
                 )
-                val next = predictorRepository.saveWeekend(year, locked)
-                _uiState.update { it.copy(store = next) }
+                runCatching {
+                    val next = predictorRepository.saveWeekend(year, locked)
+                    _uiState.update { it.copy(store = next) }
+                }.onFailure { AppLogger.e(TAG, "stamp lockedAt failed", it) }
             }
             return
         }
@@ -348,8 +377,19 @@ class PredictorViewModel @Inject constructor(
             actualQualifyingOrder = previous?.actualQualifyingOrder,
             actualRaceOrder = previous?.actualRaceOrder,
         )
-        val next = predictorRepository.saveWeekend(y, weekend)
-        _uiState.update { it.copy(store = next) }
+        try {
+            val next = predictorRepository.saveWeekend(y, weekend)
+            _uiState.update { it.copy(store = next) }
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "persistDraft failed", e)
+            // Держим драфт в памяти даже если Firestore недоступен.
+            _uiState.update {
+                it.copy(
+                    store = it.store.upsertWeekend(y, weekend),
+                    error = e.toAppError(),
+                )
+            }
+        }
     }
 
     private suspend fun scoreAllPending() {
@@ -374,7 +414,9 @@ class PredictorViewModel @Inject constructor(
     private suspend fun syncLeaderboardPoints() {
         val state = _uiState.value
         val year = seasonYear(state) ?: return
-        leaderboardRepository.syncPoints(year, seasonTotalPoints(state))
+        runCatching {
+            leaderboardRepository.syncPoints(year, seasonTotalPoints(state))
+        }.onFailure { AppLogger.w(TAG, "syncLeaderboardPoints failed", it) }
     }
 
     private fun startTicker() {
@@ -401,10 +443,12 @@ class PredictorViewModel @Inject constructor(
         val race = upcomingRace(after)
         val nextKey = race?.let { "${it.season}_${it.round}" }
         if (nextKey != boundDraftKey) {
-            ensureCurrentDraft()
+            runCatching { ensureCurrentDraft() }
+                .onFailure { AppLogger.e(TAG, "ensureCurrentDraft on tick failed", it) }
         }
         if (race != null && !wasLocked && PredictorLock.isLocked(race, after.now)) {
-            onBecameLocked(race)
+            runCatching { onBecameLocked(race) }
+                .onFailure { AppLogger.e(TAG, "onBecameLocked failed", it) }
         }
     }
 
@@ -423,5 +467,9 @@ class PredictorViewModel @Inject constructor(
     override fun onCleared() {
         stopTicker()
         super.onCleared()
+    }
+
+    companion object {
+        private const val TAG = "PredictorViewModel"
     }
 }

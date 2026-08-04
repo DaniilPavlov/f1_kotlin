@@ -87,6 +87,18 @@ leaderboards/{year}/entries/{uid}
 - Registration sends email verification.
 - Predictor cloud features gated until `emailVerified`.
 - Leaderboard requires nickname + explicit opt-in; leave removes the public entry.
+
+## Debug SHA-1 (если Auth/Firestore/GMS `DEVELOPER_ERROR`)
+
+Firebase Android app must include the **debug** keystore SHA-1:
+
+```bash
+keytool -list -v -alias androiddebugkey \
+  -keystore ~/.android/debug.keystore -storepass android -keypass android
+```
+
+Console → Project settings → Your apps → `com.example.f1_kotlin` → Add fingerprint → download fresh `google-services.json` if prompted.
+
 ## Not needed yet
 
 App Check, Storage, Cloud Messaging, Anonymous Auth, iOS app.

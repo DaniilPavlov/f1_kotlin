@@ -3,7 +3,6 @@ package com.example.f1_kotlin.domain
 import android.content.Context
 import com.example.f1_kotlin.data.analytics.AnalyticsEvent
 import com.example.f1_kotlin.data.analytics.AnalyticsGateway
-import com.example.f1_kotlin.data.firebase.RemoteConfigService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,12 +12,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * Локальные предпочтения напоминаний (SharedPreferences) + Remote Config gate.
+ * Локальные предпочтения напоминаний (SharedPreferences).
  */
 @Singleton
 class NotificationsPreference @Inject constructor(
     @ApplicationContext context: Context,
-    private val remoteConfig: RemoteConfigService,
     private val analytics: AnalyticsGateway,
 ) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -29,17 +27,11 @@ class NotificationsPreference @Inject constructor(
     private val _practiceRemindersEnabled = MutableStateFlow(prefs.getBoolean(KEY_PRACTICE, true))
     val practiceRemindersEnabled: StateFlow<Boolean> = _practiceRemindersEnabled.asStateFlow()
 
-    val remoteAllowsReminders: Boolean
-        get() = remoteConfig.localNotificationsEnabled
-
-    val canToggle: Boolean
-        get() = remoteAllowsReminders
-
     val canTogglePractice: Boolean
-        get() = remoteAllowsReminders && _raceRemindersEnabled.value
+        get() = _raceRemindersEnabled.value
 
     val effectivelyEnabled: Boolean
-        get() = remoteAllowsReminders && _raceRemindersEnabled.value
+        get() = _raceRemindersEnabled.value
 
     val practiceRemindersEffectivelyEnabled: Boolean
         get() = effectivelyEnabled && _practiceRemindersEnabled.value

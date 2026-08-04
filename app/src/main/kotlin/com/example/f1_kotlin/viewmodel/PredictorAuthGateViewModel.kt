@@ -17,9 +17,9 @@ class PredictorAuthGateViewModel @Inject constructor(
 ) : ViewModel() {
     val canUsePredictor: StateFlow<Boolean> = authRepository.userChanges
         .map { authRepository.canUsePredictor }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), authRepository.canUsePredictor)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, authRepository.canUsePredictor)
 
     val isSignedIn: StateFlow<Boolean> = authRepository.userChanges
         .map { it != null }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), authRepository.isSignedIn)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, authRepository.isSignedIn)
 }
