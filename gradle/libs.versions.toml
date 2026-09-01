@@ -73,7 +73,7 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx", version = "22.5.0" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version = "20.1.0" }
-firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx", version = "23.2.0" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx", version = "23.2.1" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx", version = "25.1.2" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version = "22.1.2" }
