@@ -27,7 +27,7 @@ kotlinxSerialization = "1.11.0"
 mockk = "1.14.11"
 robolectric = "4.16.1"
 coil = "2.7.0"
-appmetrica = "8.4.1"
+appmetrica = "8.5.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
