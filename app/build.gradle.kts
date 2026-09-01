@@ -205,7 +205,7 @@ kover {
 configurations.configureEach {
     resolutionStrategy {
         // Avoid androidx.fragment:1.5.4 which Google Maven intermittently 404s.
-        force("androidx.fragment:fragment:1.8.9")
+        force("androidx.fragment:fragment:1.9.0")
     }
 }
 
